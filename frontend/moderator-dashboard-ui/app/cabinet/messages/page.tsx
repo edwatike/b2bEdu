@@ -47,6 +47,8 @@ function MessagesPage() {
   const [openMessageError, setOpenMessageError] = useState<string | null>(null)
   const [isUnspamming, setIsUnspamming] = useState(false)
   const [fullScreenOpen, setFullScreenOpen] = useState(false)
+  const [webmailOpen, setWebmailOpen] = useState(false)
+  const [webmailFullScreenOpen, setWebmailFullScreenOpen] = useState(false)
   const [search, setSearch] = useState("")
   const [debouncedSearch, setDebouncedSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
@@ -598,24 +600,21 @@ function MessagesPage() {
                 </Button>
                 <Button
                   variant={webmailOpen ? "secondary" : "outline"}
-                  size= письмо
+                  size="sm"
+                  onClick={() => setWebmailOpen((v) => !v)}
+                >
+                  {webmailOpen ? "Закрыть Webmail" : "Открыть Webmail"}
                 </Button>
               </div>
             </div>
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <div className="rounded-lg border border-slate-700/60 bg-slate-900/40 p-6 text-slate-300">
-                Загружаем письма...
-              </div>
+              <div className="rounded-lg border border-slate-700/60 bg-slate-900/40 p-6 text-slate-300">Загружаем письма...</div>
             ) : error ? (
-              <div className="rounded-lg border border-rose-500/40 bg-rose-500/10 p-6 text-rose-100">
-                {error}
-              </div>
+              <div className="rounded-lg border border-rose-500/40 bg-rose-500/10 p-6 text-rose-100">{error}</div>
             ) : filteredMessages.length === 0 ? (
-              <div className="rounded-lg border border-slate-700/60 bg-slate-900/40 p-6 text-slate-300">
-                Пока нет писем.
-              </div>
+              <div className="rounded-lg border border-slate-700/60 bg-slate-900/40 p-6 text-slate-300">Пока нет писем.</div>
             ) : webmailOpen ? (
               <div className="h-[70vh] w-full overflow-hidden rounded-lg border border-slate-700/60 bg-slate-950/20">
                 <div className="flex items-center justify-between gap-3 border-b border-slate-700/60 px-3 py-2">
@@ -630,367 +629,53 @@ function MessagesPage() {
                   </div>
                 </div>
                 <iframe className="h-full w-full" src="/webmail" title="roundcube-embedded" />
-              </        folder === "inbox" ? "bg-slate-900/70 text-white" : "text-slate-200 hover:bg-slate-900/50",
-                      )}
-                    >
-                      <span className="flex items-center justify-between gap-2">
-                        <span>Входящие</span>
-                        {yandexFolderCounts.inbox && (
-                          <span className="text-xs text-slate-300">{yandexFolderCounts.inbox.total}</span>
-                        )}
-                      </span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setFolder("sent")
-                        setSelectedMessage(null)
-                        setFullMessageBody("")
-                        setFullMessageHtml("")
-                      }}
-                      className={cn(
-                        "w-full rounded-md px-3 py-2 text-left text-sm transition-colors",
-                        folder === "sent" ? "bg-slate-900/70 text-white" : "text-slate-200 hover:bg-slate-900/50",
-                      )}
-                    >
-                      <span className="flex items-center justify-between gap-2">
-                        <span>Отправленные</span>
-                        {yandexFolderCounts.sent && (
-                          <span className="text-xs text-slate-300">{yandexFolderCounts.sent.total}</span>
-                        )}
-                      </span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setFolder("spam")
-                        setSelectedMessage(null)
-                        setFullMessageBody("")
-                        setFullMessageHtml("")
-                        if (yandexConnected) {
-                          void loadYandexMessages()
-                        }
-                      }}
-                      className={cn(
-                        "w-full rounded-md px-3 py-2 text-left text-sm transition-colors",
-                        folder === "spam" ? "bg-slate-900/70 text-white" : "text-slate-200 hover:bg-slate-900/50",
-                      )}
-                    >
-                      <span className="flex items-center justify-between gap-2">
-                        <span>Спам</span>
-                        {yandexFolderCounts.spam && (
-                          <span className="text-xs text-slate-300">{yandexFolderCounts.spam.total}</span>
-                        )}
-                      </span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setFolder("trash")
-                        setSelectedMessage(null)
-                        setFullMessageBody("")
-                        setFullMessageHtml("")
-                      }}
-                      className={cn(
-                        "w-full rounded-md px-3 py-2 text-left text-sm transition-colors",
-                        folder === "trash" ? "bg-slate-900/70 text-white" : "text-slate-200 hover:bg-slate-900/50",
-                      )}
-                    >
-                      <span className="flex items-center justify-between gap-2">
-                        <span>Корзина</span>
-                        {yandexFolderCounts.trash && (
-                          <span className="text-xs text-slate-300">{yandexFolderCounts.trash.total}</span>
-                        )}
-                      </span>
-                    </button>
-                  </div>
-                </div>
-
-                <div className="border-r border-slate-700/60 min-w-0">
-                  <ScrollArea className="h-[70vh]">
-                    <div className="p-3 space-y-2">
-                      {filteredMessages.map((message) => {
-                        const isActive = selectedMessage?.id === message.id
-                        const statusClass =
-                          message.status === "replied"
-                            ? "bg-emerald-500/20 text-emerald-200 border-emerald-500/30"
-                            : message.status === "sent"
-                              ? "bg-blue-500/20 text-blue-200 border-blue-500/30"
-                              : "bg-amber-500/20 text-amber-200 border-amber-500/30"
-
-                        return (
-                          <button
-                            key={message.id}
-                            type="button"
-                            onClick={() => void handleOpen(message)}
-                            className={cn(
-                              "w-full text-left rounded-lg border p-4 transition-colors",
-                              isActive
-                                ? "border-blue-500/60 bg-slate-900/70"
-                                : "border-slate-700/60 bg-slate-900/40 hover:bg-slate-900/60",
-                            )}
-                          >
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="min-w-0">
-                                <div className="flex items-center gap-2 min-w-0">
-                                  {message.is_read === false && <span className="h-2 w-2 rounded-full bg-blue-400 shrink-0" />}
-                                  <p className={cn("text-sm truncate", message.is_read ? "text-white" : "text-white font-semibold")}>
-                                    {message.subject || "(Без темы)"}
-                                  </p>
-                                </div>
-                                <p className="text-xs text-slate-400 truncate">
-                                  {message.from_email}
-                                </p>
-                              </div>
-                              <Badge className={cn("shrink-0", statusClass)}>
-                                {message.status === "replied" ? "Ответ" : message.status === "sent" ? "Отправлено" : "Получено"}
-                              </Badge>
-                            </div>
-                            {(message.body || "").trim() && (
-                              <div className="mt-2 text-xs text-slate-300 max-h-[2.5em] overflow-hidden">
-                                <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
-                                  {(message.body || "").replace(/\s+/g, " ").trim()}
-                                </p>
-                              </div>
-                            )}
-                            <div className="mt-3 flex items-center justify-between text-xs text-slate-300">
-                              <span className="truncate">{formatDateTime(message.date)}</span>
-                              {message.attachments_count > 0 && (
-                                <span className="flex items-center gap-2 shrink-0">
-                                  <Paperclip className="h-3.5 w-3.5" />
-                                  {message.attachments_count}
-                                </span>
-                              )}
-                            </div>
-                          </button>
-                        )
-                      })}
+              </div>
+            ) : (
+              <div className="rounded-lg border border-slate-700/60 bg-slate-900/40 p-4">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                  <div className="lg:col-span-1">
+                    <div className="space-y-2">
+                      {filteredMessages.map((message) => (
+                        <button
+                          key={message.id}
+                          type="button"
+                          onClick={() => void handleOpen(message)}
+                          className={cn(
+                            "w-full text-left rounded-lg border border-slate-700/60 bg-slate-950/20 px-3 py-2 hover:bg-slate-950/40",
+                            selectedMessage?.id === message.id ? "border-blue-500/60" : "",
+                          )}
+                        >
+                          <p className="text-sm text-white truncate">{message.subject || "(Без темы)"}</p>
+                          <p className="text-xs text-slate-400 truncate">{message.from_email}</p>
+                          <p className="text-[11px] text-slate-500 truncate">{formatDateTime(message.date)}</p>
+                        </button>
+                      ))}
                     </div>
-                  </ScrollArea>
-                </div>
-
-                <div className="h-[70vh] min-w-0 overflow-hidden">
-                  <div className="p-4 min-w-0 h-full overflow-hidden">
+                  </div>
+                  <div className="lg:col-span-2 min-w-0">
                     {selectedMessage ? (
-                      <div className="flex flex-col gap-4 h-full min-w-0 min-h-0 overflow-hidden">
-                        <div className="flex items-start justify-between gap-3 min-w-0">
+                      <div className="rounded-lg border border-slate-700/60 bg-slate-950/20 p-4 min-w-0">
+                        <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
-                            <h2 className="text-lg font-semibold truncate">{selectedMessage.subject || "(Без темы)"}</h2>
+                            <h2 className="text-lg font-semibold text-white truncate">{selectedMessage.subject || "(Без темы)"}</h2>
                             <p className="text-xs text-slate-300 mt-1">
                               <span className="text-slate-400">От:</span> {selectedMessage.from_email}
                             </p>
                             <p className="text-xs text-slate-300">
                               <span className="text-slate-400">Кому:</span> {selectedMessage.to_email}
                             </p>
-                            <p className="text-xs text-slate-400">{formatDateTime(selectedMessage.date)}</p>
-                            {yandexConnected && yandexEmail && (
-                              <p className="text-[11px] text-slate-500 mt-1">Яндекс: {yandexEmail}</p>
-                            )}
                           </div>
-                          <div className="flex items-center gap-2">
-                            {isOpeningMessage && (
-                              <span className="text-xs text-slate-400">Загрузка…</span>
-                            )}
-                            <Button size="icon" variant="outline" onClick={openFullScreen} disabled={isOpeningMessage} aria-label="Открыть на весь экран">
-                              <Maximize2 className="h-4 w-4" />
-                            </Button>
-                            {yandexConnected && folder === "spam" && !String(selectedMessage.id).startsWith("demo_") && (
-                              <Button size="sm" variant="outline" onClick={handleUnspam} disabled={isUnspamming || isOpeningMessage}>
-                                {isUnspamming ? "Перенос…" : "Не спам"}
-                              </Button>
-                            )}
-                            <Button size="sm" variant="secondary" onClick={openInlineReply}>
-                              Ответить
-                            </Button>
-                          </div>
+                          <Button size="sm" variant="outline" onClick={openFullScreen}>
+                            На весь экран
+                          </Button>
                         </div>
-
-                        <Separator className="bg-slate-700/60" />
-
-                        {openMessageError && (
-                          <div className="rounded-lg border border-rose-500/40 bg-rose-500/10 p-4 text-rose-100">
-                            <div className="flex items-center justify-between gap-3">
-                              <div className="min-w-0">
-                                <p className="text-sm">Не удалось загрузить письмо целиком.</p>
-                                <p className="text-xs text-rose-200/80 mt-1 break-words">{openMessageError}</p>
-                              </div>
-                              <Button size="sm" variant="outline" onClick={() => void handleRetryOpen()} disabled={isOpeningMessage}>
-                                Повторить
-                              </Button>
-                            </div>
-                          </div>
-                        )}
-
-                        <div className="min-h-0 min-w-0">
-                          {fullMessageHtml ? (
-                            <iframe
-                              className="w-full h-[52vh] rounded-md border border-slate-700/60 bg-white min-w-0"
-                              sandbox=""
-                              srcDoc={fullMessageHtml}
-                              title="email"
-                            />
-                          ) : (
-                            <ScrollArea className="h-[52vh] min-h-0">
-                              <div className="rounded-md border border-slate-700/60 bg-slate-900/40 p-4 text-slate-100 whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
-                                {fullMessageBody || "(Пусто)"}
-                              </div>
-                            </ScrollArea>
-                          )}
+                        <Separator className="bg-slate-700/60 my-3" />
+                        <div className="rounded-md border border-slate-700/60 bg-slate-900/40 p-4 text-slate-100 whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
+                          {fullMessageBody || selectedMessage.body || "(Пусто)"}
                         </div>
-
-                        {fullMessageAttachments && fullMessageAttachments.length > 0 && (
-                          <div className="rounded-md border border-slate-700/60 bg-slate-900/40 p-4">
-                            <p className="text-sm font-medium text-white">Вложения</p>
-                            <div className="mt-2 space-y-2">
-                              {fullMessageAttachments.map((a) => (
-                                <a
-                                  key={a.id}
-                                  href={`/api/attachments/${encodeURIComponent(a.id)}`}
-                                  className="flex items-center justify-between gap-3 rounded-md border border-slate-700/60 bg-slate-950/20 px-3 py-2 text-sm text-slate-100 hover:bg-slate-950/40"
-                                  target="_blank"
-                                  rel="noreferrer"
-                                >
-                                  <span className="flex items-center gap-2 min-w-0">
-                                    <Paperclip className="h-4 w-4 shrink-0" />
-                                    <span className="truncate">{a.filename}</span>
-                                  </span>
-                                  <span className="text-xs text-slate-400 shrink-0">{Math.round((a.size || 0) / 1024)} KB</span>
-                                </a>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {inlineReplyOpen && (
-                          <div ref={inlineReplyWrapRef} className="mt-4 rounded-lg border border-slate-700/60 bg-slate-900/40 p-4">
-                            <div className="flex items-center justify-between gap-2">
-                              <div className="min-w-0">
-                                <p className="text-sm font-medium text-white truncate">Ответить</p>
-                                <p className="text-xs text-slate-400 truncate">Кому: {selectedMessage.from_email}</p>
-                              </div>
-                              <Button size="icon" variant="ghost" onClick={closeInlineReply} aria-label="Закрыть">
-                                <X className="h-4 w-4" />
-                              </Button>
-                            </div>
-
-                            <div className="mt-3">
-                              <Textarea
-                                ref={inlineReplyTextareaRef}
-                                value={inlineReplyBody}
-                                onChange={(e) => setInlineReplyBody(e.target.value)}
-                                placeholder="Введите ответ…"
-                                className="min-h-[80px] resize-none bg-slate-950/40 border-slate-700 text-white"
-                                onKeyDown={(e) => {
-                                  if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
-                                    e.preventDefault()
-                                    void handleInlineReplySubmit()
-                                  }
-                                }}
-                              />
-                            </div>
-
-                            <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-                              <div className="flex items-center gap-2">
-                                <input
-                                  ref={inlineReplyFileInputRef}
-                                  type="file"
-                                  multiple
-                                  className="hidden"
-                                  onChange={(e) => {
-                                    if (!e.target.files) return
-                                    addInlineReplyFiles(e.target.files)
-                                    e.target.value = ""
-                                  }}
-                                />
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => inlineReplyFileInputRef.current?.click()}
-                                >
-                                  <PaperclipIcon className="mr-2 h-4 w-4" />
-                                  Прикрепить
-                                </Button>
-                                {(inlineReplyUploadingCount > 0 || inlineReplyHasUploadError) && (
-                                  <span className={cn("text-xs", inlineReplyHasUploadError ? "text-rose-300" : "text-slate-300")}>
-                                    {inlineReplyHasUploadError
-                                      ? "Ошибка загрузки вложений"
-                                      : `Загрузка вложений… (${inlineReplyUploadingCount})`}
-                                  </span>
-                                )}
-                              </div>
-
-                              <Button
-                                type="button"
-                                size="sm"
-                                onClick={() => void handleInlineReplySubmit()}
-                                disabled={
-                                  inlineReplySubmitting ||
-                                  inlineReplyUploadingCount > 0 ||
-                                  inlineReplyHasUploadError ||
-                                  inlineReplyBody.trim().length === 0
-                                }
-                              >
-                                {inlineReplySubmitting ? (
-                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                ) : (
-                                  <Send className="mr-2 h-4 w-4" />
-                                )}
-                                Отправить
-                              </Button>
-                            </div>
-
-                            {inlineReplyAttachments.length > 0 && (
-                              <div className="mt-3 space-y-2">
-                                {inlineReplyAttachments.map((a) => (
-                                  <div
-                                    key={a.localId}
-                                    className={cn(
-                                      "flex items-start justify-between gap-3 rounded-md border px-3 py-2",
-                                      a.status === "error"
-                                        ? "border-rose-500/40 bg-rose-500/10"
-                                        : "border-slate-700/60 bg-slate-950/20",
-                                    )}
-                                  >
-                                    <div className="min-w-0">
-                                      <p className="text-sm text-white truncate">{a.file.name}</p>
-                                      <p className={cn("text-xs", a.status === "error" ? "text-rose-200" : "text-slate-400")}>
-                                        {a.status === "queued"
-                                          ? "В очереди…"
-                                          : a.status === "uploading"
-                                            ? "Загрузка…"
-                                            : a.status === "done"
-                                              ? "Готово"
-                                              : `Ошибка: ${a.error || ""}`}
-                                      </p>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                      {(a.status === "queued" || a.status === "uploading") && (
-                                        <Loader2 className="h-4 w-4 animate-spin text-slate-300" />
-                                      )}
-                                      <Button
-                                        type="button"
-                                        size="icon"
-                                        variant="ghost"
-                                        onClick={() => removeInlineReplyAttachment(a.localId)}
-                                        aria-label="Удалить вложение"
-                                      >
-                                        <X className="h-4 w-4" />
-                                      </Button>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-
-                            <p className="mt-3 text-[11px] text-slate-500">Подсказка: Ctrl/Cmd + Enter — отправить</p>
-                          </div>
-                        )}
                       </div>
                     ) : (
-                      <div className="h-full flex items-center justify-center text-slate-400">
-                        Выберите письмо слева
-                      </div>
+                      <div className="h-full flex items-center justify-center text-slate-400">Выберите письмо слева</div>
                     )}
                   </div>
                 </div>

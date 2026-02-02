@@ -1,7 +1,4 @@
 """Router for parsing operations."""
-import os
-from pathlib import Path
-import json
 from fastapi import APIRouter, Depends, BackgroundTasks, Body, HTTPException
 from fastapi.responses import JSONResponse
 from typing import Dict, Any
@@ -16,20 +13,6 @@ from app.usecases import (
     get_parsing_status
 )
 
-
-def _agent_debug_log(payload: dict) -> None:
-    if os.environ.get("AGENT_DEBUG_LOG", "0") != "1":
-        return
-    try:
-        project_root = Path(__file__).resolve().parents[4]
-        out_dir = project_root / ".cursor"
-        out_dir.mkdir(parents=True, exist_ok=True)
-        out_path = out_dir / "debug.log"
-        with out_path.open("a", encoding="utf-8") as f:
-            f.write(json.dumps(payload, ensure_ascii=False) + "\n")
-    except Exception:
-        return
-
 router = APIRouter()
 
 
@@ -40,21 +23,6 @@ async def start_parsing_endpoint(
     db = Depends(get_db)
 ):
     """Start parsing for a keyword."""
-    from datetime import datetime
-    _agent_debug_log({
-        "location": "parsing.py:20",
-        "message": "start_parsing_endpoint called",
-        "data": {
-            "keyword": request.keyword,
-            "depth": request.depth,
-            "source": request.source,
-            "has_background_tasks": background_tasks is not None,
-        },
-        "timestamp": int(datetime.utcnow().timestamp() * 1000),
-        "sessionId": "debug-session",
-        "runId": "",
-        "hypothesisId": "A",
-    })
     # Validate source
     valid_sources = ["google", "yandex", "both"]
     source = request.source.lower() if request.source else "google"
@@ -68,15 +36,6 @@ async def start_parsing_endpoint(
         source=source,
         background_tasks=background_tasks
     )
-    _agent_debug_log({
-        "location": "parsing.py:40",
-        "message": "start_parsing.execute returned",
-        "data": {"run_id": result.get("run_id"), "status": result.get("status")},
-        "timestamp": int(datetime.utcnow().timestamp() * 1000),
-        "sessionId": "debug-session",
-        "runId": result.get("run_id", ""),
-        "hypothesisId": "A",
-    })
     await db.commit()
     
     # Return response with camelCase field names for frontend

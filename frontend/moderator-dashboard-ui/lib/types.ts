@@ -186,6 +186,21 @@ export interface DomainParserStatusResponse {
   results: DomainParserResult[]
 }
 
+export interface CometExtractionResult {
+  domain: string
+  inn?: string | null
+  emails?: string[]
+  phones?: string[]
+  sourceUrl?: string
+  error?: string
+  status?: "success" | "error" | "not_found"
+}
+
+export interface CometExtractBatchResponse {
+  runId: string
+  cometRunId: string
+}
+
 export interface CabinetMessageDTO {
   id: string
   subject: string

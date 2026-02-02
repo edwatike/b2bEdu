@@ -669,6 +669,9 @@ export async function startCometExtractBatch(runId: string, domains: string[]): 
   })
 }
 
+// Alias for backward compatibility
+export const startDomainParserBatch = startCometExtractBatch
+
 export async function getDomainParserStatus(parserRunId: string): Promise<DomainParserStatusResponse> {
   return apiFetch<DomainParserStatusResponse>(`/domain-parser/status/${parserRunId}`)
 }

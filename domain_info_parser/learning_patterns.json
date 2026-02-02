@@ -1,0 +1,19 @@
+{
+  "version": "1.0",
+  "last_updated": null,
+  "learned_patterns": {
+    "inn_patterns": [],
+    "email_patterns": [],
+    "successful_urls": {
+      "inn": [],
+      "email": []
+    },
+    "domain_specific": {}
+  },
+  "statistics": {
+    "total_learned": 0,
+    "comet_contributions": 0,
+    "success_rate_before": 0.0,
+    "success_rate_after": 0.0
+  }
+}

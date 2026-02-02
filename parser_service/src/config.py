@@ -10,8 +10,8 @@ class Settings(BaseSettings):
 
     # Safety: by default DO NOT attach to user's real Chrome via CDP.
     # When False, parser will launch isolated Chromium instance.
-    USE_CHROME_CDP: bool = False
-    HEADLESS: bool = True
+    USE_CHROME_CDP: bool = True
+    HEADLESS: bool = False
     
     # Chrome Profile Selection
     # Profile index: 0 = first profile (default), 1 = second profile, etc.

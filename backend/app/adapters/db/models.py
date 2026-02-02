@@ -245,6 +245,40 @@ class DomainQueueModel(Base):
     )
 
 
+class RecognitionCacheModel(Base):
+    """Cache for GROQ recognition results to avoid repeated API calls."""
+    __tablename__ = "recognition_cache"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+
+    # Cache key: SHA256 hash of text + model name
+    text_hash: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    model: Mapped[str] = mapped_column(String(100), nullable=False)
+
+    # Cached result
+    result_json: Mapped[str] = mapped_column(Text, nullable=False)  # JSON array of names
+    usage_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # JSON object with token usage
+
+    # Statistics
+    hit_count: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        server_default=func.now(),
+        nullable=False
+    )
+    last_accessed_at: Mapped[datetime] = mapped_column(
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False
+    )
+
+    # Indexes
+    __table_args__ = (
+        Index("idx_recognition_cache_hash_model", "text_hash", "model", unique=True),
+        Index("idx_recognition_cache_created_at", "created_at"),
+        Index("idx_recognition_cache_last_accessed", "last_accessed_at"),
+    )
+
+
 class AuditLogModel(Base):
     """Model for audit_log table."""
     __tablename__ = "audit_log"

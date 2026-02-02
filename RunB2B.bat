@@ -1,8 +1,34 @@
 ﻿@echo off
-setlocal
+setlocal enabledelayedexpansion
 chcp 65001 >nul
-set ROOT=D:\b2b
-if not exist %ROOT%\TEMP mkdir %ROOT%\TEMP
+<<<<<<< D:/b2b/RunB2B.bat
+<<<<<<< D:/b2b/RunB2B.bat
+<<<<<<< D:/b2b/RunB2B.bat
+<<<<<<< D:/b2b/RunB2B.bat
+title RunB2B - B2B Platform Monitor
+
+set PROJECT_ROOT=D:\b2b
+=======
+title RunB2B - B2B Platform Monitor (Worktree)
+
+set PROJECT_ROOT=C:\Users\admin\.windsurf\worktrees\b2b\b2b-e47d5559
+>>>>>>> C:/Users/admin/.windsurf/worktrees/b2b/b2b-e47d5559/RunB2B.bat
+=======
+title RunB2B - B2B Platform Monitor (Worktree)
+
+set PROJECT_ROOT=C:\Users\admin\.windsurf\worktrees\b2b\b2b-e47d5559
+>>>>>>> C:/Users/admin/.windsurf/worktrees/b2b/b2b-e47d5559/RunB2B.bat
+=======
+title RunB2B - B2B Platform Monitor (Worktree)
+
+set PROJECT_ROOT=C:\Users\admin\.windsurf\worktrees\b2b\b2b-e47d5559
+>>>>>>> C:/Users/admin/.windsurf/worktrees/b2b/b2b-e47d5559/RunB2B.bat
+=======
+title RunB2B - B2B Platform Monitor (Worktree)
+
+set PROJECT_ROOT=C:\Users\admin\.windsurf\worktrees\b2b\b2b-e47d5559
+>>>>>>> C:/Users/admin/.windsurf/worktrees/b2b/b2b-e47d5559/RunB2B.bat
+cd /d %PROJECT_ROOT%\TEMP
 
 REM Ensure localhost does NOT go through corporate/system proxy (avoids false 503)
 set NO_PROXY=localhost,127.0.0.1
@@ -15,8 +41,7 @@ set https_proxy=
 echo [0/4] Comet CDP (9222)...
 
 set "COMET_PROFILE="
-if exist "D:\tryagain\TEMP\comet-profile" set "COMET_PROFILE=D:\tryagain\TEMP\comet-profile"
-if not defined COMET_PROFILE set "COMET_PROFILE=%ROOT%\TEMP\comet-profile"
+if not defined COMET_PROFILE set "COMET_PROFILE=%PROJECT_ROOT%\TEMP\comet-profile"
 if not exist "%COMET_PROFILE%" mkdir "%COMET_PROFILE%"
 
 set "COMET_EXE="
@@ -54,25 +79,44 @@ if /I "%CDP_ALREADY_LISTENING%"=="YES" (
 )
 
 echo [1/4] Parser (9004)...
-cd /d %ROOT%\parser_service
+cd /d %PROJECT_ROOT%\parser_service
 if not exist venv python -m venv venv
 venv\Scripts\pip.exe install --progress-bar on --disable-pip-version-check -r requirements.txt
-start "" "%ROOT%\parser_service\venv\Scripts\python.exe" "%ROOT%\parser_service\run_api.py"
+start "" "%PROJECT_ROOT%\parser_service\venv\Scripts\python.exe" "%PROJECT_ROOT%\parser_service\run_api.py"
 
+<<<<<<< D:/b2b/RunB2B.bat
+<<<<<<< D:/b2b/RunB2B.bat
+<<<<<<< D:/b2b/RunB2B.bat
+<<<<<<< D:/b2b/RunB2B.bat
 echo [2/4] Backend (8000)...
-cd /d %ROOT%\backend
+=======
+echo [2/4] Backend (8010)...
+>>>>>>> C:/Users/admin/.windsurf/worktrees/b2b/b2b-e47d5559/RunB2B.bat
+=======
+echo [2/4] Backend (8010)...
+>>>>>>> C:/Users/admin/.windsurf/worktrees/b2b/b2b-e47d5559/RunB2B.bat
+=======
+echo [2/4] Backend (8010)...
+>>>>>>> C:/Users/admin/.windsurf/worktrees/b2b/b2b-e47d5559/RunB2B.bat
+=======
+echo [2/4] Backend (8010)...
+>>>>>>> C:/Users/admin/.windsurf/worktrees/b2b/b2b-e47d5559/RunB2B.bat
+cd /d %PROJECT_ROOT%\backend
 if not exist venv python -m venv venv
 venv\Scripts\pip.exe install --progress-bar on --disable-pip-version-check -r requirements.txt
-start "" "%ROOT%\backend\venv\Scripts\python.exe" "%ROOT%\backend\run_api.py"
+start "" "%PROJECT_ROOT%\backend\venv\Scripts\python.exe" "%PROJECT_ROOT%\backend\run_api.py"
 
 echo [3/4] Frontend (3000)...
-cd /d %ROOT%\frontend\moderator-dashboard-ui
+cd /d %PROJECT_ROOT%\frontend\moderator-dashboard-ui
 set NEXT_TELEMETRY_DISABLED=1
-set NEXT_PUBLIC_API_URL=http://127.0.0.1:8000
+set NEXT_PUBLIC_API_URL=http://127.0.0.1:8010
 if not exist node_modules npm install --no-audit --progress=true
 start "" cmd.exe /c "npm run dev"
 
 echo URLs:
 echo - Parser: http://127.0.0.1:9004/health
-echo - Backend: http://127.0.0.1:8000/health
+echo - Backend: http://127.0.0.1:8010/health
 echo - Frontend: http://localhost:3000/login
+echo - CDP: http://127.0.0.1:9222/json/version
+
+pause

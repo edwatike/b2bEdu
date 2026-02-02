@@ -36,6 +36,7 @@ import {
   startDomainParserBatch,
   getDomainParserStatus,
   learnManualInn,
+  learnFromComet,
   APIError,
   type LearnedItem,
   type LearningStatistics,
@@ -65,7 +66,6 @@ import {
   XCircle,
   Globe,
   Target,
-  Zap,
   GraduationCap,
   Settings,
   Search,
@@ -76,6 +76,7 @@ import type {
   SupplierDTO,
   DomainParserResult,
   DomainParserStatusResponse,
+  CometExtractionResult,
 } from "@/lib/types"
 
 // </CHANGE> Removed 'use' import, using useParams instead for client component
@@ -147,6 +148,12 @@ function ParsingRunDetailsPage() {
   const [parserStatus, setParserStatus] = useState<DomainParserStatusResponse | null>(null)
   const [parserLoading, setParserLoading] = useState(false)
   const [parserResultsMap, setParserResultsMap] = useState<Map<string, DomainParserResult>>(new Map())
+
+  // Comet state
+  const [cometRunId, setCometRunId] = useState<string | null>(null)
+  const [cometStatus, setCometStatus] = useState<any | null>(null)
+  const [cometLoading, setCometLoading] = useState(false)
+  const [cometResultsMap, setCometResultsMap] = useState<Map<string, any>>(new Map())
 
   // Learning state
   const [learningLoading, setLearningLoading] = useState(false)
@@ -589,44 +596,6 @@ function ParsingRunDetailsPage() {
       ])
 
       setRun(runData)
-
-      // Fallback restore Comet state from DB process_log if localStorage is empty
-      // (after refresh/new device) so user still sees results.
-      try {
-        const hasLocalCometRun = !!localStorage.getItem(`comet-run-${runId}`)
-        const hasLocalCometResults = !!localStorage.getItem(`comet-results-${runId}`)
-        const pl: any = (runData as any)?.processLog ?? (runData as any)?.process_log
-        const runs: any = pl?.comet?.runs
-        if ((!hasLocalCometRun || !hasLocalCometResults) && runs && typeof runs === "object") {
-          const ids = Object.keys(runs).sort()
-          const latestId = ids[ids.length - 1]
-          const latest = latestId ? runs[latestId] : null
-          if (latestId && latest) {
-            if (!hasLocalCometRun) {
-              setCometRunId(latestId)
-            }
-            if (!hasLocalCometResults && Array.isArray(latest.results)) {
-              const map = new Map<string, CometExtractionResult>()
-              for (const r of latest.results) {
-                if (r?.domain) {
-                  map.set(String(r.domain), r as CometExtractionResult)
-                }
-              }
-              setCometResultsMap(map)
-              setCometStatus({
-                runId,
-                cometRunId: latestId,
-                status: (latest.status || "running") as any,
-                processed: Number(latest.processed || 0),
-                total: Number(latest.total || map.size),
-                results: Array.from(map.values()),
-              })
-            }
-          }
-        }
-      } catch (e) {
-        // ignore restore errors
-      }
 
       // Restore Domain Parser results from process_log if localStorage is empty
       try {
@@ -1215,7 +1184,6 @@ function ParsingRunDetailsPage() {
     // Фильтруем домены: только те, где НЕТ поставщика/реселлера и НЕТ ИНН
     const domainsArray = Array.from(selectedDomains)
     const parserMap = parserResultsMap as Map<string, DomainParserResult>
-    const cometMap = cometResultsMap as Map<string, CometExtractionResult>
 
     const domainsWithoutInn = domainsArray.filter((domain) => {
       const rootDomain = extractRootDomain(domain).toLowerCase()
@@ -1224,11 +1192,8 @@ function ParsingRunDetailsPage() {
 
       const parserResult: DomainParserResult | undefined =
         parserMap.get(domain) ?? parserMap.get(rootDomain)
-      const cometResult: CometExtractionResult | undefined =
-        cometMap.get(domain) ?? cometMap.get(rootDomain)
       const parserInn = parserResult ? parserResult.inn : null
-      const cometInn = cometResult ? cometResult.inn : null
-      const hasInn = Boolean(parserInn || cometInn)
+      const hasInn = Boolean(parserInn)
 
       return !hasInn
     })
@@ -1259,108 +1224,6 @@ function ParsingRunDetailsPage() {
       }
     } finally {
       setParserLoading(false)
-    }
-  }
-
-  // Функция для обучения Domain Parser на основе результатов Comet
-  const handleLearnFromComet = async () => {
-    if (!runId) {
-      toast.error("runId не найден")
-      return
-    }
-
-    // Находим домены, где Comet нашел данные, а Domain Parser - нет
-    const domainsToLearn: string[] = []
-
-    cometResultsMap.forEach((cometResult, domain) => {
-      const parserResult = parserResultsMap.get(domain)
-
-      // Comet нашел ИНН или Email, а Parser - нет
-      const cometFoundInn = !!cometResult.inn
-      const cometFoundEmail = !!cometResult.email
-      const parserFoundInn = parserResult?.inn
-      const parserFoundEmail = parserResult?.emails && parserResult.emails.length > 0
-
-      if ((cometFoundInn && !parserFoundInn) || (cometFoundEmail && !parserFoundEmail)) {
-        domainsToLearn.push(domain)
-      }
-    })
-
-    if (domainsToLearn.length === 0) {
-      toast.info("Нет доменов для обучения (Comet не нашел ничего нового)")
-      return
-    }
-
-    console.log("[Learning] Starting learning from Comet for domains:", domainsToLearn)
-    setLearningLoading(true)
-
-    try {
-      const learningSessionId = `learning_${Date.now()}`
-      const response = await learnFromComet(runId, domainsToLearn, learningSessionId)
-
-      setLearnedItems(response.learnedItems)
-      setLearningStats(response.statistics)
-
-      toast.success(`🎓 Парсер обучен! Выучено ${response.learnedItems.length} паттернов`)
-
-      if (response.learnedItems.length > 0) {
-        const innLearned = response.learnedItems.filter((i) => i.type === "inn").length
-        const emailLearned = response.learnedItems.filter((i) => i.type === "email").length
-
-        if (innLearned > 0) {
-          toast.info(`📚 ИНН: выучено ${innLearned} паттернов`)
-        }
-        if (emailLearned > 0) {
-          toast.info(`📚 Email: выучено ${emailLearned} паттернов`)
-        }
-      }
-    } catch (error) {
-      console.error("[Learning] Error:", error)
-      if (error instanceof APIError) {
-        toast.error(`Ошибка обучения: ${error.message}`)
-      } else {
-        toast.error(error instanceof Error ? error.message : "Ошибка обучения парсера")
-      }
-    } finally {
-      setLearningLoading(false)
-    }
-  }
-
-  const handleCometExtract = async () => {
-    console.log("[Comet] Button clicked")
-    console.log("[Comet] selectedDomains:", selectedDomains)
-    console.log("[Comet] selectedDomains.size:", selectedDomains.size)
-
-    if (selectedDomains.size === 0) {
-      console.log("[Comet] No domains selected, showing error")
-      toast.error("Выберите хотя бы один домен")
-      return
-    }
-    if (!runId) {
-      console.log("[Comet] No runId, showing error")
-      toast.error("runId не найден")
-      return
-    }
-
-    console.log("[Comet] Starting extraction...")
-    setCometLoading(true)
-    try {
-      const domainsArray = Array.from(selectedDomains)
-      console.log("[Comet] Domains array:", domainsArray)
-      console.log("[Comet] Calling startCometExtractBatch...")
-      const resp = await startCometExtractBatch(runId, domainsArray)
-      console.log("[Comet] Response:", resp)
-      setCometRunId(resp.cometRunId)
-      toast.success(`Comet запущен для ${domainsArray.length} доменов`)
-    } catch (error) {
-      console.error("[Comet] Error:", error)
-      if (error instanceof APIError) {
-        toast.error(`Ошибка Comet: ${error.message}`)
-      } else {
-        toast.error(error instanceof Error ? error.message : "Ошибка запуска Comet")
-      }
-    } finally {
-      setCometLoading(false)
     }
   }
 
@@ -1427,15 +1290,6 @@ function ParsingRunDetailsPage() {
                     <div className="text-3xl font-bold text-purple-600">{run.resultsCount}</div>
                     <div className="text-sm text-muted-foreground">результатов найдено</div>
                   </div>
-                  <Button
-                    size="sm"
-                    onClick={handleLearnFromComet}
-                    disabled={learningLoading || cometResultsMap.size === 0}
-                    className="h-8 text-xs bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
-                  >
-                    <GraduationCap className="h-3 w-3 mr-1" />
-                    Обучить
-                  </Button>
                 </div>
               </motion.div>
             )}
@@ -1491,71 +1345,9 @@ function ParsingRunDetailsPage() {
                       Получить данные ({selectedDomains.size})
                     </Button>
                   </motion.div>
-                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                    <Button
-                      size="sm"
-                      onClick={handleCometExtract}
-                      disabled={cometLoading || selectedDomains.size === 0}
-                      className="h-8 text-xs bg-gradient-to-r from-gray-800 to-black hover:from-gray-900 hover:to-black text-white"
-                    >
-                      <Zap className="h-3 w-3 mr-1" />
-                      Comet ({selectedDomains.size})
-                    </Button>
-                  </motion.div>
                 </motion.div>
               </div>
-              {cometRunId && cometStatus && (
-                <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3 }}
-                  className="mb-3"
-                >
-                  <div className="p-3 bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg border border-gray-200">
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`font-medium flex items-center gap-1 ${
-                          cometStatus.status === "running"
-                            ? "text-black"
-                            : cometStatus.status === "completed"
-                              ? "text-green-600"
-                              : "text-red-600"
-                        }`}
-                      >
-                        {cometStatus.status === "running" && (
-                          <motion.div
-                            animate={{ rotate: 360 }}
-                            transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
-                          >
-                            <Zap className="h-4 w-4" />
-                          </motion.div>
-                        )}
-                        {cometStatus.status === "running"
-                          ? "Comet работает..."
-                          : cometStatus.status === "completed"
-                            ? "✅ Comet завершен"
-                            : "❌ Ошибка Comet"}
-                      </span>
-                      <Badge variant="outline" className="bg-white border-gray-300">
-                        {cometStatus.processed}/{cometStatus.total}
-                      </Badge>
-                    </div>
-                    {cometStatus.status === "completed" && learnedItems.length > 0 && (
-                      <motion.div
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ duration: 0.3, delay: 0.2 }}
-                        className="mt-2 text-xs text-purple-600 flex items-center gap-1"
-                      >
-                        <span>🎓</span>
-                        <span className="font-medium">Автоматическое обучение завершено:</span>
-                        <span>{learnedItems.length} паттернов выучено</span>
-                      </motion.div>
-                    )}
-                  </div>
-                </motion.div>
-              )}
-              {parserRunId && parserStatus && (
+          {parserRunId && parserStatus && (
                 <motion.div
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -1600,18 +1392,6 @@ function ParsingRunDetailsPage() {
                           transition={{ duration: 0.5 }}
                         />
                       </div>
-                    )}
-                    {parserStatus.status === "completed" && cometRunId && (
-                      <motion.div
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ duration: 0.3, delay: 0.2 }}
-                        className="mt-2 text-xs text-purple-600 flex items-center gap-1"
-                      >
-                        <span>🤖</span>
-                        <span className="font-medium">Автоматический workflow:</span>
-                        <span>Parser → Comet → Обучение</span>
-                      </motion.div>
                     )}
                   </div>
                 </motion.div>
@@ -1932,178 +1712,6 @@ function ParsingRunDetailsPage() {
                 ) : (
                   <p className="text-sm text-muted-foreground animate-pulse">Загрузка логов парсинга...</p>
                 )}
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Статус Comet в реальном времени */}
-          {cometStatus && cometStatus.results && cometStatus.results.length > 0 && (
-            <Card className="mt-6 border-2 border-orange-500">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  🤖 Comet — Автоматическое извлечение данных
-                  {cometStatus.status === "running" && (
-                    <Badge className="bg-orange-600 text-white animate-pulse">Работает</Badge>
-                  )}
-                  {cometStatus.status === "completed" && <Badge className="bg-green-600 text-white">Завершено</Badge>}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {cometStatus.status === "running" && (
-                  <div className="mb-4 p-4 bg-orange-50 border border-orange-200 rounded-md">
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="w-3 h-3 bg-orange-500 rounded-full animate-pulse"></div>
-                      <span className="text-sm font-semibold text-orange-900">Comet обрабатывает домены...</span>
-                    </div>
-                    <div className="text-xs text-orange-700 space-y-1">
-                      <p>📄 Открытие страницы сайта</p>
-                      <p>🎯 Активация ассистента Comet</p>
-                      <p>✍️ Отправка промпта для поиска ИНН и Email</p>
-                      <p>⏳ Ожидание ответа (может занять до 2 минут)</p>
-                    </div>
-                    <div className="mt-3 w-full bg-orange-200 rounded-full h-2">
-                      <motion.div
-                        className="bg-orange-600 h-2 rounded-full transition-all duration-300"
-                        style={{ width: `${(cometStatus.processed / cometStatus.total) * 100}%` }}
-                      />
-                    </div>
-                    <p className="text-xs text-orange-600 mt-2 text-center">
-                      {cometStatus.processed} из {cometStatus.total} доменов обработано
-                    </p>
-                  </div>
-                )}
-
-                <Accordion type="multiple" className="w-full">
-                  {cometStatus.results.map((result, idx) => {
-                    const hasData = result.inn || result.email
-                    const hasError = !!result.error
-
-                    return (
-                      <AccordionItem key={`comet-${idx}`} value={`comet-${idx}`} className="border-b">
-                        <AccordionTrigger className="hover:no-underline">
-                          <div className="flex items-center gap-2 flex-1">
-                            <span
-                              className={`w-3 h-3 rounded-full ${
-                                hasError ? "bg-red-500" : hasData ? "bg-green-500" : "bg-gray-400"
-                              }`}
-                            ></span>
-                            <span className="font-mono font-semibold">{result.domain}</span>
-                            {result.inn && <Badge className="bg-blue-600 text-white">ИНН: {result.inn}</Badge>}
-                            {result.email && <Badge className="bg-green-600 text-white">Email: {result.email}</Badge>}
-                            {hasError && (
-                              <Badge variant="destructive">
-                                {result.error?.includes("Assistant panel not opened")
-                                  ? "❌ Ассистент не открылся"
-                                  : result.error?.includes("Timeout")
-                                    ? "⏱️ Таймаут"
-                                    : result.error?.includes("ModuleNotFoundError")
-                                      ? "📦 Нет зависимостей"
-                                      : "❌ Ошибка"}
-                              </Badge>
-                            )}
-                            {!hasData && !hasError && <Badge variant="outline">Не найдено</Badge>}
-                          </div>
-                        </AccordionTrigger>
-                        <AccordionContent>
-                          <div className="pt-2 space-y-3">
-                            {result.inn && (
-                              <div className="text-sm">
-                                <p className="font-semibold text-blue-700 mb-1">ИНН найден через Comet:</p>
-                                <div className="p-2 bg-blue-50 rounded border border-blue-200">
-                                  <span className="font-mono text-lg">{result.inn}</span>
-                                </div>
-                              </div>
-                            )}
-
-                            {result.email && (
-                              <div className="text-sm">
-                                <p className="font-semibold text-green-700 mb-1">Email найден через Comet:</p>
-                                <div className="p-2 bg-green-50 rounded border border-green-200">
-                                  <a href={`mailto:${result.email}`} className="text-green-700 hover:underline">
-                                    {result.email}
-                                  </a>
-                                </div>
-                              </div>
-                            )}
-
-                            {result.sourceUrls && result.sourceUrls.length > 0 && (
-                              <div className="text-sm">
-                                <p className="font-semibold text-muted-foreground mb-1">
-                                  Источники ({result.sourceUrls.length}):
-                                </p>
-                                <div className="space-y-1">
-                                  {result.sourceUrls.map((url, urlIdx) => (
-                                    <div key={urlIdx} className="text-xs">
-                                      <a
-                                        href={url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="text-blue-600 hover:underline flex items-center gap-1"
-                                      >
-                                        <span className="truncate">{url}</span>
-                                        <ExternalLink className="h-3 w-3 flex-shrink-0" />
-                                      </a>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-
-                            {result.error && (
-                              <div className="p-3 bg-red-50 border border-red-200 rounded-md">
-                                <p className="text-sm text-red-800 font-semibold mb-1">Ошибка Comet:</p>
-                                <p className="text-sm text-red-700">{result.error}</p>
-                                {result.error.includes("Assistant panel not opened") && (
-                                  <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded">
-                                    <p className="text-xs text-yellow-800">
-                                      💡 <strong>Причина:</strong> Ассистент Comet не открылся автоматически. Возможно,
-                                      нужно вручную активировать ассистент в браузере Comet (Alt+A или Ctrl+Shift+A).
-                                    </p>
-                                  </div>
-                                )}
-                                {result.error.includes("ModuleNotFoundError") && (
-                                  <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded">
-                                    <p className="text-xs text-yellow-800">
-                                      💡 <strong>Причина:</strong> Отсутствуют Python зависимости. Установите: pip
-                                      install requests playwright
-                                    </p>
-                                  </div>
-                                )}
-                              </div>
-                            )}
-
-                            {!result.inn && !result.email && !result.error && (
-                              <div className="p-3 bg-gray-50 border border-gray-200 rounded-md">
-                                <p className="text-sm text-gray-700">
-                                  ℹ️ Comet не нашел ИНН или Email на этом сайте. Возможно, данные находятся в защищенных
-                                  разделах или отсутствуют.
-                                </p>
-                              </div>
-                            )}
-                          </div>
-                        </AccordionContent>
-                      </AccordionItem>
-                    )
-                  })}
-                </Accordion>
-
-                <div className="mt-4 p-3 bg-orange-50 border border-orange-200 rounded-md">
-                  <p className="text-sm text-orange-800">
-                    <strong>Статистика Comet:</strong> Обработано {cometStatus.processed} из {cometStatus.total} доменов
-                    {cometStatus.results.filter((r) => r.inn).length > 0 && (
-                      <span> • ИНН найден: {cometStatus.results.filter((r) => r.inn).length}</span>
-                    )}
-                    {cometStatus.results.filter((r) => r.email).length > 0 && (
-                      <span> • Email найден: {cometStatus.results.filter((r) => r.email).length}</span>
-                    )}
-                    {cometStatus.results.filter((r) => r.error).length > 0 && (
-                      <span className="text-red-600">
-                        {" "}
-                        • Ошибок: {cometStatus.results.filter((r) => r.error).length}
-                      </span>
-                    )}
-                  </p>
-                </div>
               </CardContent>
             </Card>
           )}
@@ -2608,6 +2216,5 @@ export default function ParsingRunDetailsPageWithAuth() {
     </AuthGuard>
   )
 }
-    </AuthGuard>
-  )
-}
+
+

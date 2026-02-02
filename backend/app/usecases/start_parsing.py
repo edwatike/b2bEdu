@@ -2,8 +2,6 @@
 import uuid
 import json
 from datetime import datetime
-import os
-from pathlib import Path
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.adapters.db.repositories import ParsingRequestRepository, ParsingRunRepository
 from app.adapters.parser_client import ParserClient
@@ -12,26 +10,6 @@ from app.usecases import create_keyword
 
 # Track running parsing tasks to prevent duplicates
 _running_parsing_tasks = set()
-
-
-def _agent_debug_log(payload: dict) -> None:
-    """Write debug payload to a local file if explicitly enabled.
-
-    This is intentionally gated to avoid hardcoded absolute paths and file IO
-    in production or on other machines.
-    """
-    if os.environ.get("AGENT_DEBUG_LOG", "0") != "1":
-        return
-    try:
-        project_root = Path(__file__).resolve().parents[3]
-        out_dir = project_root / ".cursor"
-        out_dir.mkdir(parents=True, exist_ok=True)
-        out_path = out_dir / "debug.log"
-        with out_path.open("a", encoding="utf-8") as f:
-            f.write(json.dumps(payload, ensure_ascii=False) + "\n")
-    except Exception:
-        # Never fail business logic because debug logging failed
-        return
 
 
 async def execute(
@@ -53,20 +31,6 @@ async def execute(
     import logging
     logger = logging.getLogger(__name__)
     logger.info(f"start_parsing.execute called: keyword={keyword}, depth={depth}, source={source}")
-    _agent_debug_log({
-        "location": "start_parsing.py:11",
-        "message": "start_parsing.execute called",
-        "data": {
-            "keyword": keyword,
-            "depth": depth,
-            "source": source,
-            "has_background_tasks": background_tasks is not None,
-        },
-        "timestamp": int(datetime.utcnow().timestamp() * 1000),
-        "sessionId": "debug-session",
-        "runId": "",
-        "hypothesisId": "A",
-    })
     
     request_repo = ParsingRequestRepository(db)
     request = None
@@ -467,15 +431,7 @@ async def execute(
                         
                         # Log process information to file
                         logger.info(f"Process information for run_id {run_id}: {json.dumps(process_info, default=str)}")
-                        _agent_debug_log({
-                            "location": "start_parsing.py:process_log",
-                            "message": "Parsing process completed - full process log",
-                            "data": process_info,
-                            "timestamp": int(datetime.utcnow().timestamp() * 1000),
-                            "sessionId": "debug-session",
-                            "runId": run_id,
-                            "hypothesisId": "PROCESS_LOG",
-                        })
+                        
                         
                         # Update status in SEPARATE transaction (domains already committed)
                         from sqlalchemy import text
@@ -651,15 +607,7 @@ async def execute(
                             
                             # Log process information to file
                             logger.info(f"Process information (FAILED) for run_id {run_id}: {json.dumps(process_info_failed, default=str)}")
-                            _agent_debug_log({
-                                "location": "start_parsing.py:process_log_failed",
-                                "message": "Parsing process failed - full process log",
-                                "data": process_info_failed,
-                                "timestamp": int(datetime.utcnow().timestamp() * 1000),
-                                "sessionId": "debug-session",
-                                "runId": run_id,
-                                "hypothesisId": "PROCESS_LOG_FAILED",
-                            })
+                            
                             
                             bg_run_repo = ParsingRunRepository(bg_db)
                             error_msg = str(parse_error)[:1000]  # Limit error message length

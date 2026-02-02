@@ -481,7 +481,8 @@ async def yandex_oauth_login(payload: dict, db: AsyncSession = Depends(get_db)):
         user_row = created.fetchone()
         
         # Логируем создание нового пользователя
-        print(f"✅ New user registered via Yandex OAuth: {email}")
+        import logging
+        logging.getLogger(__name__).info(f"New user registered via Yandex OAuth: {email}")
         
     else:
         expires_at = None
@@ -532,7 +533,8 @@ async def yandex_oauth_login(payload: dict, db: AsyncSession = Depends(get_db)):
         user_row = result.fetchone()
         
         # Логируем вход существующего пользователя
-        print(f"✅ Existing user logged in via Yandex OAuth: {email}")
+        import logging
+        logging.getLogger(__name__).info(f"Existing user logged in via Yandex OAuth: {email}")
         
         if not user_row[4]:  # is_active
             raise HTTPException(status_code=400, detail="User account is inactive")
