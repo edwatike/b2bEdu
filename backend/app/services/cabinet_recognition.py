@@ -1,13 +1,17 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import List, Optional
+from typing import List, Optional, Tuple
 import sys
 import os
+import hashlib
 import httpx
 import subprocess
 import logging
 import json
+import time
+import tempfile
+from pathlib import Path
 
 from pydantic import BaseModel, Field, ValidationError
 
@@ -338,7 +342,97 @@ def extract_text_best_effort(*, filename: str, content: bytes, engine: Recogniti
         return ""
 
 
-def extract_item_names_via_groq_with_usage(*, text: str, api_key: str) -> tuple[List[str], dict]:
+def _env_flag(name: str, default: bool = False) -> bool:
+    v = (os.getenv(name) or "").strip().lower()
+    if not v:
+        return default
+    return v in {"1", "true", "yes", "on"}
+
+
+def _groq_cache_enabled() -> bool:
+    return _env_flag("GROQ_CACHE_ENABLED", False)
+
+
+def _groq_cache_dir() -> Path:
+    base = (os.getenv("GROQ_CACHE_DIR") or "").strip()
+    if base:
+        return Path(base)
+    return Path(_repo_root) / ".cache" / "groq"
+
+
+def _groq_cache_ttl_sec() -> int:
+    try:
+        return int(os.getenv("GROQ_CACHE_TTL_SEC", "86400"))
+    except Exception:
+        return 86400
+
+
+def _groq_cache_key(*, kind: str, model: str, system: str, payload_text: str) -> str:
+    h = hashlib.sha256()
+    h.update((kind or "").encode("utf-8", errors="ignore"))
+    h.update(b"\n")
+    h.update((model or "").encode("utf-8", errors="ignore"))
+    h.update(b"\n")
+    h.update((system or "").encode("utf-8", errors="ignore"))
+    h.update(b"\n")
+    h.update((payload_text or "").encode("utf-8", errors="ignore"))
+    return h.hexdigest()
+
+
+def _groq_cache_read(key: str) -> Optional[dict]:
+    if not _groq_cache_enabled():
+        return None
+    cache_dir = _groq_cache_dir()
+    try:
+        cache_dir.mkdir(parents=True, exist_ok=True)
+    except Exception:
+        return None
+    path = cache_dir / f"{key}.json"
+    try:
+        if not path.exists():
+            return None
+        ttl = _groq_cache_ttl_sec()
+        if ttl > 0:
+            age = time.time() - path.stat().st_mtime
+            if age > ttl:
+                return None
+        data = json.loads(path.read_text(encoding="utf-8"))
+        if not isinstance(data, dict):
+            return None
+        return data
+    except Exception:
+        return None
+
+
+def _groq_cache_write(key: str, data: dict) -> None:
+    if not _groq_cache_enabled():
+        return
+    if not isinstance(data, dict):
+        return
+    cache_dir = _groq_cache_dir()
+    try:
+        cache_dir.mkdir(parents=True, exist_ok=True)
+    except Exception:
+        return
+    path = cache_dir / f"{key}.json"
+    try:
+        payload = json.dumps(data, ensure_ascii=False)
+        with tempfile.NamedTemporaryFile("w", delete=False, encoding="utf-8", dir=str(cache_dir), prefix=path.name, suffix=".tmp") as f:
+            f.write(payload)
+            tmp_name = f.name
+        os.replace(tmp_name, str(path))
+    except Exception:
+        try:
+            if "tmp_name" in locals() and tmp_name and os.path.exists(tmp_name):
+                os.unlink(tmp_name)
+        except Exception:
+            pass
+
+
+def extract_item_names_via_groq_with_usage(*, text: str, api_key: str, max_retries: int = 3) -> tuple[List[str], dict]:
+    """Extract item names via Groq with retry on rate limit (429)."""
+    import re as _re
+    
     raw = (text or "").strip()
     key = (api_key or "").strip()
     if not raw:
@@ -346,8 +440,8 @@ def extract_item_names_via_groq_with_usage(*, text: str, api_key: str) -> tuple[
     if not key:
         raise RecognitionDependencyError("GROQ_API_KEY is not configured")
 
-    # Minimize data sent: take only the first chunk.
-    max_chars = int(os.getenv("GROQ_INPUT_MAX_CHARS", "12000"))
+    # Minimize data sent: take only the first chunk - reduced to 8000 for lower TPM
+    max_chars = int(os.getenv("GROQ_INPUT_MAX_CHARS", "8000"))
     payload_text = raw[: max(1, min(max_chars, 50000))]
 
     model = (os.getenv("GROQ_MODEL") or "llama-3.1-8b-instant").strip()
@@ -366,6 +460,18 @@ def extract_item_names_via_groq_with_usage(*, text: str, api_key: str) -> tuple[
 
     user = payload_text
 
+    cache_key = _groq_cache_key(kind="item_names", model=model, system=system, payload_text=payload_text)
+    cached = _groq_cache_read(cache_key)
+    if isinstance(cached, dict):
+        cached_names = cached.get("names")
+        cached_usage = cached.get("usage")
+        if isinstance(cached_names, list):
+            try:
+                names = normalize_item_names([str(x or "").strip() for x in cached_names])
+            except Exception:
+                names = []
+            return names, cached_usage if isinstance(cached_usage, dict) else {}
+
     payload = {
         "model": model,
         "temperature": 0,
@@ -376,29 +482,70 @@ def extract_item_names_via_groq_with_usage(*, text: str, api_key: str) -> tuple[
         "response_format": {"type": "json_object"},
     }
 
-    try:
-        with httpx.Client(timeout=30.0) as client:
-            r = client.post(url, headers={"Authorization": f"Bearer {key}"}, json=payload)
-            try:
-                r.raise_for_status()
-            except httpx.HTTPStatusError as e:
-                snippet = ""
+    last_error = None
+    usage = {}
+    content = ""
+    
+    # Retry with exponential backoff for rate limit (429)
+    for attempt in range(max_retries):
+        try:
+            with httpx.Client(timeout=30.0) as client:
+                r = client.post(url, headers={"Authorization": f"Bearer {key}"}, json=payload)
+                
+                # Handle rate limit (429)
+                if r.status_code == 429:
+                    wait_time = 0
+                    try:
+                        error_data = r.json()
+                        error_msg = error_data.get("error", {}).get("message", "")
+                        match = _re.search(r"try again in (\d+(?:\.\d+)?)s", error_msg)
+                        if match:
+                            wait_time = float(match.group(1))
+                        else:
+                            wait_time = (2 ** attempt) * 2
+                    except Exception:
+                        wait_time = (2 ** attempt) * 2
+                    
+                    if attempt < max_retries - 1:
+                        logger.info(f"Groq rate limit (429), waiting {wait_time:.1f}s before retry {attempt+1}/{max_retries}")
+                        time.sleep(wait_time)
+                        continue
+                    else:
+                        raise RecognitionDependencyError(
+                            f"Groq rate limit (429) after {max_retries} retries. Please try again later."
+                        )
+                
                 try:
-                    snippet = (r.text or "").strip()
-                except Exception:
+                    r.raise_for_status()
+                except httpx.HTTPStatusError as e:
                     snippet = ""
-                if snippet:
-                    snippet = snippet[:400]
-                raise RecognitionDependencyError(
-                    f"Groq request failed: {r.status_code} {r.reason_phrase}. {snippet}".strip()
-                ) from e
-            data = r.json() or {}
-            usage = data.get("usage") or {}
-            content = (((data.get("choices") or [{}])[0].get("message") or {}).get("content") or "").strip()
-    except RecognitionDependencyError:
-        raise
-    except Exception as e:
-        raise RecognitionDependencyError(f"Groq request failed: {e}")
+                    try:
+                        snippet = (r.text or "").strip()
+                    except Exception:
+                        snippet = ""
+                    if snippet:
+                        snippet = snippet[:400]
+                    raise RecognitionDependencyError(
+                        f"Groq request failed: {r.status_code} {r.reason_phrase}. {snippet}".strip()
+                    ) from e
+                    
+                data = r.json() or {}
+                usage = data.get("usage") or {}
+                content = (((data.get("choices") or [{}])[0].get("message") or {}).get("content") or "").strip()
+                break
+                
+        except RecognitionDependencyError:
+            last_error = sys.exc_info()[1]
+            if attempt < max_retries - 1:
+                continue
+            raise
+        except Exception as e:
+            last_error = e
+            if attempt < max_retries - 1:
+                logger.warning(f"Groq request failed (attempt {attempt+1}/{max_retries}): {e}")
+                time.sleep((2 ** attempt) * 1.5)
+                continue
+            raise RecognitionDependencyError(f"Groq request failed after {max_retries} retries: {e}")
 
     if not content:
         return [], usage if isinstance(usage, dict) else {}
@@ -441,7 +588,186 @@ def extract_item_names_via_groq_with_usage(*, text: str, api_key: str) -> tuple[
         out.append(s)
         if len(out) >= limit:
             break
-    return normalize_item_names(out)
+    final_names = normalize_item_names(out)
+    final_usage = usage if isinstance(usage, dict) else {}
+    _groq_cache_write(cache_key, {"names": final_names, "usage": final_usage})
+    return final_names, final_usage
+
+
+def extract_search_keys_via_groq(*, text: str, api_key: str, max_retries: int = 5) -> Tuple[List[str], List[str], dict]:
+    """
+    Extract GROUPED search keys for parsing optimization.
+    Returns:
+        - search_keys: 3-8 optimized search queries for parsing
+        - categories: unique product categories found  
+        - usage: token usage info
+    """
+    import time
+    import re as _re
+
+    raw = (text or "").strip()
+    key = (api_key or "").strip()
+    if not raw:
+        return [], [], {}
+    if not key:
+        raise RecognitionDependencyError("GROQ_API_KEY is not configured")
+
+    max_chars = int(os.getenv("GROQ_INPUT_MAX_CHARS", "8000"))
+    payload_text = raw[: max(1, min(max_chars, 50000))]
+
+    model = (os.getenv("GROQ_MODEL") or "llama-3.1-8b-instant").strip()
+    url = (os.getenv("GROQ_BASE_URL") or "https://api.groq.com/openai/v1").rstrip("/") + "/chat/completions"
+
+    system = (
+        "Ты эксперт по анализу заявок на товары. Твоя задача - сгруппировать позиции и создать МИНИМАЛЬНОЕ количество ПОИСКОВЫХ КЛЮЧЕЙ для поиска поставщиков.\n\n"
+        "КРИТИЧНО: Количество ключей должно быть МЕНЬШЕ количества позиций в тексте!\n\n"
+        "Формат ответа СТРОГО JSON:\n"
+        "{\n"
+        '  "search_keys": ["ключ 1", "ключ 2", ...]\n'
+        "}\n\n"
+        "ПРАВИЛА создания search_keys:\n"
+        "1. ОБЪЕДИНЯЙ все похожие товары в ОДИН поисковый ключ\n"
+        "2. Ключ = тип товара + материал (если критично важен)\n"
+        "3. НЕ включай: размеры, DN, диаметры, количество, цены, артикулы, параметры\n"
+        "4. СТРОГИЕ ЛИМИТЫ (НИКОГДА не превышай!):\n"
+        "   - 1-3 позиции в тексте → МАКСИМУМ 1 ключ\n"
+        "   - 4-10 позиций → МАКСИМУМ 2-3 ключа\n"
+        "   - 11-20 позиций → МАКСИМУМ 3-5 ключей\n"
+        "   - 21-50 позиций → МАКСИМУМ 5-8 ключей\n"
+        "5. Если все позиции одного типа (только настилы / только трубы) → ОДИН ключ!\n\n"
+        "ПРИМЕРЫ:\n"
+        "- 20 вариантов 'Настил решетчатый сварной Zn' разных размеров → ['Настил решетчатый сварной Zn']\n"
+        "- 5 труб ПП разных DN → ['Труба ПП гофрированная']\n"
+        "- 3 муфты ПЭ разных DN → ['Муфта защитная ПЭ']\n"
+        "- 1 отвод → ['Отвод сварной ПЭ']\n"
+        "- 5 труб (3xПП + 2xПНД) → ['Труба ПП', 'Труба ПНД'] или ['Труба гофрированная']\n"
+        "- 10 позиций (настилы + ступени + трубы) → ['Настил решетчатый', 'Ступень решетчатая', 'Труба ПП']\n\n"
+        "ПОМНИ: Чем меньше ключей - тем лучше! Цель - СОКРАТИТЬ количество запросов к поисковикам."
+    )
+
+    payload = {
+        "model": model,
+        "temperature": 0,
+        "messages": [
+            {"role": "system", "content": system},
+            {"role": "user", "content": payload_text},
+        ],
+        "response_format": {"type": "json_object"},
+    }
+
+    last_error = None
+    usage = {}
+    content = ""
+
+    cache_key = _groq_cache_key(kind="search_keys", model=model, system=system, payload_text=payload_text)
+    cached = _groq_cache_read(cache_key)
+    if isinstance(cached, dict):
+        cached_keys = cached.get("search_keys")
+        cached_usage = cached.get("usage")
+        if isinstance(cached_keys, list):
+            try:
+                keys = [str(x or "").strip() for x in cached_keys if str(x or "").strip()]
+            except Exception:
+                keys = []
+            return keys[:8], [], cached_usage if isinstance(cached_usage, dict) else {}
+
+    for attempt in range(max_retries):
+        try:
+            with httpx.Client(timeout=45.0) as client:
+                r = client.post(url, headers={"Authorization": f"Bearer {key}"}, json=payload)
+
+                if r.status_code == 429:
+                    wait_time = 3.0
+                    try:
+                        error_data = r.json()
+                        error_msg = error_data.get("error", {}).get("message", "")
+                        match = _re.search(r"try again in (\d+)(?:ms|s)", error_msg, _re.IGNORECASE)
+                        if match:
+                            wait_val = int(match.group(1))
+                            if "ms" in error_msg.lower():
+                                wait_time = wait_val / 1000.0 + 1.0
+                            else:
+                                wait_time = wait_val + 1.0
+                        else:
+                            wait_time = (attempt + 1) * 3.0
+                    except Exception:
+                        wait_time = (attempt + 1) * 3.0
+
+                    logger.warning(f"Groq rate limit hit, waiting {wait_time:.1f}s before retry {attempt + 1}/{max_retries}")
+                    time.sleep(wait_time)
+                    continue
+
+                try:
+                    r.raise_for_status()
+                except httpx.HTTPStatusError as e:
+                    snippet = ""
+                    try:
+                        snippet = (r.text or "").strip()[:400]
+                    except Exception:
+                        pass
+                    last_error = RecognitionDependencyError(
+                        f"Groq request failed: {r.status_code} {r.reason_phrase}. {snippet}".strip()
+                    )
+                    if attempt < max_retries - 1:
+                        time.sleep((attempt + 1) * 1.0)
+                        continue
+                    raise last_error from e
+
+                data = r.json() or {}
+                usage = data.get("usage") or {}
+                content = (((data.get("choices") or [{}])[0].get("message") or {}).get("content") or "").strip()
+                break
+
+        except RecognitionDependencyError:
+            raise
+        except Exception as e:
+            last_error = RecognitionDependencyError(f"Groq request failed: {e}")
+            if attempt < max_retries - 1:
+                time.sleep((attempt + 1) * 1.0)
+                continue
+            raise last_error
+
+    if not content:
+        return [], [], usage if isinstance(usage, dict) else {}
+
+    obj = None
+    try:
+        obj = json.loads(content)
+    except Exception:
+        start = content.find("{")
+        end = content.rfind("}")
+        if start != -1 and end != -1 and end > start:
+            try:
+                obj = json.loads(content[start : end + 1])
+            except Exception:
+                obj = None
+
+    if not isinstance(obj, dict):
+        return [], [], usage if isinstance(usage, dict) else {}
+
+    search_keys = obj.get("search_keys", [])
+
+    if not isinstance(search_keys, list):
+        search_keys = []
+
+    keys = []
+    seen = set()
+    for k in search_keys:
+        s = str(k or "").strip()
+        if not s or len(s) < 2:
+            continue
+        s = " ".join(s.split())
+        low = s.lower()
+        if low in seen:
+            continue
+        seen.add(low)
+        keys.append(s)
+        if len(keys) >= 8:
+            break
+
+    final_usage = usage if isinstance(usage, dict) else {}
+    _groq_cache_write(cache_key, {"search_keys": keys, "usage": final_usage})
+    return keys, [], final_usage
 
 
 def parse_positions_from_text(text: str) -> List[str]:

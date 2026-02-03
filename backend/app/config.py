@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "postgresql+asyncpg://postgres:12059001@localhost:5432/b2bplatform"
 
     # Parser Service
-    PARSER_SERVICE_URL: str = "http://127.0.0.1:9003"
+    PARSER_SERVICE_URL: str = "http://127.0.0.1:9004"
     LLM_KEYS_ENABLED: bool = False
     LLM_KEYS_FORCE: bool = False
     OLLAMA_URL: str = "http://127.0.0.1:11434"

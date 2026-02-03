@@ -1,12 +1,28 @@
 """Use case for starting parsing."""
 import uuid
 import json
+import os
 from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.adapters.db.repositories import ParsingRequestRepository, ParsingRunRepository
 from app.adapters.parser_client import ParserClient
 from app.config import settings
 from app.usecases import create_keyword
+
+
+def _agent_debug_log(payload: dict) -> None:
+    """Debug logging function for agent diagnostics."""
+    if os.environ.get("AGENT_DEBUG_LOG", "0") != "1":
+        return
+    try:
+        import httpx
+        httpx.post(
+            "http://127.0.0.1:8765/agent-debug-log",
+            json=payload,
+            timeout=1.0
+        )
+    except Exception:
+        pass
 
 # Track running parsing tasks to prevent duplicates
 _running_parsing_tasks = set()
