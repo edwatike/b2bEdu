@@ -57,7 +57,7 @@ if __name__ == "__main__":
         uvicorn.run(
             "app.main:app",  # Import string required for reload
             host="127.0.0.1",
-            port=8000,
+            port=8010,
             reload=True,
             reload_dirs=[backend_dir],  # Only watch backend directory
             reload_excludes=["temp/*", "*.pyc", "__pycache__"],  # Exclude temp files
@@ -69,7 +69,7 @@ if __name__ == "__main__":
         uvicorn.run(
             app,  # Direct app object - more reliable
             host="127.0.0.1",
-            port=8000,
+            port=8010,
             reload=False,
             log_level="info"
         )

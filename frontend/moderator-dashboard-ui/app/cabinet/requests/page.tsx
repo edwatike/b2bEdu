@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { createCabinetRequest, submitCabinetRequest, updateCabinetRequest, uploadCabinetRequestPositions, uploadCabinetRequestPositionsWithEngine } from "@/lib/api"
+import { createCabinetRequest, submitCabinetRequest, updateCabinetRequest, uploadCabinetRequestPositions, uploadCabinetRequestPositionsWithEngineProof } from "@/lib/api"
 import type { CabinetParsingRequestDTO } from "@/lib/types"
 import { Upload, FileText, X } from "lucide-react"
 
@@ -78,6 +78,7 @@ function RequestsPage() {
   const [isCreating, setIsCreating] = useState(false)
   const [createError, setCreateError] = useState<string | null>(null)
   const [createSuccess, setCreateSuccess] = useState<string | null>(null)
+  const [groqUsed, setGroqUsed] = useState(false)
 
   const [selectedFiles, setSelectedFiles] = useState<File[]>([])
   const [uploadRequestId, setUploadRequestId] = useState<string>("")
@@ -141,6 +142,7 @@ function RequestsPage() {
       setIsCreating(true)
       setCreateError(null)
       setCreateSuccess(null)
+      setGroqUsed(false)
 
       const file = recognizeFile
       if (!file) {
@@ -149,7 +151,9 @@ function RequestsPage() {
       }
 
       const id = await ensureDraftExists()
-      const updated = await uploadCabinetRequestPositionsWithEngine(id, file, "auto")
+      const result = await uploadCabinetRequestPositionsWithEngineProof(id, file, "auto")
+      const updated = result.data
+      setGroqUsed(Boolean(result.groqUsed))
 
       let parsed: unknown = []
       try {
@@ -350,6 +354,7 @@ function RequestsPage() {
 
                       {createError && <div className="text-sm text-rose-200">{createError}</div>}
                       {createSuccess && <div className="text-sm text-emerald-200">{createSuccess}</div>}
+                      {groqUsed && <div className="text-sm text-emerald-200">Логотип GROQ</div>}
 
                       <div className="grid grid-cols-1 gap-2">
                         <Button className="w-full" variant="outline" onClick={() => void handleRecognize()} disabled={isCreating}>

@@ -1014,6 +1014,47 @@ export async function uploadCabinetRequestPositionsWithEngine(
   )
 }
 
+export async function uploadCabinetRequestPositionsWithEngineProof(
+  requestId: number,
+  file: File,
+  engine: "auto" | "structured" | "ocr" | "docling" = "auto",
+): Promise<{
+  data: CabinetParsingRequestDTO
+  groqUsed: boolean
+  groqKeySource: string | null
+  groqError: string | null
+}> {
+  const form = new FormData()
+  form.append("file", file, file.name)
+
+  const qs = `engine=${encodeURIComponent(engine)}`
+  const endpoint = `/cabinet/requests/${encodeURIComponent(String(requestId))}/positions/upload?${qs}`
+  const url = `${API_BASE_URL}${endpoint}`
+
+  const response = await fetch(url, {
+    method: "POST",
+    body: form,
+    credentials: "include",
+  })
+
+  const groqUsed = response.headers.get("x-groq-used") === "1"
+  const groqKeySource = response.headers.get("x-groq-key-source")
+  const groqError = response.headers.get("x-groq-error")
+
+  const payload = (await response.json().catch(() => null)) as any
+  if (!response.ok) {
+    const errorMessage = payload?.detail || payload?.message || payload?.error || `HTTP ${response.status}`
+    throw new APIError(errorMessage, response.status, payload)
+  }
+
+  return {
+    data: payload as CabinetParsingRequestDTO,
+    groqUsed,
+    groqKeySource: groqKeySource ?? null,
+    groqError: groqError ?? null,
+  }
+}
+
 export async function getCabinetRequestSuppliers(requestId: number): Promise<CabinetRequestSupplierDTO[]> {
   return apiFetch<CabinetRequestSupplierDTO[]>(`/cabinet/requests/${encodeURIComponent(String(requestId))}/suppliers`)
 }

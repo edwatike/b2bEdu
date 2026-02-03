@@ -2,6 +2,25 @@ import { type NextRequest, NextResponse } from "next/server"
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000"
 
+function applyGroqHeaders(from: Response, to: NextResponse) {
+  const passHeaders = [
+    "x-groq-used",
+    "x-groq-key-source",
+    "x-groq-key-source-initial",
+    "x-groq-error",
+    "x-groq-total-tokens",
+    "x-groq-prompt-tokens",
+    "x-groq-completion-tokens",
+  ]
+
+  for (const key of passHeaders) {
+    const v = from.headers.get(key)
+    if (v != null) {
+      to.headers.set(key, v)
+    }
+  }
+}
+
 function buildProxyHeaders(request: NextRequest): Record<string, string> {
   const headers: Record<string, string> = {
     "ngrok-skip-browser-warning": "true",
@@ -56,7 +75,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     const data = await response.json()
-    return NextResponse.json(data)
+    const next = NextResponse.json(data)
+    applyGroqHeaders(response, next)
+    return next
   } catch (error) {
     console.error("[Proxy] Error:", error)
     return NextResponse.json({ error: "Failed to connect to backend" }, { status: 502 })
@@ -78,7 +99,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
 
     const data = await response.json()
-    return NextResponse.json(data)
+    const next = NextResponse.json(data)
+    applyGroqHeaders(response, next)
+    return next
   } catch (error) {
     console.error("[Proxy] Error:", error)
     return NextResponse.json({ error: "Failed to connect to backend" }, { status: 502 })
@@ -100,7 +123,9 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     const data = await response.json()
-    return NextResponse.json(data)
+    const next = NextResponse.json(data)
+    applyGroqHeaders(response, next)
+    return next
   } catch (error) {
     console.error("[Proxy] Error:", error)
     return NextResponse.json({ error: "Failed to connect to backend" }, { status: 502 })
@@ -126,7 +151,9 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     }
 
     const data = await response.json()
-    return NextResponse.json(data)
+    const next = NextResponse.json(data)
+    applyGroqHeaders(response, next)
+    return next
   } catch (error) {
     console.error("[Proxy] Error:", error)
     return NextResponse.json({ error: "Failed to connect to backend" }, { status: 502 })
@@ -148,7 +175,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
 
     const data = await response.json()
-    return NextResponse.json(data)
+    const next = NextResponse.json(data)
+    applyGroqHeaders(response, next)
+    return next
   } catch (error) {
     console.error("[Proxy] Error:", error)
     return NextResponse.json({ error: "Failed to connect to backend" }, { status: 502 })

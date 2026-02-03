@@ -1,82 +1,207 @@
-﻿@echo off
+@echo off
 setlocal enabledelayedexpansion
 chcp 65001 >nul
-title RunB2B - B2B Platform Monitor
+title RunB2B - Universal Launcher
 
-set PROJECT_ROOT=D:\b2b
-cd /d %PROJECT_ROOT%\TEMP
+REM ============================================
+REM UNIVERSAL LAUNCHER - Works from ANY folder/worktree
+REM Uses CD to determine project root
+REM ============================================
 
-REM Ensure localhost does NOT go through corporate/system proxy (avoids false 503)
-set NO_PROXY=localhost,127.0.0.1
-set no_proxy=localhost,127.0.0.1
-set HTTP_PROXY=
-set HTTPS_PROXY=
-set http_proxy=
-set https_proxy=
+set "PROJECT_ROOT=%CD%"
+if "%PROJECT_ROOT:~-1%"=="\" set "PROJECT_ROOT=%PROJECT_ROOT:~0,-1%"
 
-echo [0/4] Comet CDP (9222)...
+echo.
+echo ========================================
+echo   B2B PLATFORM - UNIVERSAL LAUNCHER
+echo ========================================
+echo   Project: %PROJECT_ROOT%
+echo ========================================
+echo.
 
-set "COMET_PROFILE="
-if not defined COMET_PROFILE set "COMET_PROFILE=%PROJECT_ROOT%\TEMP\comet-profile"
-if not exist "%COMET_PROFILE%" mkdir "%COMET_PROFILE%"
-
-set "COMET_EXE="
-for %%P in (
-  "%LOCALAPPDATA%\Perplexity\Comet\Application\comet.exe"
-  "%USERPROFILE%\AppData\Local\Perplexity\Comet\Application\comet.exe"
-  "C:\Program Files\Perplexity\Comet\Application\comet.exe"
-  "C:\Program Files (x86)\Perplexity\Comet\Application\comet.exe"
-) do (
-  if exist "%%~fP" set "COMET_EXE=%%~fP"
+REM Verify required directories exist
+if not exist "%PROJECT_ROOT%\parser_service" (
+    echo ERROR: parser_service not found!
+    exit /b 1
+)
+if not exist "%PROJECT_ROOT%\backend" (
+    echo ERROR: backend not found!
+    exit /b 1
+)
+if not exist "%PROJECT_ROOT%\frontend\moderator-dashboard-ui" (
+    echo ERROR: frontend not found!
+    exit /b 1
 )
 
-set "CDP_ALREADY_LISTENING="
-for /f "usebackq delims=" %%L in (`powershell -NoProfile -NonInteractive -Command "if (Get-NetTCPConnection -State Listen -LocalPort 9222 -ErrorAction SilentlyContinue) { 'YES' }"`) do set "CDP_ALREADY_LISTENING=%%L"
+if not exist "%PROJECT_ROOT%\TEMP" mkdir "%PROJECT_ROOT%\TEMP" >nul 2>&1
 
-if /I "%CDP_ALREADY_LISTENING%"=="YES" (
-  echo Comet CDP already listening on :9222
-) else (
-  tasklist /FI "IMAGENAME eq comet.exe" 2>NUL | find /I "comet.exe" >NUL
-  if %ERRORLEVEL%==0 (
-    if /I "%AUTO_KILL_BROWSER_FOR_CDP%"=="1" (
-      echo Comet is running. Closing it to enable CDP :9222...
-      taskkill /IM comet.exe /T /F >NUL 2>&1
-    ) else (
-      echo WARNING: Comet is already running. Close Comet and re-run RunB2B.bat to enable CDP :9222.
-      echo Hint: set AUTO_KILL_BROWSER_FOR_CDP=1 to auto-close Comet from this script.
+REM ============================================
+REM 0. Cleanup (FAST - no hangs)
+REM ============================================
+echo [0/4] Cleanup...
+powershell -Command "Get-Process python -ErrorAction SilentlyContinue | Stop-Process -Force; Get-Process node -ErrorAction SilentlyContinue | Stop-Process -Force" >nul 2>&1
+timeout /t 2 /nobreak >nul
+echo       Done
+echo.
+
+REM ============================================
+REM 1. Parser Service (Port 9004)
+REM ============================================
+echo [1/4] Parser Service on port 9004...
+
+if not exist "%PROJECT_ROOT%\parser_service\venv\Scripts\python.exe" (
+    echo       Creating venv...
+    cd /d "%PROJECT_ROOT%\parser_service"
+    python -m venv venv --clear
+    timeout /t 3 /nobreak >nul
+    
+    REM Check if venv created successfully
+    if not exist "venv\Scripts\python.exe" (
+        echo       ERROR: Failed to create venv
+        goto :SKIP_PARSER
     )
-  )
-
-  if defined COMET_EXE (
-    start "" "%COMET_EXE%" --remote-debugging-port=9222 --remote-debugging-address=127.0.0.1 --user-data-dir="%COMET_PROFILE%" "http://localhost:3000/login"
-  ) else (
-    echo WARNING: Perplexity Comet not found. Install Comet or provide comet.exe path.
-  )
+    
+    echo       Installing deps...
+    "venv\Scripts\pip.exe" install -r requirements.txt > "%PROJECT_ROOT%\TEMP\parser_pip.log" 2>&1
 )
 
-echo [1/4] Parser (9004)...
-cd /d %PROJECT_ROOT%\parser_service
-if not exist venv python -m venv venv
-venv\Scripts\pip.exe install --progress-bar on --disable-pip-version-check -r requirements.txt
-start "" "%PROJECT_ROOT%\parser_service\venv\Scripts\python.exe" "%PROJECT_ROOT%\parser_service\run_api.py"
+cd /d "%PROJECT_ROOT%\parser_service"
+start "Parser-9004" /MIN "venv\Scripts\python.exe" run_api.py
+timeout /t 8 /nobreak >nul
 
-echo [2/4] Backend (8000)...
-cd /d %PROJECT_ROOT%\backend
-if not exist venv python -m venv venv
-venv\Scripts\pip.exe install --progress-bar on --disable-pip-version-check -r requirements.txt
-start "" "%PROJECT_ROOT%\backend\venv\Scripts\python.exe" "%PROJECT_ROOT%\backend\run_api.py"
+curl -s --max-time 2 http://127.0.0.1:9004/health >nul 2>&1
+if !errorlevel!==0 (
+    echo       Running
+) else (
+    echo       Starting...
+)
+:SKIP_PARSER
+echo.
 
-echo [3/4] Frontend (3000)...
-cd /d %PROJECT_ROOT%\frontend\moderator-dashboard-ui
-set NEXT_TELEMETRY_DISABLED=1
-set NEXT_PUBLIC_API_URL=http://127.0.0.1:8000
-if not exist node_modules npm install --no-audit --progress=true
-start "" cmd.exe /c "npm run dev"
+REM ============================================
+REM 2. Backend (Port 8010)
+REM ============================================
+echo [2/4] Backend on port 8010...
 
-echo URLs:
-echo - Parser: http://127.0.0.1:9004/health
-echo - Backend: http://127.0.0.1:8000/health
-echo - Frontend: http://localhost:3000/login
-echo - CDP: http://127.0.0.1:9222/json/version
+if not exist "%PROJECT_ROOT%\backend\venv\Scripts\python.exe" (
+    echo       Creating venv...
+    cd /d "%PROJECT_ROOT%\backend"
+    python -m venv venv --clear
+    timeout /t 3 /nobreak >nul
+    
+    if not exist "venv\Scripts\python.exe" (
+        echo       ERROR: Failed to create venv
+        goto :SKIP_BACKEND
+    )
+    
+    echo       Installing deps...
+    "venv\Scripts\pip.exe" install -r requirements.txt > "%PROJECT_ROOT%\TEMP\backend_pip.log" 2>&1
+    
+    REM Create .env if missing
+    if not exist ".env" if exist ".env.example" (
+        copy .env.example .env >nul
+    )
+)
 
-pause
+cd /d "%PROJECT_ROOT%\backend"
+start "Backend-8010" /MIN "venv\Scripts\python.exe" -m uvicorn app.main:app --host 127.0.0.1 --port 8010
+timeout /t 10 /nobreak >nul
+
+curl -s --max-time 2 http://127.0.0.1:8010/health >nul 2>&1
+if !errorlevel!==0 (
+    echo       Running
+) else (
+    echo       Starting...
+)
+:SKIP_BACKEND
+echo.
+
+REM ============================================
+REM 3. Frontend (Port 3000)
+REM ============================================
+echo [3/4] Frontend on port 3000...
+cd /d "%PROJECT_ROOT%\frontend\moderator-dashboard-ui"
+
+set "NODE_OPTIONS=--max-old-space-size=2048"
+set "NEXT_TELEMETRY_DISABLED=1"
+set "NEXT_PUBLIC_API_URL=http://127.0.0.1:8010"
+set "NEXT_PUBLIC_PARSER_URL=http://127.0.0.1:9004"
+
+if not exist "node_modules" (
+    echo       npm install...
+    call npm install --no-audit --progress=false > "%PROJECT_ROOT%\TEMP\npm.log" 2>&1
+)
+
+start "Frontend-3000" /MIN cmd /c "npm run dev ^> %PROJECT_ROOT%\TEMP\frontend.log 2^>^&1"
+
+REM Wait for frontend
+for /L %%i in (1,1,20) do (
+    curl -s --max-time 2 http://127.0.0.1:3000/login >nul 2>&1
+    if !errorlevel!==0 goto :FRONTEND_OK
+    timeout /t 2 /nobreak >nul
+)
+:FRONTEND_OK
+
+curl -s --max-time 2 http://127.0.0.1:3000/login >nul 2>&1
+if !errorlevel!==0 (
+    echo       Running
+) else (
+    echo       Check %PROJECT_ROOT%\TEMP\frontend.log
+)
+echo.
+
+REM ============================================
+REM 4. Health Check
+REM ============================================
+echo ========================================
+echo   HEALTH CHECK
+echo ========================================
+echo.
+
+set "RUNNING=0"
+
+curl -s --max-time 2 http://127.0.0.1:9004/health >nul 2>&1
+if !errorlevel!==0 (
+    echo   OK Parser:  http://127.0.0.1:9004
+    set /a RUNNING+=1
+) else (
+    echo   FAIL Parser:  http://127.0.0.1:9004
+)
+
+curl -s --max-time 2 http://127.0.0.1:8010/health >nul 2>&1
+if !errorlevel!==0 (
+    echo   OK Backend: http://127.0.0.1:8010
+    set /a RUNNING+=1
+) else (
+    echo   FAIL Backend: http://127.0.0.1:8010
+)
+
+curl -s --max-time 2 http://127.0.0.1:3000/login >nul 2>&1
+if !errorlevel!==0 (
+    echo   OK Frontend: http://localhost:3000
+    set /a RUNNING+=1
+) else (
+    echo   FAIL Frontend: http://localhost:3000
+)
+
+echo.
+echo ========================================
+if !RUNNING!==3 (
+    echo   RESULT: 3/3 SERVICES RUNNING
+) else (
+    echo   RESULT: !RUNNING!/3 SERVICES
+)
+echo ========================================
+echo.
+
+if !RUNNING!==3 (
+    echo   SUCCESS!
+    echo.
+    echo   Access:
+    echo   - http://localhost:3000
+    echo   - http://127.0.0.1:8010/docs
+    exit /b 0
+) else (
+    echo   Check TEMP\*.log for errors
+    exit /b 1
+)
