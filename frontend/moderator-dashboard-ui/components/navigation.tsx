@@ -5,13 +5,14 @@ import { usePathname, useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import { cn } from "@/lib/utils"
-import { LayoutDashboard, Play, Users, Ban, Key, Settings, Sparkles, LogOut, User } from "lucide-react"
+import { LayoutDashboard, Play, Users, Ban, Key, Settings, Sparkles, LogOut, User, ListChecks } from "lucide-react"
 import { AnimatedLogo } from "./animated-logo"
 import { toast } from "sonner"
 
 const navItems = [
   { href: "/moderator", label: "Дашборд", icon: LayoutDashboard, color: "from-blue-600 to-purple-600" },
-  { href: "/parsing-runs", label: "Запуски парсинга", icon: Play, color: "from-purple-600 to-indigo-600" },
+  { href: "/moderator/tasks", label: "Задачи", icon: ListChecks, color: "from-orange-600 to-amber-600" },
+  { href: "/parsing-runs", label: "Запуски", icon: Play, color: "from-purple-600 to-indigo-600" },
   { href: "/moderator/suppliers", label: "Поставщики", icon: Users, color: "from-green-600 to-emerald-600" },
   { href: "/moderator/users", label: "Пользователи", icon: Users, color: "from-teal-600 to-cyan-600" },
   { href: "/keywords", label: "Ключи", icon: Key, color: "from-blue-600 to-cyan-600" },
@@ -81,7 +82,7 @@ export function Navigation() {
             <Link href="/" className="flex items-center gap-3">
               <AnimatedLogo />
               <motion.span
-                className="text-xl font-semibold text-gradient"
+                className="text-xl font-semibold text-gradient -ml-1"
                 whileHover={{ scale: 1.1 }}
                 transition={{ duration: 0.2 }}
               >

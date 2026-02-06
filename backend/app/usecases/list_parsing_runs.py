@@ -10,6 +10,7 @@ async def execute(
     offset: int = 0,
     status: Optional[str] = None,
     keyword: Optional[str] = None,
+    request_id: Optional[int] = None,
     sort_by: str = "created_at",
     sort_order: str = "desc"
 ):
@@ -20,6 +21,7 @@ async def execute(
         offset=offset,
         status=status,
         keyword=keyword,
+        request_id=request_id,
         sort_by=sort_by,
         sort_order=sort_order
     )

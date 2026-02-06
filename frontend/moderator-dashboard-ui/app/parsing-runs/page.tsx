@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useSearchParams } from "next/navigation"
 import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { Card } from "@/components/ui/card"
@@ -25,12 +26,20 @@ import type { ParsingRunDTO } from "@/lib/types"
 
 function ParsingRunsPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [runs, setRuns] = useState<ParsingRunDTO[]>([])
   const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedRuns, setSelectedRuns] = useState<Set<string>>(new Set())
 
+
+  useEffect(() => {
+    const status = searchParams.get("status")
+    if (status && status !== statusFilter) {
+      setStatusFilter(status)
+    }
+  }, [searchParams])
   useEffect(() => {
     loadRuns()
   }, [statusFilter])
@@ -162,7 +171,7 @@ function ParsingRunsPage() {
             </div>
             <div>
               <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
-                Запуски парсинга
+                Запуски
               </h1>
               <p className="text-muted-foreground">История и управление запусками</p>
             </div>

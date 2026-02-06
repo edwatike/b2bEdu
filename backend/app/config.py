@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "postgresql+asyncpg://postgres:12059001@localhost:5432/b2bplatform"
 
     # Parser Service
-    PARSER_SERVICE_URL: str = "http://127.0.0.1:9004"
+    PARSER_SERVICE_URL: str = "http://127.0.0.1:9000"
     LLM_KEYS_ENABLED: bool = False
     LLM_KEYS_FORCE: bool = False
     OLLAMA_URL: str = "http://127.0.0.1:11434"
@@ -35,6 +35,16 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = "INFO"
     LOG_SQL: bool = False
 
+    # Domain parser auto-enrichment
+    DOMAIN_PARSER_AUTO_ENABLED: str = "1"
+    DOMAIN_PARSER_AUTO_MODE: str = "complete"  # complete|progressive
+    DOMAIN_PARSER_AUTO_MAX_CONCURRENCY: str = "2"
+    DOMAIN_PARSER_AUTO_EARLY: str = "1"
+    DOMAIN_PARSER_AUTO_LIMIT: str = "3"
+
+    # Parsing concurrency guard (CDP is single-instance)
+    PARSING_MAX_CONCURRENCY: str = "1"
+
     # CORS - парсим из строки, разделенной запятыми
     # Включаем localhost:3000, 127.0.0.1:3000 и browser preview порты
     CORS_ORIGINS: str = "http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001,http://127.0.0.1:60124,http://localhost:60124"
@@ -51,7 +61,10 @@ class Settings(BaseSettings):
     USER_SECRETS_FERNET_KEY: str = ""
 
     model_config = SettingsConfigDict(
-        env_file=str(Path(__file__).resolve().parents[1] / ".env"),
+        env_file=[
+            str(Path(__file__).resolve().parents[2] / ".env"),
+            str(Path(__file__).resolve().parents[1] / ".env"),
+        ],
         env_file_encoding="utf-8",
         case_sensitive=True,
         extra="ignore",

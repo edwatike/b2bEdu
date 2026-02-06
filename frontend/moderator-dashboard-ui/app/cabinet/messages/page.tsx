@@ -818,7 +818,7 @@ function MessagesPage() {
 
 export default function MessagesPageWithAuth() {
   return (
-    <AuthGuard allowedRoles={["user"]}>
+    <AuthGuard allowedRoles={["user", "moderator"]}>
       <MessagesPage />
     </AuthGuard>
   )

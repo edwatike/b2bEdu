@@ -6,6 +6,10 @@ export interface SupplierDTO {
   domain: string | null
   address: string | null
   type: "supplier" | "reseller"
+  allowDuplicateInn?: boolean
+  dataStatus?: string
+  domains?: string[]
+  emails?: string[]
   
   // Checko fields
   ogrn?: string | null
@@ -69,6 +73,15 @@ export interface ParsingRunDTO {
   createdAt?: string  // Для обратной совместимости
   depth?: number  // Глубина парсинга
   source?: string | null  // Source for parsing: 'google', 'yandex', or 'both'
+  domainParserQueueTotalDomains?: number
+  domainParserQueueAheadDomains?: number
+  domainParserQueueAheadRuns?: number
+  domainParserQueueRunDomains?: number
+  domainParserQueueActiveRunId?: string | null
+  domainParserQueueAheadList?: Array<{
+    runId: string
+    remainingDomains: number
+  }>
   process_log?: {
     total_domains?: number
     source_statistics?: {
@@ -81,6 +94,22 @@ export interface ParsingRunDTO {
     started_at?: string
     finished_at?: string
     error?: string
+    domain_parser_auto?: {
+      status?: string
+      parserRunId?: string
+      parserRunIds?: string[]
+      mode?: string
+      startedAt?: string
+      finishedAt?: string
+      lastFinishedAt?: string
+      queuedAt?: string
+      pickedAt?: string
+      lastDomain?: string
+      domains?: number
+      processed?: number
+      total?: number
+      error?: string
+    }
   } | null
   processLog?: {
     total_domains?: number
@@ -95,6 +124,22 @@ export interface ParsingRunDTO {
     finished_at?: string
     error?: string
     parsing_logs?: ParsingLogsDTO  // Structured parsing logs from parser service
+    domain_parser_auto?: {
+      status?: string
+      parserRunId?: string
+      parserRunIds?: string[]
+      mode?: string
+      startedAt?: string
+      finishedAt?: string
+      lastFinishedAt?: string
+      queuedAt?: string
+      pickedAt?: string
+      lastDomain?: string
+      domains?: number
+      processed?: number
+      total?: number
+      error?: string
+    }
   } | null  // Для обратной совместимости (camelCase)
 }
 
@@ -133,8 +178,9 @@ export interface ParsingDomainGroup {
     createdAt: string
   }>
   totalUrls: number
-  supplierType?: "supplier" | "reseller" | null  // Тип поставщика, если домен найден в базе
+  supplierType?: "supplier" | "reseller" | "needs_moderation" | null  // Тип поставщика, если домен найден в базе
   supplierId?: number | null  // ID поставщика для редактирования
+  hasChecko?: boolean
   sources?: string[]  // Массив источников URL (google, yandex или оба)
 }
 
@@ -170,6 +216,11 @@ export interface DomainParserResult {
   emails: string[]
   sourceUrls: string[]
   error?: string | null
+  conflictInn?: boolean | null
+  conflictSupplierId?: number | null
+  supplierCreated?: boolean | null
+  supplierUpdated?: boolean | null
+  dataStatus?: string | null
 }
 
 export interface DomainParserBatchResponse {
@@ -183,22 +234,9 @@ export interface DomainParserStatusResponse {
   status: "running" | "completed" | "failed"
   processed: number
   total: number
+  currentDomain?: string | null
+  currentSourceUrls?: string[]
   results: DomainParserResult[]
-}
-
-export interface CometExtractionResult {
-  domain: string
-  inn?: string | null
-  emails?: string[]
-  phones?: string[]
-  sourceUrl?: string
-  error?: string
-  status?: "success" | "error" | "not_found"
-}
-
-export interface CometExtractBatchResponse {
-  runId: string
-  cometRunId: string
 }
 
 export interface CabinetMessageDTO {
@@ -262,6 +300,7 @@ export interface CabinetParsingRequestDTO {
   updated_at?: string | null
   submitted_to_moderator?: boolean
   submitted_at?: string | null
+  request_status?: string | null
 }
 
 export interface CabinetRequestSupplierDTO {
@@ -271,6 +310,9 @@ export interface CabinetRequestSupplierDTO {
   emails?: string[] | null
   phone?: string | null
   domain?: string | null
+  source_url?: string | null
+  source_urls?: string[] | null
+  keyword_urls?: Array<{ keyword: string; url: string }> | null
   status: "waiting" | "sent" | "replied"
   last_error?: string | null
 }

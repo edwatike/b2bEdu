@@ -39,7 +39,12 @@ export function extractRootDomain(url: string): string {
     }
 
     // Берем последние 2 части (example.com)
-    return parts.slice(-2).join(".")
+    let root = parts.slice(-2).join(".")
+
+    // Нормализуем региональные суффиксы (kraska-spb.ru -> kraska.ru)
+    root = root.replace(/^(.*?)-(spb|ekb)\./i, "$1.")
+
+    return root
   } catch {
     return url
   }

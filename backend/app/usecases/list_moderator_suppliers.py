@@ -8,9 +8,10 @@ async def execute(
     db: AsyncSession,
     limit: int = 100,
     offset: int = 0,
-    type_filter: Optional[str] = None
+    type_filter: Optional[str] = None,
+    recent_days: Optional[int] = None,
 ):
     """List moderator suppliers with pagination."""
     repo = ModeratorSupplierRepository(db)
-    return await repo.list(limit=limit, offset=offset, type_filter=type_filter)
+    return await repo.list(limit=limit, offset=offset, type_filter=type_filter, recent_days=recent_days)
 

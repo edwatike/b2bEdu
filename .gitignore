@@ -98,3 +98,4 @@ frontend/moderator-dashboard-ui/test-results/
 *.exe
 *.pdf
 *.png
+.venv_clean/

@@ -438,14 +438,22 @@ export function SupplierCard({ supplier, onSupplierUpdate }: SupplierCardProps) 
           )}
         </div>
 
-        {supplier.email && (
-          <div className="flex items-center gap-1 text-sm text-muted-foreground">
-            <Mail className="h-4 w-4" />
-            <a href={`mailto:${supplier.email}`} className="hover:text-foreground">
-              {supplier.email}
-            </a>
-          </div>
-        )}
+        {(() => {
+          const emails = (supplier.emails && supplier.emails.length ? supplier.emails : supplier.email ? [supplier.email] : [])
+          if (!emails.length) return null
+          return (
+            <div className="flex flex-col gap-1 text-sm text-muted-foreground">
+              {emails.slice(0, 5).map((em, idx) => (
+                <div key={`${em}-${idx}`} className="flex items-center gap-1">
+                  <Mail className="h-4 w-4" />
+                  <a href={`mailto:${em}`} className="hover:text-foreground">
+                    {em}
+                  </a>
+                </div>
+              ))}
+            </div>
+          )
+        })()}
 
         {/* Company details */}
         <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground md:grid-cols-4">
@@ -470,6 +478,11 @@ export function SupplierCard({ supplier, onSupplierUpdate }: SupplierCardProps) 
             </div>
           )}
         </div>
+        {supplier.dataStatus && supplier.dataStatus !== "complete" && (
+          <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1 inline-flex">
+            Неполные данные (ожидает Checko)
+          </div>
+        )}
       </CardHeader>
 
       <CardContent className="space-y-6">

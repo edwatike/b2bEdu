@@ -9,6 +9,14 @@ export async function GET() {
   const host = h.get("x-forwarded-host") || h.get("host")
   const proto = h.get("x-forwarded-proto") || "http"
   const origin = host ? `${proto}://${host}` : "http://localhost:3000"
+
+  // IMPORTANT: keep OAuth flow on a single host.
+  // If we start at 127.0.0.1, cookies will be bound to 127.0.0.1 and won't be sent to localhost callback.
+  // This leads to invalid state and endless relogin/redirect loops.
+  if (host && host.startsWith("127.0.0.1:")) {
+    return NextResponse.redirect(`${proto}://localhost:3000/api/yandex/login`)
+  }
+
   const redirectUri = process.env.YANDEX_REDIRECT_URI || `${origin}/api/yandex/callback`
 
   if (!clientId) {

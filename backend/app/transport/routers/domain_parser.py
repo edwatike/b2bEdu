@@ -15,6 +15,7 @@ from app.transport.schemas.domain_parser import (
     DomainParserStatusResponseDTO
 )
 from app.usecases import get_parsing_run
+from app.utils.domain import normalize_domain_root
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +23,149 @@ router = APIRouter()
 
 # In-memory storage for parser runs status
 _parser_runs: Dict[str, Dict] = {}
+
+
+@router.get("/moderation-domains")
+async def list_moderation_domains(limit: int = 5000):
+    """List globally blocked domains that require moderation."""
+    from sqlalchemy import text
+    from app.adapters.db.session import AsyncSessionLocal
+
+    async with AsyncSessionLocal() as db:
+        res = await db.execute(
+            text(
+                "SELECT domain FROM domain_moderation "
+                "WHERE COALESCE(status, 'requires_moderation') = 'requires_moderation' "
+                "ORDER BY created_at DESC "
+                "LIMIT :limit"
+            ),
+            {"limit": int(max(1, min(limit, 20000)))},
+        )
+        domains = [str(r[0]) for r in (res.fetchall() or []) if r and r[0]]
+    return {"domains": domains, "total": len(domains)}
+
+
+async def _domain_exists_in_suppliers(domain: str) -> bool:
+    """Check whether domain is already present in moderator_suppliers/supplier_domains.
+
+    Uses normalized root comparison and strips optional 'www.' prefix.
+    """
+    norm = _normalize_domain(domain)
+    if not norm:
+        return False
+    from sqlalchemy import text
+    from app.adapters.db.session import AsyncSessionLocal
+
+    async with AsyncSessionLocal() as db:
+        res = await db.execute(
+            text(
+                "SELECT 1 "
+                "FROM moderator_suppliers ms "
+                "LEFT JOIN supplier_domains sd ON sd.supplier_id = ms.id "
+                "WHERE replace(lower(COALESCE(sd.domain, ms.domain, '')), 'www.', '') = :d "
+                "LIMIT 1"
+            ),
+            {"d": norm},
+        )
+        return res.fetchone() is not None
+
+
+async def _domain_requires_moderation(domain: str) -> bool:
+    norm = _normalize_domain(domain)
+    if not norm:
+        return False
+    from sqlalchemy import text
+    from app.adapters.db.session import AsyncSessionLocal
+
+    async with AsyncSessionLocal() as db:
+        res = await db.execute(
+            text(
+                "SELECT 1 FROM domain_moderation "
+                "WHERE replace(lower(domain), 'www.', '') = :d "
+                "AND COALESCE(status, 'requires_moderation') = 'requires_moderation' "
+                "LIMIT 1"
+            ),
+            {"d": norm},
+        )
+        return res.fetchone() is not None
+
+
+async def _mark_domain_requires_moderation(domain: str, reason: str = "inn_not_found") -> None:
+    norm = _normalize_domain(domain)
+    if not norm:
+        return
+    from sqlalchemy import text
+    from app.adapters.db.session import AsyncSessionLocal
+
+    async with AsyncSessionLocal() as db:
+        await db.execute(
+            text(
+                "INSERT INTO domain_moderation (domain, status, reason) "
+                "VALUES (:d, 'requires_moderation', :reason) "
+                "ON CONFLICT (domain) DO UPDATE SET "
+                "status='requires_moderation', reason=EXCLUDED.reason"
+            ),
+            {"d": norm, "reason": reason[:200]},
+        )
+        await db.commit()
+
+
+async def _sync_domain_parser_auto_progress(
+    *,
+    run_id: str,
+    parser_run_id: str,
+    processed: int,
+    total: int,
+    status: str | None = None,
+    last_domain: str | None = None,
+    error: str | None = None,
+) -> None:
+    """Persist live auto-enrichment progress into parsing_runs.process_log.domain_parser_auto."""
+    from sqlalchemy import text
+    from app.adapters.db.session import AsyncSessionLocal
+
+    try:
+        async with AsyncSessionLocal() as db:
+            res = await db.execute(
+                text("SELECT process_log FROM parsing_runs WHERE run_id = :run_id"),
+                {"run_id": run_id},
+            )
+            row = res.fetchone()
+            pl = row[0] if row else None
+            if isinstance(pl, str):
+                try:
+                    pl = json.loads(pl)
+                except Exception:
+                    pl = None
+            if not isinstance(pl, dict):
+                pl = {}
+            dp = pl.get("domain_parser_auto")
+            if not isinstance(dp, dict):
+                dp = {}
+            if str(dp.get("parserRunId") or "") != str(parser_run_id):
+                return
+            dp["processed"] = int(processed)
+            dp["total"] = int(total)
+            if status:
+                dp["status"] = str(status)
+            if last_domain:
+                dp["lastDomain"] = str(last_domain)
+            if error:
+                dp["error"] = str(error)[:800]
+            if status in {"completed", "failed"}:
+                dp["finishedAt"] = datetime.now().isoformat()
+            pl["domain_parser_auto"] = dp
+            await db.execute(
+                text("UPDATE parsing_runs SET process_log = CAST(:process_log AS jsonb) WHERE run_id = :run_id"),
+                {"process_log": json.dumps(pl, ensure_ascii=False), "run_id": run_id},
+            )
+            await db.commit()
+    except Exception:
+        logger.warning("Failed to sync domain_parser_auto progress for run_id=%s", run_id, exc_info=True)
+
+
+def _normalize_domain(domain: str) -> str:
+    return normalize_domain_root(domain)
 
 
 @router.post("/extract-batch", response_model=DomainParserBatchResponseDTO)
@@ -54,6 +198,8 @@ async def start_domain_parser_batch(
             "status": "running",
             "processed": 0,
             "total": len(domains),
+            "currentDomain": None,
+            "currentSourceUrls": [],
             "results": [],
             "startedAt": datetime.now().isoformat(),
         }
@@ -87,6 +233,8 @@ async def get_domain_parser_status(parserRunId: str):
         status=run_data["status"],
         processed=run_data["processed"],
         total=run_data["total"],
+        currentDomain=run_data.get("currentDomain"),
+        currentSourceUrls=run_data.get("currentSourceUrls", []) or [],
         results=run_data["results"]
     )
 
@@ -100,18 +248,78 @@ async def _process_domain_parser_batch(parser_run_id: str, run_id: str, domains:
     results = []
     
     try:
+        base_processed = int(_parser_runs.get(parser_run_id, {}).get("baseProcessed") or 0)
+        overall_total = int(_parser_runs.get(parser_run_id, {}).get("overallTotal") or len(domains))
         for i, domain in enumerate(domains):
             logger.info(f"Processing domain {i+1}/{len(domains)}: {domain}")
+            _parser_runs[parser_run_id]["currentDomain"] = _normalize_domain(domain)
+            _parser_runs[parser_run_id]["currentSourceUrls"] = []
             
             try:
-                result = await _run_domain_parser_for_domain(domain)
+                # Optimization: if domain already exists as a supplier, skip heavy parsing/enrichment.
+                if await _domain_exists_in_suppliers(domain):
+                    result = {
+                        "domain": _normalize_domain(domain),
+                        "inn": None,
+                        "emails": [],
+                        "sourceUrls": [],
+                        "error": None,
+                        "skipped": True,
+                        "reason": "supplier_exists",
+                    }
+                elif await _domain_requires_moderation(domain):
+                    result = {
+                        "domain": _normalize_domain(domain),
+                        "inn": None,
+                        "emails": [],
+                        "sourceUrls": [],
+                        "error": None,
+                        "skipped": True,
+                        "reason": "requires_moderation",
+                    }
+                else:
+                    result = await _run_domain_parser_for_domain(domain)
+                try:
+                    result["domain"] = _normalize_domain(result.get("domain") or domain)
+                except Exception:
+                    pass
+                _parser_runs[parser_run_id]["currentSourceUrls"] = list(result.get("sourceUrls") or [])
                 results.append(result)
                 
                 # Update status
-                _parser_runs[parser_run_id]["processed"] = i + 1
+                processed_global = min(overall_total, base_processed + i + 1)
+                _parser_runs[parser_run_id]["processed"] = processed_global
+                _parser_runs[parser_run_id]["total"] = overall_total
                 _parser_runs[parser_run_id]["results"] = results
+                await _sync_domain_parser_auto_progress(
+                    run_id=run_id,
+                    parser_run_id=parser_run_id,
+                    processed=processed_global,
+                    total=overall_total,
+                    status="running",
+                    last_domain=result.get("domain") or domain,
+                )
                 
                 logger.info(f"Domain {domain} processed: INN={result.get('inn')}, Emails={result.get('emails')}")
+
+                # If INN was not found, mark domain as requiring moderation globally.
+                if (
+                    not str(result.get("inn") or "").strip()
+                    and not str(result.get("error") or "").strip()
+                    and str(result.get("reason") or "") not in {"supplier_exists", "requires_moderation"}
+                ):
+                    try:
+                        await _mark_domain_requires_moderation(result.get("domain") or domain, "inn_not_found")
+                        result["dataStatus"] = "requires_moderation"
+                    except Exception:
+                        logger.warning("Failed to mark domain requires_moderation: %s", domain, exc_info=True)
+
+                # Progressive enrichment: upsert supplier (and Checko) as soon as we have a result.
+                # This allows cabinet/moderator tables to be updated gradually during the batch.
+                try:
+                    await _upsert_suppliers_from_domain_parser_results([result])
+                except Exception as e:
+                    logger.error(f"Progressive supplier upsert failed for domain {domain}: {e}", exc_info=True)
                 
             except Exception as e:
                 logger.error(f"Error processing domain {domain}: {e}")
@@ -122,49 +330,55 @@ async def _process_domain_parser_batch(parser_run_id: str, run_id: str, domains:
                     "sourceUrls": [],
                     "error": str(e)
                 })
-                _parser_runs[parser_run_id]["processed"] = i + 1
+                processed_global = min(overall_total, base_processed + i + 1)
+                _parser_runs[parser_run_id]["processed"] = processed_global
+                _parser_runs[parser_run_id]["total"] = overall_total
                 _parser_runs[parser_run_id]["results"] = results
+                await _sync_domain_parser_auto_progress(
+                    run_id=run_id,
+                    parser_run_id=parser_run_id,
+                    processed=processed_global,
+                    total=overall_total,
+                    status="running",
+                    last_domain=domain,
+                    error=str(e),
+                )
         
         # Mark as completed
         _parser_runs[parser_run_id]["status"] = "completed"
         _parser_runs[parser_run_id]["finishedAt"] = datetime.now().isoformat()
+        _parser_runs[parser_run_id]["processed"] = min(overall_total, base_processed + len(domains))
+        _parser_runs[parser_run_id]["total"] = overall_total
+        await _sync_domain_parser_auto_progress(
+            run_id=run_id,
+            parser_run_id=parser_run_id,
+            processed=int(_parser_runs[parser_run_id]["processed"]),
+            total=overall_total,
+            status="completed",
+        )
         
         # Save results to database
         await _save_parser_results_to_db(run_id, parser_run_id, results)
+
+        # Enrich suppliers DB (moderator_suppliers) + Checko when INN is found
+        try:
+            await _upsert_suppliers_from_domain_parser_results(results)
+        except Exception as e:
+            logger.error(f"Failed to upsert suppliers from domain parser results: {e}", exc_info=True)
         
         logger.info(f"Domain parser batch completed: {parser_run_id}")
-        
-        # AUTO-TRIGGER COMET: Find domains where parser failed to find INN or Email
-        failed_domains = []
-        for result in results:
-            has_inn = result.get("inn")
-            has_email = result.get("emails") and len(result.get("emails", [])) > 0
-            
-            # If parser didn't find INN or Email, add to failed list
-            if not has_inn or not has_email:
-                failed_domains.append(result["domain"])
-        
-        if failed_domains:
-            logger.info(f"[AUTO] AUTO-TRIGGER: {len(failed_domains)} domains failed in parser, starting Comet automatically...")
-            
-            # Import comet router to trigger extraction
-            from . import comet
-            try:
-                # Start Comet extraction for failed domains
-                comet_response = await comet._start_comet_batch_internal(run_id, failed_domains, auto_learn=True)
-                logger.info(f"[OK] AUTO-TRIGGER: Comet started with run_id={comet_response['cometRunId']}")
-                
-                # Store comet_run_id in parser run for reference
-                _parser_runs[parser_run_id]["auto_comet_run_id"] = comet_response["cometRunId"]
-            except Exception as comet_error:
-                logger.error(f"[ERR] AUTO-TRIGGER: Failed to start Comet: {comet_error}")
-        else:
-            logger.info(f"[OK] All domains processed successfully by parser, no need for Comet")
-        
     except Exception as e:
         logger.error(f"Error in domain parser batch: {e}")
         _parser_runs[parser_run_id]["status"] = "failed"
         _parser_runs[parser_run_id]["error"] = str(e)
+        await _sync_domain_parser_auto_progress(
+            run_id=run_id,
+            parser_run_id=parser_run_id,
+            processed=int(_parser_runs.get(parser_run_id, {}).get("processed") or 0),
+            total=int(_parser_runs.get(parser_run_id, {}).get("total") or len(domains)),
+            status="failed",
+            error=str(e),
+        )
 
 
 async def _run_domain_parser_for_domain(domain: str) -> Dict:
@@ -305,20 +519,22 @@ if __name__ == "__main__":
 async def _save_parser_results_to_db(run_id: str, parser_run_id: str, results: List[Dict]):
     """Save domain parser results to parsing run's process_log."""
     try:
-        from app.adapters.db.repositories import ParsingRunRepository
         from app.adapters.db.session import AsyncSessionLocal
-        
+        from sqlalchemy import text
+
         async with AsyncSessionLocal() as session:
             try:
-                repo = ParsingRunRepository(session)
-                parsing_run = await repo.get_by_id(run_id)
-                
-                if not parsing_run:
+                res = await session.execute(
+                    text("SELECT process_log FROM parsing_runs WHERE run_id = :run_id"),
+                    {"run_id": run_id},
+                )
+                row = res.fetchone()
+                if not row:
                     logger.error(f"Parsing run {run_id} not found when saving parser results")
                     return
-                
+
                 # Get existing process_log
-                process_log = getattr(parsing_run, 'process_log', None)
+                process_log = row[0]
                 if isinstance(process_log, str):
                     try:
                         process_log = json.loads(process_log)
@@ -340,9 +556,17 @@ async def _save_parser_results_to_db(run_id: str, parser_run_id: str, results: L
                     "finished_at": datetime.now().isoformat(),
                     "results": results
                 }
-                
-                # Update parsing run
-                parsing_run.process_log = json.dumps(process_log, ensure_ascii=False)
+
+                # Update parsing run (direct SQL to avoid SimpleNamespace)
+                await session.execute(
+                    text(
+                        "UPDATE parsing_runs SET process_log = CAST(:process_log AS jsonb) WHERE run_id = :run_id"
+                    ),
+                    {
+                        "process_log": json.dumps(process_log, ensure_ascii=False),
+                        "run_id": run_id,
+                    },
+                )
                 await session.commit()
                 
                 logger.info(f"Saved domain parser results for run {run_id}, parser_run_id {parser_run_id}")
@@ -353,3 +577,146 @@ async def _save_parser_results_to_db(run_id: str, parser_run_id: str, results: L
                 
     except Exception as e:
         logger.error(f"Error saving domain parser results to DB: {e}")
+
+
+async def _upsert_suppliers_from_domain_parser_results(results: List[Dict]) -> None:
+    """Best-effort: create/update moderator_suppliers from extracted INN/emails and enrich via Checko."""
+    from app.adapters.db.session import AsyncSessionLocal
+    from app.adapters.db.repositories import ModeratorSupplierRepository
+    from app.usecases import get_checko_data, update_moderator_supplier, create_moderator_supplier
+
+    async with AsyncSessionLocal() as db:
+        repo = ModeratorSupplierRepository(db)
+
+        for r in results or []:
+            try:
+                domain_raw = str((r or {}).get("domain") or "").strip()
+                domain = _normalize_domain(domain_raw)
+                inn = str((r or {}).get("inn") or "").strip()
+                emails = (r or {}).get("emails") or []
+                if not isinstance(emails, list):
+                    emails = []
+                emails = [str(x).strip().lower() for x in emails if str(x).strip()]
+                email = emails[0] if emails else None
+
+                # Only auto-enrich if INN + email exists (as requested)
+                if not domain or not inn or not email:
+                    continue
+
+                # INN uniqueness:
+                # if INN already exists on another supplier, bind this domain to that supplier
+                # instead of skipping the record, so run UI can reflect supplier/checko status.
+                existing_by_inn = await repo.get_by_inn(inn)
+                linked_by_inn = False
+                supplier = await repo.get_by_domain(domain)
+                if existing_by_inn is not None and not bool(getattr(existing_by_inn, "allow_duplicate_inn", False)):
+                    supplier = existing_by_inn
+                    linked_by_inn = True
+                    r["conflictInn"] = True
+                    r["conflictSupplierId"] = int(existing_by_inn.id)
+                    r["supplierLinkedByInn"] = True
+
+                    # Ensure the discovered domain/email become attached to the existing supplier.
+                    try:
+                        await repo.add_domain(int(supplier.id), domain, is_primary=False)
+                        for idx, em in enumerate(emails):
+                            await repo.add_email(int(supplier.id), em, is_primary=bool(idx == 0))
+                    except Exception:
+                        pass
+
+                    # Keep primary contacts fresh if missing on supplier card.
+                    await update_moderator_supplier.execute(
+                        db=db,
+                        supplier_id=int(supplier.id),
+                        supplier_data={
+                            "domain": getattr(supplier, "domain", None) or domain,
+                            "email": getattr(supplier, "email", None) or email,
+                        },
+                    )
+
+                    # Checko block below is still executed for the resolved supplier.
+
+                if supplier is None:
+                    # Minimal creation (name is required)
+                    supplier = await create_moderator_supplier.execute(
+                        db=db,
+                        supplier_data={
+                            "name": domain,
+                            "domain": domain,
+                            "inn": inn,
+                            "email": email,
+                            "type": "supplier",
+                            "data_status": "needs_checko",
+                        },
+                    )
+                    r["supplierCreated"] = True
+                elif not linked_by_inn:
+                    # Update basic extracted contacts
+                    await update_moderator_supplier.execute(
+                        db=db,
+                        supplier_id=int(supplier.id),
+                        supplier_data={
+                            "domain": domain,
+                            "inn": inn,
+                            "email": email,
+                        },
+                    )
+                    r["supplierUpdated"] = True
+
+                # Persist domains/emails list
+                try:
+                    await repo.add_domain(int(supplier.id), domain, is_primary=True)
+                    for idx, em in enumerate(emails):
+                        await repo.add_email(int(supplier.id), em, is_primary=bool(idx == 0))
+                except Exception:
+                    pass
+
+                # Always fetch Checko data when INN exists
+                try:
+                    checko = await get_checko_data.execute(db=db, inn=inn, force_refresh=False)
+                    # Map frontend keys into supplier update fields (usecase normalizes camelCase)
+                    await update_moderator_supplier.execute(
+                        db=db,
+                        supplier_id=int(supplier.id),
+                        supplier_data={
+                            "name": checko.get("name") or domain,
+                            "ogrn": checko.get("ogrn"),
+                            "kpp": checko.get("kpp"),
+                            "okpo": checko.get("okpo"),
+                            "companyStatus": checko.get("companyStatus"),
+                            "registrationDate": checko.get("registrationDate"),
+                            "legalAddress": checko.get("legalAddress"),
+                            "phone": checko.get("phone"),
+                            "website": checko.get("website"),
+                            "vk": checko.get("vk"),
+                            "telegram": checko.get("telegram"),
+                            "authorizedCapital": checko.get("authorizedCapital"),
+                            "revenue": checko.get("revenue"),
+                            "profit": checko.get("profit"),
+                            "financeYear": checko.get("financeYear"),
+                            "legalCasesCount": checko.get("legalCasesCount"),
+                            "legalCasesSum": checko.get("legalCasesSum"),
+                            "legalCasesAsPlaintiff": checko.get("legalCasesAsPlaintiff"),
+                            "legalCasesAsDefendant": checko.get("legalCasesAsDefendant"),
+                            "checkoData": checko.get("checkoData"),
+                            "data_status": "complete",
+                        },
+                    )
+                    r["dataStatus"] = "complete"
+                except Exception as e:
+                    logger.warning(f"Checko enrich failed for domain={domain}, inn={inn}: {e}")
+                    try:
+                        await update_moderator_supplier.execute(
+                            db=db,
+                            supplier_id=int(supplier.id),
+                            supplier_data={
+                                "data_status": "needs_checko",
+                            },
+                        )
+                        r["dataStatus"] = "needs_checko"
+                    except Exception:
+                        pass
+            except Exception as e:
+                logger.warning(f"Supplier upsert failed for domain parser result {r}: {e}")
+
+        await db.commit()

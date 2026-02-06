@@ -135,6 +135,9 @@ class RequestSupplierItemDTO(BaseModel):
     emails: Optional[List[str]] = None
     phone: Optional[str] = None
     domain: Optional[str] = None
+    source_url: Optional[str] = None
+    source_urls: Optional[List[str]] = None
+    keyword_urls: Optional[List[Dict[str, str]]] = None
     status: str  # "waiting" | "sent" | "replied"
     last_error: Optional[str] = None
 
@@ -183,38 +186,97 @@ class CabinetParsingRequestDTO(BaseModel):
     updated_at: Optional[str] = None
     submitted_to_moderator: bool = False
     submitted_at: Optional[str] = None
+    request_status: Optional[str] = None
 
 
 async def _ensure_request_suppliers_loaded(*, db: AsyncSession, request_id: int) -> None:
-    if int(request_id) in _request_suppliers_state:
-        return
-
-    # Lazy init with suppliers from moderator DB (MVP): suppliers with email
-    from sqlalchemy import text
-
-    # Note: We keep this endpoint simple for MVP.
-    # Moderation UI owns supplier data; user request just references it.
+    # Always recompute to reflect latest moderator_suppliers enrichment/moderation.
     _request_suppliers_state[int(request_id)] = {}
 
-    rows = []
-    try:
-        result = await db.execute(
-            text(
-                "SELECT id, name, email, phone, domain FROM moderator_suppliers "
-                "WHERE email IS NOT NULL AND email <> '' ORDER BY updated_at DESC LIMIT 50"
-            )
-        )
-        rows = result.fetchall() or []
-    except Exception:
-        rows = []
+    from sqlalchemy import text
 
-    # If moderator suppliers are empty/unavailable, provide a small demo set
-    if not rows:
-        rows = [
-            (100001, "ООО Поставщик 1", "sales1@example.com", None, "supplier1.example.com"),
-            (100002, "ООО Поставщик 2", "sales2@example.com", None, "supplier2.example.com"),
-            (100003, "ООО Поставщик 3", "sales3@example.com", None, "supplier3.example.com"),
-        ]
+    def _norm_domain(d: str | None) -> str:
+        s = str(d or "").strip().lower()
+        if s.startswith("www."):
+            s = s[4:]
+        return s
+
+    # 1) Get all parsing runs for this request
+    runs_res = await db.execute(
+        text("SELECT run_id FROM parsing_runs WHERE request_id = :rid ORDER BY created_at ASC"),
+        {"rid": int(request_id)},
+    )
+    run_ids = [str(r[0]) for r in (runs_res.fetchall() or []) if r and r[0]]
+    if not run_ids:
+        return
+
+    # 2) Get domains found for these runs
+    dq_res = await db.execute(
+        text(
+            "SELECT id, domain, url, keyword "
+            "FROM domains_queue "
+            "WHERE parsing_run_id = ANY(:run_ids) "
+            "ORDER BY id ASC"
+        ),
+        {"run_ids": list(run_ids)},
+    )
+    dq_rows = dq_res.fetchall() or []
+    if not dq_rows:
+        return
+
+    # Deduplicate by normalized domain (keep first occurrence)
+    uniq_by_domain: dict[str, tuple[int, str, Optional[str], Optional[str]]] = {}
+    domain_urls_by_keyword: dict[str, list[dict[str, str]]] = {}
+    for r in dq_rows:
+        dq_id = int(r[0])
+        domain_raw = str(r[1] or "").strip()
+        source_url = str(r[2] or "").strip() or None
+        keyword = str(r[3] or "").strip() or None
+        if not domain_raw:
+            continue
+        nd = _norm_domain(domain_raw)
+        if not nd:
+            continue
+        if source_url:
+            domain_urls_by_keyword.setdefault(nd, [])
+            item = {"keyword": keyword or "", "url": source_url}
+            if item not in domain_urls_by_keyword[nd]:
+                domain_urls_by_keyword[nd].append(item)
+        if nd not in uniq_by_domain:
+            uniq_by_domain[nd] = (dq_id, domain_raw, source_url, keyword)
+
+    if not uniq_by_domain:
+        return
+
+    # 3) Fetch supplier cards for these domains (domain + www.domain)
+    variants: list[str] = []
+    for nd in uniq_by_domain.keys():
+        variants.append(nd)
+        variants.append(f"www.{nd}")
+    variants = list(dict.fromkeys([v for v in variants if v]))
+
+    suppliers_res = await db.execute(
+        text(
+            "SELECT ms.id, COALESCE(ms.name, ''), ms.email, ms.phone, "
+            "COALESCE(sd.domain, ms.domain) AS matched_domain "
+            "FROM moderator_suppliers ms "
+            "LEFT JOIN supplier_domains sd ON sd.supplier_id = ms.id "
+            "WHERE (ms.domain IS NOT NULL OR sd.domain IS NOT NULL) "
+            "AND replace(lower(COALESCE(sd.domain, ms.domain)), 'www.', '') = ANY(:domains)"
+        ),
+        {"domains": variants},
+    )
+    suppliers_rows = suppliers_res.fetchall() or []
+    supplier_by_norm_domain: dict[str, tuple[int, str, str | None, str | None, str | None]] = {}
+    for sr in suppliers_rows:
+        sid = int(sr[0])
+        sname = str(sr[1] or "").strip()
+        semail = (str(sr[2]).strip() if sr[2] is not None else None)
+        sphone = (str(sr[3]).strip() if sr[3] is not None else None)
+        sdomain = (str(sr[4]).strip() if sr[4] is not None else None)
+        supplier_by_norm_domain[_norm_domain(sdomain)] = (sid, sname, semail, sphone, sdomain)
+
+    import re
 
     import re
 
@@ -236,20 +298,117 @@ async def _ensure_request_suppliers_loaded(*, db: AsyncSession, request_id: int)
             out.append(s)
         return out
 
-    for r in rows:
-        sid = int(r[0])
-        emails = _split_emails(r[2])
-        _request_suppliers_state[int(request_id)][sid] = {
-            "supplier_id": sid,
-            "name": r[1] or "",
-            "email": (emails[0] if emails else None),
-            "emails": emails,
-            "phone": r[3],
-            "domain": r[4],
-            "status": "waiting",
-            "messages": [],
-            "last_error": None,
-        }
+    # Load supplier_emails for better email coverage
+    supplier_emails_by_id: dict[int, list[str]] = {}
+    if supplier_by_norm_domain:
+        try:
+            ids = list({int(v[0]) for v in supplier_by_norm_domain.values()})
+            if ids:
+                em_res = await db.execute(
+                    text("SELECT supplier_id, email FROM supplier_emails WHERE supplier_id = ANY(:ids)"),
+                    {"ids": ids},
+                )
+                for row in em_res.fetchall() or []:
+                    sid = int(row[0])
+                    email = str(row[1] or "").strip()
+                    if not email:
+                        continue
+                    supplier_emails_by_id.setdefault(sid, [])
+                    if email not in supplier_emails_by_id[sid]:
+                        supplier_emails_by_id[sid].append(email)
+        except Exception:
+            supplier_emails_by_id = {}
+
+    # Cabinet should show only suppliers that already exist in moderator_suppliers.
+    for nd, (_dq_id, _domain_raw, source_url, _keyword) in uniq_by_domain.items():
+        supplier = supplier_by_norm_domain.get(str(nd))
+        if not supplier:
+            continue
+        supplier_id = int(supplier[0])
+        name = supplier[1]
+        emails = supplier_emails_by_id.get(supplier_id) or _split_emails(supplier[2])
+        existing = _request_suppliers_state[int(request_id)].get(int(supplier_id))
+        keyword_urls = domain_urls_by_keyword.get(nd, [])
+        urls_only = [x["url"] for x in keyword_urls if x.get("url")]
+        if not existing:
+            _request_suppliers_state[int(request_id)][int(supplier_id)] = {
+                "supplier_id": int(supplier_id),
+                "name": name or "",
+                "email": (emails[0] if emails else None),
+                "emails": emails,
+                "phone": supplier[3],
+                "domain": supplier[4],
+                "source_url": source_url,
+                "source_urls": urls_only,
+                "keyword_urls": keyword_urls,
+                "status": "waiting",
+                "messages": [],
+                "last_error": None,
+            }
+            continue
+        if (not existing.get("source_url")) and source_url:
+            existing["source_url"] = source_url
+        all_urls = list(existing.get("source_urls") or [])
+        for u in urls_only:
+            if u and u not in all_urls:
+                all_urls.append(u)
+        existing["source_urls"] = all_urls
+        all_kw_urls = list(existing.get("keyword_urls") or [])
+        for ku in keyword_urls:
+            if ku not in all_kw_urls:
+                all_kw_urls.append(ku)
+        existing["keyword_urls"] = all_kw_urls
+
+
+async def _compute_request_status(*, db: AsyncSession, request_id: int, submitted_to_moderator: bool) -> str:
+    if not submitted_to_moderator:
+        return "draft"
+
+    from sqlalchemy import text
+
+    # 1) Get run ids
+    runs_res = await db.execute(
+        text("SELECT run_id FROM parsing_runs WHERE request_id = :rid ORDER BY created_at ASC"),
+        {"rid": int(request_id)},
+    )
+    run_ids = [str(r[0]) for r in (runs_res.fetchall() or []) if r and r[0]]
+    if not run_ids:
+        return "in_progress"
+
+    # 2) Get unique normalized domains for runs
+    dq_res = await db.execute(
+        text(
+            "SELECT DISTINCT replace(lower(domain), 'www.', '') "
+            "FROM domains_queue WHERE parsing_run_id = ANY(:run_ids)"
+        ),
+        {"run_ids": list(run_ids)},
+    )
+    domains = [str(r[0]) for r in (dq_res.fetchall() or []) if r and r[0]]
+    if not domains:
+        return "in_progress"
+
+    # 3) Check blacklist + suppliers for these domains
+    blacklist_res = await db.execute(
+        text("SELECT replace(lower(domain), 'www.', '') FROM blacklist WHERE replace(lower(domain), 'www.', '') = ANY(:domains)"),
+        {"domains": domains},
+    )
+    blacklisted = {str(r[0]) for r in (blacklist_res.fetchall() or []) if r and r[0]}
+
+    suppliers_res = await db.execute(
+        text(
+            "SELECT DISTINCT replace(lower(COALESCE(sd.domain, ms.domain)), 'www.', '') "
+            "FROM moderator_suppliers ms "
+            "LEFT JOIN supplier_domains sd ON sd.supplier_id = ms.id "
+            "WHERE replace(lower(COALESCE(sd.domain, ms.domain)), 'www.', '') = ANY(:domains)"
+        ),
+        {"domains": domains},
+    )
+    suppliers = {str(r[0]) for r in (suppliers_res.fetchall() or []) if r and r[0]}
+
+    unresolved = [d for d in domains if d not in blacklisted and d not in suppliers]
+    if unresolved:
+        return "in_progress"
+    return "completed"
 
 
 def _render_request_email_template(*, request_title: str, positions: List[str], supplier_name: str) -> tuple[str, str]:
@@ -281,8 +440,77 @@ async def list_request_suppliers(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Request not found")
 
     await _ensure_request_suppliers_loaded(db=db, request_id=int(request_id))
-    items = list(_request_suppliers_state.get(int(request_id), {}).values())
-    return [RequestSupplierItemDTO(**{k: v for k, v in it.items() if k != "messages"}) for it in items]
+    supplier_map = _request_suppliers_state.get(int(request_id), {})
+    return [RequestSupplierItemDTO(**{k: v for k, v in s.items() if k != "messages"}) for s in supplier_map.values()]
+
+
+@router.get("/requests/{request_id}", response_model=CabinetParsingRequestDTO)
+async def get_user_request(
+    request_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    from sqlalchemy import text
+    from sqlalchemy.exc import DBAPIError, ProgrammingError
+
+    user_id = int(current_user.get("id"))
+    rid = int(request_id)
+
+    try:
+        result = await db.execute(
+            text(
+                "SELECT id, title, raw_keys_json, depth, source, comment, created_at, updated_at, "
+                "COALESCE(submitted_to_moderator, FALSE) AS submitted_to_moderator, submitted_at "
+                "FROM parsing_requests WHERE id = :id AND created_by = :uid"
+            ),
+            {"id": rid, "uid": user_id},
+        )
+        row = result.fetchone()
+        if not row:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Request not found")
+        status_val = await _compute_request_status(db=db, request_id=rid, submitted_to_moderator=bool(row[8]))
+        return CabinetParsingRequestDTO(
+            id=int(row[0]),
+            title=row[1],
+            raw_keys_json=row[2],
+            depth=row[3],
+            source=row[4],
+            comment=row[5],
+            created_at=row[6].isoformat() if row[6] else None,
+            updated_at=row[7].isoformat() if row[7] else None,
+            submitted_to_moderator=bool(row[8]),
+            submitted_at=row[9].isoformat() if row[9] else None,
+            request_status=status_val,
+        )
+    except (ProgrammingError, DBAPIError):
+        try:
+            await db.rollback()
+        except Exception:
+            pass
+        result = await db.execute(
+            text(
+                "SELECT id, title, raw_keys_json, depth, source, comment, created_at, updated_at "
+                "FROM parsing_requests WHERE id = :id AND created_by = :uid"
+            ),
+            {"id": rid, "uid": user_id},
+        )
+        row = result.fetchone()
+        if not row:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Request not found")
+        status_val = await _compute_request_status(db=db, request_id=rid, submitted_to_moderator=False)
+        return CabinetParsingRequestDTO(
+            id=int(row[0]),
+            title=row[1],
+            raw_keys_json=row[2],
+            depth=row[3],
+            source=row[4],
+            comment=row[5],
+            created_at=row[6].isoformat() if row[6] else None,
+            updated_at=row[7].isoformat() if row[7] else None,
+            submitted_to_moderator=False,
+            submitted_at=None,
+            request_status=status_val,
+        )
 
 
 @router.post("/requests/{request_id}/suppliers/send-bulk", response_model=SendRequestEmailBulkResponseDTO)
@@ -581,32 +809,7 @@ async def simulate_supplier_reply(
     current_user: dict = Depends(get_current_user),
     body: str = "Спасибо, отправим КП сегодня.",
 ):
-    from sqlalchemy import text
-
-    user_id = int(current_user.get("id"))
-    owned = await db.execute(
-        text("SELECT id FROM parsing_requests WHERE id = :id AND created_by = :uid"),
-        {"id": int(request_id), "uid": user_id},
-    )
-    if not owned.fetchone():
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Request not found")
-
-    await _ensure_request_suppliers_loaded(db=db, request_id=int(request_id))
-    supplier = _request_suppliers_state.get(int(request_id), {}).get(int(supplier_id))
-    if not supplier:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Supplier not found")
-
-    msg = {
-        "id": str(uuid.uuid4()),
-        "direction": "in",
-        "subject": "Re: Запрос КП",
-        "body": str(body or ""),
-        "date": datetime.utcnow().isoformat(),
-    }
-    supplier.setdefault("messages", []).append(msg)
-    supplier["status"] = "replied"
-
-    return RequestSupplierItemDTO(**{k: v for k, v in supplier.items() if k != "messages"})
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found")
 
 
 class CabinetParsingRequestCreate(BaseModel):
@@ -623,6 +826,17 @@ class CabinetParsingRequestUpdate(BaseModel):
     depth: Optional[int] = None
     source: Optional[str] = None
     comment: Optional[str] = None
+
+
+class CabinetParsingRequestBulkDelete(BaseModel):
+    ids: List[int]
+
+
+class CabinetParsingRequestBulkDeleteResult(BaseModel):
+    requested: int
+    deleted: int
+    skipped_submitted: int
+    not_found: int
 
 # In-memory storage for demo (replace with database in production)
 _messages_storage = [
@@ -864,12 +1078,157 @@ async def get_cabinet_stats():
     }
 
 
+@router.get("/groq/status")
+async def get_groq_status(
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    from sqlalchemy import text
+    import os
+    import httpx
+
+    from app.config import settings
+
+    try:
+        logger.info(f"Groq status check: user_id={int(current_user.get('id') or 0)}")
+    except Exception:
+        logger.info("Groq status check")
+
+    def _is_probably_valid_groq_key(v: str) -> bool:
+        vv = (v or "").strip()
+        if not vv:
+            return False
+        if len(vv) < 20:
+            return False
+        return True
+
+    groq_key = ""
+
+    # 1) User key
+    try:
+        r = await db.execute(
+            text("SELECT groq_api_key_encrypted FROM users WHERE id = :id"),
+            {"id": int(current_user.get("id"))},
+        )
+        row = r.fetchone()
+        enc = (row[0] if row else None)
+        if enc:
+            from app.utils.secrets import decrypt_user_secret
+
+            candidate = (decrypt_user_secret(str(enc)) or "").strip()
+            if _is_probably_valid_groq_key(candidate):
+                groq_key = candidate
+    except Exception:
+        groq_key = ""
+
+    # 2) Platform key: env -> settings -> admin/moderator DB
+    if not groq_key:
+        candidate = (os.getenv("GROQ_API_KEY") or "").strip()
+        if _is_probably_valid_groq_key(candidate):
+            groq_key = candidate
+
+    if not groq_key:
+        candidate = (getattr(settings, "GROQ_API_KEY", "") or "").strip()
+        if _is_probably_valid_groq_key(candidate):
+            groq_key = candidate
+
+    if not groq_key:
+        try:
+            r = await db.execute(
+                text(
+                    "SELECT groq_api_key_encrypted FROM users "
+                    "WHERE groq_api_key_encrypted IS NOT NULL AND groq_api_key_encrypted <> '' "
+                    "AND role IN ('admin','moderator') "
+                    "ORDER BY id DESC LIMIT 1"
+                )
+            )
+            row = r.fetchone()
+            enc = (row[0] if row else None)
+            if enc:
+                from app.utils.secrets import decrypt_user_secret
+
+                candidate = (decrypt_user_secret(str(enc)) or "").strip()
+                if _is_probably_valid_groq_key(candidate):
+                    groq_key = candidate
+        except Exception:
+            groq_key = ""
+
+    configured = bool(groq_key)
+    if not configured:
+        return {"configured": False, "available": False}
+
+    base = (os.getenv("GROQ_BASE_URL") or "https://api.groq.com/openai/v1").rstrip("/")
+    url = f"{base}/models"
+    try:
+        async with httpx.AsyncClient(timeout=2.5) as client:
+            resp = await client.get(url, headers={"Authorization": f"Bearer {groq_key}"})
+        if resp.status_code == 200:
+            return {"configured": True, "available": True, "status_code": 200}
+
+        snippet = ""
+        try:
+            snippet = (resp.text or "").strip()
+        except Exception:
+            snippet = ""
+        if snippet:
+            snippet = snippet[:400]
+
+        out = {
+            "configured": True,
+            "available": False,
+            "status_code": int(resp.status_code),
+            "error": (resp.reason_phrase or ""),
+            "body_snippet": snippet,
+        }
+
+        # Try chat/completions to get a more specific error message (model permissions, etc.)
+        chat_url = f"{base}/chat/completions"
+        model = (os.getenv("GROQ_MODEL") or "llama-3.1-8b-instant").strip()
+        try:
+            async with httpx.AsyncClient(timeout=2.5) as client:
+                chat_resp = await client.post(
+                    chat_url,
+                    headers={
+                        "Authorization": f"Bearer {groq_key}",
+                        "Content-Type": "application/json",
+                    },
+                    json={
+                        "model": model,
+                        "messages": [{"role": "user", "content": "ping"}],
+                        "max_tokens": 1,
+                        "temperature": 0,
+                    },
+                )
+            chat_snippet = ""
+            try:
+                chat_snippet = (chat_resp.text or "").strip()
+            except Exception:
+                chat_snippet = ""
+            if chat_snippet:
+                chat_snippet = chat_snippet[:400]
+            out.update(
+                {
+                    "chat_status_code": int(chat_resp.status_code),
+                    "chat_error": (chat_resp.reason_phrase or ""),
+                    "chat_body_snippet": chat_snippet,
+                    "model": model,
+                }
+            )
+        except Exception:
+            out.update({"chat_status_code": None, "chat_error": "request_failed", "model": model})
+
+        return out
+    except Exception:
+        return {"configured": True, "available": False, "status_code": None, "error": "request_failed"}
+
+
 @router.get("/requests", response_model=List[CabinetParsingRequestDTO])
 async def list_user_requests(
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(get_current_user),
     limit: int = 50,
     offset: int = 0,
+    submitted: Optional[bool] = Query(None),
 ):
     from sqlalchemy import text
     from sqlalchemy.exc import DBAPIError, ProgrammingError
@@ -878,34 +1237,48 @@ async def list_user_requests(
     safe_limit = min(max(int(limit or 50), 1), 200)
     safe_offset = max(int(offset or 0), 0)
     try:
+        where_submitted = ""
+        params = {"uid": user_id, "limit": safe_limit, "offset": safe_offset}
+        if submitted is True:
+            where_submitted = " AND COALESCE(submitted_to_moderator, FALSE) = TRUE "
+        elif submitted is False:
+            where_submitted = " AND COALESCE(submitted_to_moderator, FALSE) = FALSE "
+
         result = await db.execute(
             text(
                 "SELECT id, title, raw_keys_json, depth, source, comment, created_at, updated_at, "
                 "COALESCE(submitted_to_moderator, FALSE) AS submitted_to_moderator, submitted_at "
-                "FROM parsing_requests WHERE created_by = :uid ORDER BY id DESC LIMIT :limit OFFSET :offset"
+                "FROM parsing_requests WHERE created_by = :uid" + where_submitted + " ORDER BY id DESC LIMIT :limit OFFSET :offset"
             ),
-            {"uid": user_id, "limit": safe_limit, "offset": safe_offset},
+            params,
         )
         rows = result.fetchall() or []
-        return [
-            CabinetParsingRequestDTO(
-                id=int(r[0]),
-                title=r[1],
-                raw_keys_json=r[2],
-                depth=r[3],
-                source=r[4],
-                comment=r[5],
-                created_at=r[6].isoformat() if r[6] else None,
-                updated_at=r[7].isoformat() if r[7] else None,
+        out: list[CabinetParsingRequestDTO] = []
+        for r in rows:
+            status_val = await _compute_request_status(
+                db=db,
+                request_id=int(r[0]),
                 submitted_to_moderator=bool(r[8]),
-                submitted_at=r[9].isoformat() if r[9] else None,
             )
-            for r in rows
-        ]
+            out.append(
+                CabinetParsingRequestDTO(
+                    id=int(r[0]),
+                    title=r[1],
+                    raw_keys_json=r[2],
+                    depth=r[3],
+                    source=r[4],
+                    comment=r[5],
+                    created_at=r[6].isoformat() if r[6] else None,
+                    updated_at=r[7].isoformat() if r[7] else None,
+                    submitted_to_moderator=bool(r[8]),
+                    submitted_at=r[9].isoformat() if r[9] else None,
+                    request_status=status_val,
+                )
+            )
+        return out
     except (ProgrammingError, DBAPIError):
-        # Backward-compatible fallback for DBs without submitted_to_moderator/submitted_at columns
-        # Important: after a failed statement Postgres marks the transaction as aborted.
-        # We must rollback before executing another statement.
+        # Backward-compatible fallback for DBs without submitted_to_moderator/submitted_at columns.
+        # In this mode we cannot reliably filter drafts vs submitted, so return full list.
         try:
             await db.rollback()
         except Exception:
@@ -919,21 +1292,29 @@ async def list_user_requests(
             {"uid": user_id, "limit": safe_limit, "offset": safe_offset},
         )
         rows = result.fetchall() or []
-        return [
-            CabinetParsingRequestDTO(
-                id=int(r[0]),
-                title=r[1],
-                raw_keys_json=r[2],
-                depth=r[3],
-                source=r[4],
-                comment=r[5],
-                created_at=r[6].isoformat() if r[6] else None,
-                updated_at=r[7].isoformat() if r[7] else None,
+        out: list[CabinetParsingRequestDTO] = []
+        for r in rows:
+            status_val = await _compute_request_status(
+                db=db,
+                request_id=int(r[0]),
                 submitted_to_moderator=False,
-                submitted_at=None,
             )
-            for r in rows
-        ]
+            out.append(
+                CabinetParsingRequestDTO(
+                    id=int(r[0]),
+                    title=r[1],
+                    raw_keys_json=r[2],
+                    depth=r[3],
+                    source=r[4],
+                    comment=r[5],
+                    created_at=r[6].isoformat() if r[6] else None,
+                    updated_at=r[7].isoformat() if r[7] else None,
+                    submitted_to_moderator=False,
+                    submitted_at=None,
+                    request_status=status_val,
+                )
+            )
+        return out
 
 
 @router.post("/requests", response_model=CabinetParsingRequestDTO)
@@ -1023,7 +1404,7 @@ async def create_user_request(
 
 
 @router.post("/requests/{request_id}/positions/upload", response_model=CabinetParsingRequestDTO)
-async def upload_cabinet_request_positions(
+async def upload_request_positions_with_engine_proof(
     request_id: int,
     file: UploadFile = FastAPIFile(...),
     engine: str = Query("auto", description="auto | structured | ocr | docling"),
@@ -1034,6 +1415,7 @@ async def upload_cabinet_request_positions(
     from sqlalchemy.exc import DBAPIError, ProgrammingError
     import json
     import os
+    import re
     from pathlib import Path
 
     from app.config import settings
@@ -1043,12 +1425,25 @@ async def upload_cabinet_request_positions(
         RecognitionEngine,
         extract_item_names_via_groq,
         extract_item_names_via_groq_with_usage,
+        extract_search_keys_via_groq,
         extract_text_best_effort,
+        group_similar_item_names,
         normalize_item_names,
         parse_positions_from_text,
     )
 
     user_id = int(current_user.get("id"))
+
+    try:
+        msg0 = f"Cabinet recognize start: request_id={int(request_id)} user_id={int(user_id)} engine={str(engine or '')} filename={str(getattr(file, 'filename', '') or '')}"
+        logger.warning(msg0)
+        print(msg0)
+    except Exception:
+        logger.warning("Cabinet recognize start")
+        try:
+            print("Cabinet recognize start")
+        except Exception:
+            pass
 
     if not file or not file.filename:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="File is required")
@@ -1077,6 +1472,13 @@ async def upload_cabinet_request_positions(
     text_content = extract_text_best_effort(filename=filename, content=content, engine=engine_enum)
     if not text_content:
         text_content = ""
+
+    try:
+        msg1 = f"Cabinet recognize text_extracted: request_id={int(request_id)} chars={len(text_content or '')}"
+        logger.warning(msg1)
+        print(msg1)
+    except Exception:
+        pass
 
     # Prefer user-entered key from cabinet settings (override), then fall back to platform key.
     groq_key = ""
@@ -1168,7 +1570,8 @@ async def upload_cabinet_request_positions(
     groq_used = False
     if groq_key and text_content.strip():
         try:
-            names, groq_usage = extract_item_names_via_groq_with_usage(text=text_content, api_key=groq_key)
+            search_keys, _categories, groq_usage = extract_search_keys_via_groq(text=text_content, api_key=groq_key)
+            names = search_keys
             groq_used = True
         except RecognitionDependencyError as e:
             # If user-provided key is invalid/blocked (401/403), try platform key as fallback.
@@ -1176,7 +1579,8 @@ async def upload_cabinet_request_positions(
             is_auth_error = ("Groq request failed: 401" in err_text) or ("Groq request failed: 403" in err_text)
             if groq_key_source == "user_db" and platform_key and is_auth_error:
                 try:
-                    names, groq_usage = extract_item_names_via_groq_with_usage(text=text_content, api_key=platform_key)
+                    search_keys, _categories, groq_usage = extract_search_keys_via_groq(text=text_content, api_key=platform_key)
+                    names = search_keys
                     groq_used = True
                     groq_key_source = f"{platform_key_source}_fallback"
                 except Exception as e2:
@@ -1185,6 +1589,13 @@ async def upload_cabinet_request_positions(
                 groq_error = err_text
         except Exception as e:
             groq_error = f"Failed to extract item names: {e}"
+
+        try:
+            msg2 = f"Cabinet recognize groq_done: request_id={int(request_id)} groq_used={1 if groq_used else 0} source={groq_key_source or ''} err={(groq_error or '')[:120]}"
+            logger.warning(msg2)
+            print(msg2)
+        except Exception:
+            pass
 
         # If Groq failed, fall back to heuristic extraction instead of failing request.
         if not groq_used:
@@ -1198,6 +1609,52 @@ async def upload_cabinet_request_positions(
             names = parse_positions_from_text(text_content or "")
         except Exception:
             names = []
+
+    # If Groq returned a minimal key set, ensure we don't lose important accessories
+    # (e.g. 'Заглушка') that may be omitted due to key limits.
+    accessory_re = re.compile(r"\b(заглушк\w*|прокладк\w*|болт\w*|гайк\w*|шайб\w*|креп[её]ж\w*)\b", re.IGNORECASE)
+    try:
+        if groq_used:
+            heur_positions = parse_positions_from_text(text_content or "")
+            heur_positions = normalize_item_names(heur_positions)
+            heur_keys = group_similar_item_names(heur_positions)
+            accessories = [k for k in heur_keys if accessory_re.search(str(k or ""))]
+            if accessories:
+                merged: list[str] = []
+                seen_m: set[str] = set()
+                for k in (names or []) + accessories:
+                    s = " ".join(str(k or "").split()).strip()
+                    if not s:
+                        continue
+                    low = s.lower()
+                    if low in seen_m:
+                        continue
+                    seen_m.add(low)
+                    merged.append(s)
+                names = merged
+    except Exception:
+        pass
+
+    # Hard safety: if the extracted text contains 'заглушк*' then ensure key 'Заглушка' exists.
+    try:
+        zag_in_text = bool(re.search(r"\bзаглушк\w*\b", text_content or "", re.IGNORECASE))
+        try:
+            logger.warning(f"Cabinet recognize zaglushka_in_text: request_id={int(request_id)} val={1 if zag_in_text else 0}")
+            print(f"Cabinet recognize zaglushka_in_text: request_id={int(request_id)} val={1 if zag_in_text else 0}")
+        except Exception:
+            pass
+
+        if zag_in_text:
+            low_set = {str(x or "").strip().lower() for x in (names or [])}
+            if "заглушка" not in low_set:
+                names = list(names or []) + ["Заглушка"]
+                try:
+                    logger.warning(f"Cabinet recognize zaglushka_forced_add: request_id={int(request_id)}")
+                    print(f"Cabinet recognize zaglushka_forced_add: request_id={int(request_id)}")
+                except Exception:
+                    pass
+    except Exception:
+        pass
 
     # Proof headers (no secrets)
     proof_headers = {
@@ -1222,7 +1679,18 @@ async def upload_cabinet_request_positions(
     if not names:
         names = []
 
-    names = normalize_item_names(names)
+    names = group_similar_item_names(normalize_item_names(names))
+
+    try:
+        msg3 = f"Cabinet recognize done: request_id={int(request_id)} user_id={int(user_id)} groq_used={1 if groq_used else 0} keys={len(names or [])}"
+        logger.warning(msg3)
+        print(msg3)
+    except Exception:
+        logger.warning("Cabinet recognize done")
+        try:
+            print("Cabinet recognize done")
+        except Exception:
+            pass
 
     # Ensure request exists and belongs to user
     existing = await db.execute(
@@ -1467,9 +1935,100 @@ async def update_user_request(
         )
 
 
+@router.post("/requests/bulk-delete", response_model=CabinetParsingRequestBulkDeleteResult)
+async def bulk_delete_user_requests(
+    payload: CabinetParsingRequestBulkDelete,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    from sqlalchemy import text
+    from sqlalchemy.exc import DBAPIError, ProgrammingError
+
+    user_id = int(current_user.get("id"))
+    ids_in = [int(x) for x in (payload.ids or []) if isinstance(x, int) or str(x).isdigit()]
+    # Unique + keep input bounded
+    ids: list[int] = []
+    seen: set[int] = set()
+    for x in ids_in:
+        if x <= 0:
+            continue
+        if x in seen:
+            continue
+        seen.add(x)
+        ids.append(x)
+        if len(ids) >= 500:
+            break
+
+    if not ids:
+        return CabinetParsingRequestBulkDeleteResult(requested=0, deleted=0, skipped_submitted=0, not_found=0)
+
+    requested = len(ids)
+    deleted = 0
+    skipped_submitted = 0
+    not_found = 0
+
+    try:
+        # Determine which are drafts vs submitted and exist for this user.
+        q = await db.execute(
+            text(
+                "SELECT id, COALESCE(submitted_to_moderator, FALSE) AS submitted "
+                "FROM parsing_requests WHERE created_by = :uid AND id = ANY(:ids)"
+            ),
+            {"uid": user_id, "ids": ids},
+        )
+        rows = q.fetchall() or []
+        found_ids = {int(r[0]) for r in rows}
+        not_found = requested - len(found_ids)
+        draft_ids = [int(r[0]) for r in rows if not bool(r[1])]
+        skipped_submitted = len([r for r in rows if bool(r[1])])
+
+        if draft_ids:
+            await db.execute(
+                text("DELETE FROM parsing_requests WHERE created_by = :uid AND id = ANY(:ids)"),
+                {"uid": user_id, "ids": draft_ids},
+            )
+            deleted = len(draft_ids)
+        await db.commit()
+
+        return CabinetParsingRequestBulkDeleteResult(
+            requested=requested,
+            deleted=deleted,
+            skipped_submitted=skipped_submitted,
+            not_found=not_found,
+        )
+    except (ProgrammingError, DBAPIError):
+        # Backward-compatible fallback for DBs without submitted_to_moderator column.
+        try:
+            await db.rollback()
+        except Exception:
+            pass
+
+        q = await db.execute(
+            text("SELECT id FROM parsing_requests WHERE created_by = :uid AND id = ANY(:ids)"),
+            {"uid": user_id, "ids": ids},
+        )
+        rows = q.fetchall() or []
+        found_ids = [int(r[0]) for r in rows]
+        not_found = requested - len(found_ids)
+        if found_ids:
+            await db.execute(
+                text("DELETE FROM parsing_requests WHERE created_by = :uid AND id = ANY(:ids)"),
+                {"uid": user_id, "ids": found_ids},
+            )
+            deleted = len(found_ids)
+        await db.commit()
+        return CabinetParsingRequestBulkDeleteResult(
+            requested=requested,
+            deleted=deleted,
+            skipped_submitted=0,
+            not_found=not_found,
+        )
+
+
 @router.post("/requests/{request_id}/submit", response_model=CabinetParsingRequestDTO)
 async def submit_user_request(
     request_id: int,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
@@ -1526,16 +2085,110 @@ async def submit_user_request(
             {"id": int(request_id), "uid": user_id},
         )
 
+    import json
+
     keyword = str(r[1] or "").strip()
     depth = int(r[3] or 25)
     source = str(r[4] or "google")
     if not keyword:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Request title is empty")
 
-    # Start parsing for existing request
-    # Cabinet invariant: user flow always uses Google. Depth defaults to 25 if not set.
-    safe_depth = int(depth or 25)
-    await start_parsing.execute(db=db, keyword=keyword, depth=safe_depth, source="google", background_tasks=None, request_id=int(request_id))
+    keys: List[str] = []
+    try:
+        parsed = json.loads(r[2] or "[]")
+        if isinstance(parsed, list):
+            keys = [str(x).strip() for x in parsed if str(x).strip()]
+    except Exception:
+        keys = []
+
+    if not keys:
+        # Fallback: at least run for title
+        keys = [keyword]
+
+    try:
+        logger.warning(
+            "Cabinet submit: request_id=%s title=%s keys_count=%s keys_preview=%s",
+            int(request_id),
+            keyword,
+            int(len(keys)),
+            ", ".join(keys[:5]),
+        )
+    except Exception:
+        pass
+
+    # Best-effort task creation (must not break request submit transaction)
+    try:
+        await db.execute(text("SAVEPOINT sp_moderator_task"))
+        await db.execute(
+            text(
+                "CREATE TABLE IF NOT EXISTS moderator_tasks ("
+                "id BIGSERIAL PRIMARY KEY, "
+                "request_id BIGINT NOT NULL, "
+                "created_by BIGINT NOT NULL, "
+                "title TEXT, "
+                "status VARCHAR(32) NOT NULL DEFAULT 'new', "
+                "source VARCHAR(16) NOT NULL DEFAULT 'google', "
+                "depth INTEGER NOT NULL DEFAULT 30, "
+                "created_at TIMESTAMP NOT NULL DEFAULT NOW()"
+                ")"
+            )
+        )
+        # Add column for existing DBs
+        await db.execute(text("ALTER TABLE moderator_tasks ADD COLUMN IF NOT EXISTS title TEXT"))
+        await db.execute(
+            text(
+                "INSERT INTO moderator_tasks (request_id, created_by, title, status, source, depth) "
+                "VALUES (:request_id, :created_by, :title, :status, :source, :depth)"
+            ),
+            {
+                "request_id": int(request_id),
+                "created_by": int(user_id),
+                "title": keyword,
+                "status": "new",
+                "source": source,
+                "depth": depth,
+            },
+        )
+        await db.execute(text("RELEASE SAVEPOINT sp_moderator_task"))
+    except Exception:
+        try:
+            await db.execute(text("ROLLBACK TO SAVEPOINT sp_moderator_task"))
+        except Exception:
+            pass
+
+    # Start parsing asynchronously (do not block submit response)
+    async def _start_parsing_bg(keys_: List[str], request_id_: int, depth_: int, source_: str) -> None:
+        from app.adapters.db.session import AsyncSessionLocal
+
+        async with AsyncSessionLocal() as bg_db:
+            for k in keys_ or []:
+                kw = str(k or "").strip()
+                if not kw:
+                    continue
+                try:
+                    await start_parsing.execute(
+                        db=bg_db,
+                        keyword=kw,
+                        depth=int(depth_),
+                        source=str(source_ or "google"),
+                        background_tasks=None,
+                        request_id=int(request_id_),
+                    )
+                except Exception:
+                    # Do not abort the whole submit on a single keyword failure.
+                    try:
+                        import logging
+                        logging.getLogger(__name__).exception(
+                            "Cabinet submit: failed to start parsing for keyword=%s request_id=%s",
+                            kw,
+                            int(request_id_),
+                        )
+                    except Exception:
+                        pass
+            await bg_db.commit()
+
+    background_tasks.add_task(_start_parsing_bg, list(keys), int(request_id), int(depth), str(source))
+
     await db.commit()
 
     try:

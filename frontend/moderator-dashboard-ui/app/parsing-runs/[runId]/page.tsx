@@ -19,6 +19,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Progress } from "@/components/ui/progress"
 import { Navigation } from "@/components/navigation"
 import { CheckoInfoDialog } from "@/components/checko-info-dialog"
 import { ParsingResultsTable } from "@/components/parsing/ParsingResultsTable"
@@ -29,14 +30,15 @@ import {
   getBlacklist,
   addToBlacklist,
   createSupplier,
+  attachDomainToSupplier,
   updateSupplier,
   getSuppliers,
   getParsingLogs,
   getCheckoData,
   startDomainParserBatch,
   getDomainParserStatus,
+  getDomainModerationDomains,
   learnManualInn,
-  learnFromComet,
   APIError,
   type LearnedItem,
   type LearningStatistics,
@@ -76,7 +78,6 @@ import type {
   SupplierDTO,
   DomainParserResult,
   DomainParserStatusResponse,
-  CometExtractionResult,
 } from "@/lib/types"
 
 // </CHANGE> Removed 'use' import, using useParams instead for client component
@@ -124,6 +125,12 @@ function ParsingRunDetailsPage() {
     legalCasesAsDefendant: null as number | null,
     checkoData: null as string | null,
   })
+  const [innConflict, setInnConflict] = useState<{
+    existingSupplierId: number
+    existingSupplierName?: string
+    existingSupplierDomains?: string[]
+    existingSupplierEmails?: string[]
+  } | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
   const [sortBy, setSortBy] = useState<"domain" | "urls">("urls")
   const [filterStatus, setFilterStatus] = useState<"all" | "supplier" | "reseller" | "new">("all")
@@ -148,12 +155,7 @@ function ParsingRunDetailsPage() {
   const [parserStatus, setParserStatus] = useState<DomainParserStatusResponse | null>(null)
   const [parserLoading, setParserLoading] = useState(false)
   const [parserResultsMap, setParserResultsMap] = useState<Map<string, DomainParserResult>>(new Map())
-
-  // Comet state
-  const [cometRunId, setCometRunId] = useState<string | null>(null)
-  const [cometStatus, setCometStatus] = useState<any | null>(null)
-  const [cometLoading, setCometLoading] = useState(false)
-  const [cometResultsMap, setCometResultsMap] = useState<Map<string, any>>(new Map())
+  const [blacklistedRoots, setBlacklistedRoots] = useState<Set<string>>(new Set())
 
   // Learning state
   const [learningLoading, setLearningLoading] = useState(false)
@@ -257,6 +259,50 @@ function ParsingRunDetailsPage() {
   }, [parserResultsMap, runId])
 
   useEffect(() => {
+    if (!parserResultsMap || parserResultsMap.size === 0) return
+    setGroups((prev) =>
+      prev.map((group) => {
+        if (group.supplierType === "supplier" || group.supplierType === "reseller") {
+          return group
+        }
+        const root = extractRootDomain(group.domain).toLowerCase()
+        const parserResult = parserResultsMap.get(group.domain) || parserResultsMap.get(root)
+        const needsModeration = Boolean(
+          parserResult && !parserResult.inn && !(parserResult.emails && parserResult.emails.length > 0),
+        )
+        if (!needsModeration) return group
+        return {
+          ...group,
+          supplierType: "needs_moderation",
+        }
+      }),
+    )
+  }, [parserResultsMap])
+
+  useEffect(() => {
+    if (!parserStatus?.results?.length) return
+    const moderationRoots = new Set<string>()
+    for (const r of parserStatus.results) {
+      const root = extractRootDomain(String(r.domain || "")).toLowerCase()
+      if (!root) continue
+      const reason = String((r as any).reason || "")
+      const hasData = Boolean(r.inn) || Boolean(r.emails && r.emails.length > 0)
+      if (!hasData && reason !== "supplier_exists") {
+        moderationRoots.add(root)
+      }
+    }
+    if (moderationRoots.size === 0) return
+    setGroups((prev) =>
+      prev.map((group) => {
+        if (group.supplierType === "supplier" || group.supplierType === "reseller") return group
+        const root = extractRootDomain(group.domain).toLowerCase()
+        if (!moderationRoots.has(root)) return group
+        return { ...group, supplierType: "needs_moderation" }
+      }),
+    )
+  }, [parserStatus])
+
+  useEffect(() => {
     if (!runId || !parserRunId) return
     try {
       localStorage.setItem(`parser-run-${runId}`, parserRunId)
@@ -277,7 +323,10 @@ function ParsingRunDetailsPage() {
           setParserResultsMap((prev) => {
             const next = new Map(prev)
             for (const r of status.results) {
-              next.set(r.domain, r)
+              const domain = String(r.domain || "").trim()
+              if (!domain) continue
+              next.set(domain, r)
+              next.set(extractRootDomain(domain).toLowerCase(), r)
             }
             return next
           })
@@ -288,7 +337,7 @@ function ParsingRunDetailsPage() {
     }
 
     poll()
-    const t = setInterval(poll, 2000)
+    const t = setInterval(poll, 8000)
     return () => clearInterval(t)
   }, [runId, parserRunId])
 
@@ -307,15 +356,17 @@ function ParsingRunDetailsPage() {
 
     // Автоматически сохраняем домены с ИНН и Email
     const autoSaveDomains = async () => {
-      // Устанавливаем флаг сразу, чтобы предотвратить повторные запуски
-      parserAutoSaveProcessedRef.current = true
-
       console.log("[Domain Parser AutoSave] Starting auto-save for domains with INN+Email")
 
       // КРИТИЧНО: Загружаем актуальный список поставщиков из БД перед началом
       let currentSuppliers: Map<string, SupplierDTO>
       try {
-        const { suppliers } = await getSuppliers()
+        const { suppliers } = await getSuppliers({ limit: 1000 })
+
+        // Устанавливаем флаг ТОЛЬКО после успешной загрузки поставщиков,
+        // иначе 401/403 (разлогин) заблокирует автосейв навсегда.
+        parserAutoSaveProcessedRef.current = true
+
         currentSuppliers = new Map()
         for (const s of suppliers) {
           if (s.domain) {
@@ -324,6 +375,13 @@ function ParsingRunDetailsPage() {
         }
         console.log(`[Domain Parser AutoSave] Loaded ${currentSuppliers.size} existing suppliers from DB`)
       } catch (e) {
+        if (e instanceof APIError && (e.status === 401 || e.status === 403)) {
+          // Не считаем ошибкой: пользователь разлогинен/сессия истекла.
+          // Сбрасываем флаг, чтобы после повторного логина автосейв мог выполниться.
+          parserAutoSaveProcessedRef.current = false
+          console.warn("[Domain Parser AutoSave] Not authenticated, skipping auto-save")
+          return
+        }
         console.error("[Domain Parser AutoSave] Failed to load suppliers, aborting:", e)
         toast.error("Ошибка загрузки списка поставщиков")
         return
@@ -334,8 +392,8 @@ function ParsingRunDetailsPage() {
 
       for (const [domain, result] of parserResultsMap.entries()) {
         // Пропускаем домены с ошибками или без ИНН
-        if (result.error || !result.inn) {
-          console.log(`[Domain Parser AutoSave] Skipping ${domain}: missing INN`)
+        if (result.error || !result.inn || !result.emails || result.emails.length === 0) {
+          console.log(`[Domain Parser AutoSave] Skipping ${domain}: missing INN or email`)
           skippedCount++
           continue
         }
@@ -376,6 +434,8 @@ function ParsingRunDetailsPage() {
             inn,
             email,
             domain: rootDomain,
+            emails: email ? [email] : null,
+            domains: rootDomain ? [rootDomain] : null,
             type: "supplier",
           }
 
@@ -418,6 +478,9 @@ function ParsingRunDetailsPage() {
                 ? Number(checko.legalCasesAsDefendant)
                 : null
             supplierData.checkoData = checko.checkoData || null
+            supplierData.dataStatus = "complete"
+          } else {
+            supplierData.dataStatus = "needs_checko"
           }
 
           const saved = await createSupplier(supplierData)
@@ -443,7 +506,7 @@ function ParsingRunDetailsPage() {
       // Перезагружаем список поставщиков
       if (savedCount > 0) {
         try {
-          const { suppliers } = await getSuppliers()
+          const { suppliers } = await getSuppliers({ limit: 1000 })
           const newMap = new Map<string, SupplierDTO>()
           for (const s of suppliers) {
             if (s.domain) {
@@ -534,12 +597,12 @@ function ParsingRunDetailsPage() {
       fetchLogs()
     }
 
-    // Polling каждые 2 секунды, если парсинг выполняется
+    // Polling каждые 8 секунд, если парсинг выполняется
     const intervalId = setInterval(() => {
       if (run.status === "running") {
         fetchLogs()
       }
-    }, 2000)
+    }, 8000)
 
     return () => clearInterval(intervalId)
   }, [runId, run])
@@ -552,23 +615,11 @@ function ParsingRunDetailsPage() {
       // Поставщики можно использовать из кэша
       let suppliersData: { suppliers: any[]; total: number; limit: number; offset: number }
       let blacklistData: { entries: any[]; total: number; limit: number; offset: number }
-
-      const cachedSuppliers = getCachedSuppliers()
-
-      if (cachedSuppliers) {
-        // Используем кэш для поставщиков
-        suppliersData = {
-          suppliers: cachedSuppliers,
-          total: cachedSuppliers.length,
-          limit: 1000,
-          offset: 0,
-        }
-      } else {
-        // Загружаем поставщиков и кэшируем
-        const suppliersResult = await getSuppliers({ limit: 1000 })
-        suppliersData = suppliersResult
-        setCachedSuppliers(suppliersData.suppliers)
-      }
+      // Для страницы parsing-run всегда берем свежий и полный список поставщиков,
+      // иначе статус/бейдж CHECKO может не совпасть из-за усеченного кэша.
+      const suppliersResult = await getSuppliers({ limit: 1000 })
+      suppliersData = suppliersResult
+      setCachedSuppliers(suppliersData.suppliers)
 
       try {
         const nextMap = new Map<string, SupplierDTO>()
@@ -589,10 +640,11 @@ function ParsingRunDetailsPage() {
       // Обновляем кэш blacklist свежими данными
       setCachedBlacklist(blacklistData.entries)
 
-      const [runData, domainsData, logsData] = await Promise.all([
+      const [runData, domainsData, logsData, moderationData] = await Promise.all([
         getParsingRun(runId),
         getDomainsQueue({ parsingRunId: runId, limit: 1000 }),
         getParsingLogs(runId).catch(() => ({ parsing_logs: {} })), // Загружаем логи вместе с данными
+        getDomainModerationDomains(10000).catch(() => ({ domains: [], total: 0 })),
       ])
 
       setRun(runData)
@@ -602,7 +654,31 @@ function ParsingRunDetailsPage() {
         const hasLocalParserRun = !!localStorage.getItem(`parser-run-${runId}`)
         const hasLocalParserResults = !!localStorage.getItem(`parser-results-${runId}`)
         const pl: any = (runData as any)?.processLog ?? (runData as any)?.process_log
+        const dpAuto: any = pl?.domain_parser_auto
         const runs: any = pl?.domain_parser?.runs
+
+        // Always pick auto parserRunId from process_log when available (important for queued/running auto mode).
+        if (!hasLocalParserRun && dpAuto?.parserRunId) {
+          setParserRunId(String(dpAuto.parserRunId))
+        }
+        // Show at least synthetic live status from process_log even before first parser result appears.
+        if (dpAuto && dpAuto.parserRunId) {
+          setParserStatus((prev) => {
+            if (prev && prev.parserRunId === String(dpAuto.parserRunId) && prev.results && prev.results.length > 0) {
+              return prev
+            }
+            return {
+              runId,
+              parserRunId: String(dpAuto.parserRunId),
+              status: (String(dpAuto.status || "running") as any),
+              processed: Number(dpAuto.processed || 0),
+              total: Number(dpAuto.total || dpAuto.domains || 0),
+              currentDomain: dpAuto.lastDomain ? String(dpAuto.lastDomain) : null,
+              currentSourceUrls: [],
+              results: prev?.results || [],
+            }
+          })
+        }
 
         if ((!hasLocalParserRun || !hasLocalParserResults) && runs && typeof runs === "object") {
           const ids = Object.keys(runs).sort()
@@ -616,7 +692,9 @@ function ParsingRunDetailsPage() {
               const map = new Map<string, DomainParserResult>()
               for (const r of latest.results) {
                 if (r?.domain) {
-                  map.set(String(r.domain), r as DomainParserResult)
+                  const domain = String(r.domain)
+                  map.set(domain, r as DomainParserResult)
+                  map.set(extractRootDomain(domain).toLowerCase(), r as DomainParserResult)
                 }
               }
               setParserResultsMap(map)
@@ -626,6 +704,8 @@ function ParsingRunDetailsPage() {
                 status: (latest.status || "completed") as any,
                 processed: Number(latest.processed || map.size),
                 total: Number(latest.total || map.size),
+                currentDomain: null,
+                currentSourceUrls: [],
                 results: Array.from(map.values()),
               })
             }
@@ -640,25 +720,65 @@ function ParsingRunDetailsPage() {
         setParsingLogs(logsData.parsing_logs)
       }
 
-      // Фильтрация blacklist - нормализуем домены для сравнения
+      // Нормализуем домены для справочной маркировки/фильтрации в UI.
+      // Важно: не выкидываем их заранее, иначе при статусе "Все" список может стать пустым
+      // при ненулевом resultsCount.
       const blacklistedDomains = new Set(blacklistData.entries.map((e) => extractRootDomain(e.domain).toLowerCase()))
+      setBlacklistedRoots(blacklistedDomains)
+      const supplierDomains = new Set<string>()
+      suppliersData.suppliers.forEach((supplier) => {
+        if (supplier.domain) {
+          supplierDomains.add(extractRootDomain(supplier.domain).toLowerCase())
+        }
+        if (Array.isArray(supplier.domains)) {
+          supplier.domains.forEach((d: string) => {
+            if (d) supplierDomains.add(extractRootDomain(d).toLowerCase())
+          })
+        }
+      })
       const normalizedEntries = domainsData.entries.map((entry) => ({
         ...entry,
         createdAt: entry.createdAt || (entry as { created_at?: string | null }).created_at || entry.createdAt,
       }))
 
       const filtered = normalizedEntries.filter((entry) => {
-        const rootDomain = extractRootDomain(entry.domain).toLowerCase()
-        return !blacklistedDomains.has(rootDomain)
+        const d = extractRootDomain(entry.domain).toLowerCase()
+        return !blacklistedDomains.has(d)
       })
+      const moderationDomains = new Set(
+        ((moderationData as any)?.domains || []).map((d: string) => extractRootDomain(String(d)).toLowerCase()),
+      )
 
       // Создать Map для быстрого поиска поставщиков по домену
       // ВАЖНО: Используем toLowerCase для обоих доменов для корректного сопоставления
-      const suppliersMap = new Map<string, { type: "supplier" | "reseller"; id: number }>()
+      const suppliersMap = new Map<string, { type: "supplier" | "reseller"; id: number; hasChecko: boolean }>()
       suppliersData.suppliers.forEach((supplier) => {
+        const s: any = supplier as any
+        const hasChecko = Boolean(
+          s.dataStatus === "complete" ||
+          s.data_status === "complete" ||
+          s.checkoData ||
+          s.checko_data ||
+          s.ogrn ||
+          s.kpp ||
+          s.okpo ||
+          s.companyStatus ||
+          s.company_status ||
+          s.registrationDate ||
+          s.registration_date ||
+          s.legalAddress ||
+          s.legal_address
+        )
         if (supplier.domain) {
           const rootDomain = extractRootDomain(supplier.domain).toLowerCase()
-          suppliersMap.set(rootDomain, { type: supplier.type, id: supplier.id })
+          suppliersMap.set(rootDomain, { type: supplier.type, id: supplier.id, hasChecko })
+        }
+        if (Array.isArray(supplier.domains)) {
+          for (const d of supplier.domains) {
+            if (!d) continue
+            const rootDomain = extractRootDomain(String(d)).toLowerCase()
+            suppliersMap.set(rootDomain, { type: supplier.type, id: supplier.id, hasChecko })
+          }
         }
       })
 
@@ -670,14 +790,36 @@ function ParsingRunDetailsPage() {
       let grouped = groupByDomain(filtered).map((group) => {
         const groupDomainLower = group.domain.toLowerCase()
         const supplierInfo = suppliersMap.get(groupDomainLower)
+        const parserResult =
+          parserResultsMap.get(group.domain) || parserResultsMap.get(extractRootDomain(group.domain).toLowerCase())
+        const parserHasSupplierData = Boolean(
+          parserResult &&
+            parserResult.inn &&
+            parserResult.emails &&
+            parserResult.emails.length > 0 &&
+            !parserResult.error,
+        )
+        const needsModeration = Boolean(
+          !supplierInfo &&
+            (moderationDomains.has(groupDomainLower) ||
+              (parserResult && !parserResult.inn && !(parserResult.emails && parserResult.emails.length > 0))),
+        )
+        const nextSupplierType: "supplier" | "reseller" | "needs_moderation" | null = supplierInfo
+          ? (supplierInfo.type as "supplier" | "reseller")
+          : parserHasSupplierData
+            ? "supplier"
+          : needsModeration
+            ? "needs_moderation"
+            : null
 
         // Вычисляем источники для домена на основе всех его URL используя parsing_logs
         const sources = collectDomainSources(group.urls, parsingLogsForSources)
 
         return {
           ...group,
-          supplierType: supplierInfo?.type || null,
+          supplierType: nextSupplierType,
           supplierId: supplierInfo?.id || null, // ID поставщика для редактирования
+          hasChecko: supplierInfo?.hasChecko || parserResult?.dataStatus === "complete",
           sources: sources, // Источники, которые нашли этот домен
         }
       })
@@ -733,10 +875,11 @@ function ParsingRunDetailsPage() {
         learningSessionId,
       )
 
-      if (response.learnedItems.length > 0) {
+      if (response.learnedItems.length > 0 || (response.statistics?.totalLearned || 0) > 0) {
         setLearnedItems((prev) => [...response.learnedItems, ...prev])
         setLearningStats(response.statistics)
-        toast.success(`🎓 Обучение сохранено: ${response.learnedItems.length} паттернов`)
+        const learnedCount = response.learnedItems.length || 1
+        toast.success(`🎓 Обучение сохранено: ${learnedCount} паттернов`)
       } else {
         toast.info("Нечему учиться по этой ссылке")
       }
@@ -760,6 +903,38 @@ function ParsingRunDetailsPage() {
     setBlacklistDialogOpen(true)
   }
 
+  function hideDomainEverywhere(domain: string) {
+    const normalizedRoot = extractRootDomain(domain).toLowerCase()
+    if (!normalizedRoot) return
+    setBlacklistedRoots((prev) => new Set(prev).add(normalizedRoot))
+    setGroups((prev) => prev.filter((g) => extractRootDomain(g.domain).toLowerCase() !== normalizedRoot))
+    setParserResultsMap((prev) => {
+      const next = new Map(prev)
+      for (const key of Array.from(next.keys())) {
+        if (extractRootDomain(String(key)).toLowerCase() === normalizedRoot) {
+          next.delete(key)
+        }
+      }
+      return next
+    })
+    setParserStatus((prev) => {
+      if (!prev?.results?.length) return prev
+      const results = prev.results.filter(
+        (r) => extractRootDomain(String(r.domain || "")).toLowerCase() !== normalizedRoot,
+      )
+      return { ...prev, results }
+    })
+    setSelectedDomains((prev) => {
+      const next = new Set(prev)
+      for (const d of Array.from(next)) {
+        if (extractRootDomain(d).toLowerCase() === normalizedRoot) {
+          next.delete(d)
+        }
+      }
+      return next
+    })
+  }
+
   async function handleAddToBlacklist() {
     if (!blacklistDomain.trim()) {
       toast.error("Домен не указан")
@@ -776,6 +951,8 @@ function ParsingRunDetailsPage() {
         parsingRunId: runId || undefined,
         reason: blacklistReason.trim() || null,
       })
+      // Optimistic UI update: hide this domain immediately from current run view.
+      hideDomainEverywhere(normalizedDomain)
       // Инвалидируем кэш blacklist ПЕРЕД перезагрузкой данных
       invalidateBlacklistCache()
       toast.success(`Домен "${normalizedDomain}" добавлен в blacklist`)
@@ -792,9 +969,26 @@ function ParsingRunDetailsPage() {
       setRefreshKey((prev) => prev + 1)
       await loadData()
     } catch (error) {
-      toast.error("Ошибка добавления в blacklist")
-      console.error("Error adding to blacklist:", error)
-      setLoading(false)
+      const normalizedDomain = extractRootDomain(blacklistDomain)
+      const errorText = String((error as any)?.message || "").toLowerCase()
+      const isAlreadyInBlacklist =
+        error instanceof APIError &&
+        (error.status === 400 || error.status === 409) &&
+        (errorText.includes("already") || errorText.includes("уже") || errorText.includes("exists"))
+
+      if (isAlreadyInBlacklist) {
+        hideDomainEverywhere(normalizedDomain)
+        invalidateBlacklistCache()
+        toast.info(`Домен "${normalizedDomain}" уже в blacklist и скрыт из run`)
+        setBlacklistDialogOpen(false)
+        setBlacklistDomain("")
+        setBlacklistReason("")
+        await loadData()
+      } else {
+        toast.error("Ошибка добавления в blacklist")
+        console.error("Error adding to blacklist:", error)
+        setLoading(false)
+      }
     } finally {
       setAddingToBlacklist(false)
     }
@@ -926,6 +1120,14 @@ function ParsingRunDetailsPage() {
       toast.error("Укажите название")
       return
     }
+    if (!supplierForm.inn || !/^\d{10,12}$/.test(supplierForm.inn)) {
+      toast.error("ИНН обязателен (10 или 12 цифр)")
+      return
+    }
+    if (!supplierForm.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(supplierForm.email)) {
+      toast.error("Email обязателен")
+      return
+    }
 
     try {
       if (editingSupplierId) {
@@ -935,6 +1137,8 @@ function ParsingRunDetailsPage() {
           inn: supplierForm.inn || null,
           email: supplierForm.email || null,
           domain: supplierForm.domain || null,
+          emails: supplierForm.email ? [supplierForm.email] : null,
+          domains: supplierForm.domain ? [supplierForm.domain] : null,
           address: supplierForm.address || null,
           type: supplierForm.type,
           // Checko fields
@@ -970,6 +1174,8 @@ function ParsingRunDetailsPage() {
           inn: supplierForm.inn || null,
           email: supplierForm.email || null,
           domain: supplierForm.domain || null,
+          emails: supplierForm.email ? [supplierForm.email] : null,
+          domains: supplierForm.domain ? [supplierForm.domain] : null,
           address: supplierForm.address || null,
           type: supplierForm.type,
           // Checko fields
@@ -1005,7 +1211,19 @@ function ParsingRunDetailsPage() {
       setEditingSupplierId(null)
       // Обновить данные, чтобы сразу показать бейдж
       loadData()
-    } catch (error) {
+    } catch (error: any) {
+      if (error instanceof APIError && error.status === 409) {
+        const detail = (error.data as any)?.detail
+        if (detail?.code === "inn_conflict") {
+          setInnConflict({
+            existingSupplierId: Number(detail.existingSupplierId),
+            existingSupplierName: detail.existingSupplierName,
+            existingSupplierDomains: detail.existingSupplierDomains,
+            existingSupplierEmails: detail.existingSupplierEmails,
+          })
+          return
+        }
+      }
       toast.error(editingSupplierId ? "Ошибка обновления" : "Ошибка создания")
       console.error("Error saving supplier:", error)
     }
@@ -1393,6 +1611,102 @@ function ParsingRunDetailsPage() {
                         />
                       </div>
                     )}
+                    <div className="mt-3">
+                      <Accordion type="single" collapsible className="w-full">
+                        <AccordionItem value="parser-live-logs" className="border-blue-200">
+                          <AccordionTrigger className="py-2 text-sm text-blue-900 hover:no-underline">
+                            Логи обогащения ({parserStatus.results?.length || 0})
+                          </AccordionTrigger>
+                          <AccordionContent>
+                              <div className="mb-2 rounded-md border border-blue-100 bg-blue-50 p-2 text-xs space-y-1">
+                                <div>
+                                  <span className="font-semibold text-blue-900">Сейчас обрабатывается:</span>{" "}
+                                  <span className="text-slate-800">{parserStatus.currentDomain || "—"}</span>
+                                </div>
+                                <div className="space-y-1">
+                                  <span className="font-semibold text-blue-900">Где ищет ИНН/email:</span>
+                                  {!!(parserStatus.currentSourceUrls && parserStatus.currentSourceUrls.length) ? (
+                                    parserStatus.currentSourceUrls.slice(0, 6).map((u, i) => (
+                                      <div key={`${u}-${i}`} className="truncate text-blue-700">{u}</div>
+                                    ))
+                                  ) : (
+                                    <div className="text-slate-500">URL еще не собраны</div>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="max-h-56 overflow-auto rounded-md border border-blue-100 bg-white p-2 space-y-1">
+                                {(parserStatus.results && parserStatus.results.length > 0
+                                  ? [...parserStatus.results]
+                                      .filter((r) => !blacklistedRoots.has(extractRootDomain(String(r.domain || "")).toLowerCase()))
+                                      .slice(-50)
+                                      .reverse()
+                                  : []).map((r, idx) => {
+                                  const hasError = !!r.error
+                                  const skipped = (r as DomainParserResult & { skipped?: boolean }).skipped
+                                  const hasData = !!r.inn || ((r.emails || []).length > 0)
+                                  return (
+                                    <div key={`${r.domain}-${idx}`} className="flex items-center gap-2 text-xs">
+                                      <Badge
+                                        variant="outline"
+                                        className={
+                                          hasError
+                                            ? "border-red-300 text-red-700"
+                                            : skipped
+                                              ? "border-slate-300 text-slate-700"
+                                              : hasData
+                                                ? "border-green-300 text-green-700"
+                                                : "border-amber-300 text-amber-700"
+                                        }
+                                      >
+                                        {hasError ? "error" : skipped ? "skip" : hasData ? "ok" : "no-data"}
+                                      </Badge>
+                                      <span className="font-medium text-slate-800">{r.domain}</span>
+                                      {r.inn && <span className="text-slate-600">ИНН: {r.inn}</span>}
+                                      {!!(r.emails && r.emails.length) && (
+                                        <span className="text-slate-600">email: {r.emails[0]}</span>
+                                      )}
+                                      {r.error && <span className="truncate text-red-700">{r.error}</span>}
+                                    </div>
+                                  )
+                                })}
+                                {(!parserStatus.results || parserStatus.results.length === 0) && (
+                                  <div className="text-xs text-slate-500">Логи появятся по мере обработки доменов</div>
+                                )}
+                              </div>
+                              <div className="mt-2 max-h-52 overflow-auto rounded-md border border-emerald-100 bg-white p-2 space-y-1">
+                                {(parserStatus.results && parserStatus.results.length > 0
+                                  ? [...parserStatus.results]
+                                      .filter((r) => !blacklistedRoots.has(extractRootDomain(String(r.domain || "")).toLowerCase()))
+                                      .slice(-50)
+                                      .reverse()
+                                  : []).map((r, idx) => {
+                                  const isSupplier = Boolean(r.inn && (r.emails || []).length > 0)
+                                  const reason = String((r as any).reason || "")
+                                  const requiresModeration = !r.inn && reason !== "supplier_exists"
+                                  return (
+                                    <div key={`final-${r.domain}-${idx}`} className="flex items-center gap-2 text-xs">
+                                      <span className="font-medium text-slate-800">{r.domain}</span>
+                                      {isSupplier ? (
+                                        <>
+                                          <Badge variant="outline" className="border-emerald-300 text-emerald-700">Поставщик</Badge>
+                                          {(r.dataStatus === "complete") && (
+                                            <Badge variant="outline" className="border-cyan-300 text-cyan-700">CHECKO</Badge>
+                                          )}
+                                        </>
+                                      ) : requiresModeration ? (
+                                        <Badge variant="outline" className="border-amber-300 text-amber-700">Требует модерации</Badge>
+                                      ) : null}
+                                    </div>
+                                  )
+                                })}
+                                {(!parserStatus.results || parserStatus.results.length === 0) && (
+                                  <div className="text-xs text-slate-500">Итоговые статусы появятся после первых результатов</div>
+                                )}
+                              </div>
+                          </AccordionContent>
+                        </AccordionItem>
+                      </Accordion>
+                    </div>
                   </div>
                 </motion.div>
               )}
@@ -1481,7 +1795,11 @@ function ParsingRunDetailsPage() {
                   if (filterStatus === "reseller" && group.supplierType !== "reseller") {
                     return false
                   }
-                  if (filterStatus === "new" && group.supplierType !== null) {
+                  if (
+                    filterStatus === "new" &&
+                    group.supplierType !== null &&
+                    group.supplierType !== "needs_moderation"
+                  ) {
                     return false
                   }
                   return true
@@ -1503,6 +1821,7 @@ function ParsingRunDetailsPage() {
                       totalUrls: group.totalUrls,
                       supplierType: group.supplierType,
                       supplierId: group.supplierId,
+                      hasChecko: group.hasChecko,
                       sources: group.sources,
                       isBlacklisted: false, // TODO: Add blacklist check
                       lastUpdate: getLatestUrlCreatedAt(group.urls) || undefined,
@@ -1927,8 +2246,7 @@ function ParsingRunDetailsPage() {
                 {learningStats && (
                   <div className="mt-4 p-3 bg-purple-50 border border-purple-200 rounded-md">
                     <p className="text-sm text-purple-800">
-                      <strong>📊 Статистика обучения:</strong> Всего выучено паттернов: {learningStats.totalLearned} •
-                      Обучений от Comet: {learningStats.cometContributions}
+                      <strong>📊 Статистика обучения:</strong> Всего выучено паттернов: {learningStats.totalLearned}
                     </p>
                   </div>
                 )}
@@ -1947,9 +2265,78 @@ function ParsingRunDetailsPage() {
                   {(() => {
                     const processLog = run.processLog || run.process_log
                     if (!processLog) return null
+                    const dpAuto = processLog.domain_parser_auto
+                    const dpProcessed = Number(dpAuto?.processed || 0)
+                    const dpTotal = Number(dpAuto?.total || dpAuto?.domains || 0)
+                    const dpPercent = dpTotal > 0 ? Math.min(100, Math.round((dpProcessed / dpTotal) * 100)) : 0
 
                     return (
                       <>
+                        {dpAuto && (
+                          <div className="space-y-2 p-3 bg-slate-50 border rounded-md">
+                            <h4 className="font-semibold">Прогресс извлечения ИНН/email:</h4>
+                            <div className="flex flex-wrap gap-2 text-sm">
+                              <Badge variant="outline">
+                                Статус: {String(dpAuto.status || "unknown")}
+                              </Badge>
+                              <Badge variant="outline">
+                                {dpProcessed}/{dpTotal || "?"} доменов
+                              </Badge>
+                              {dpAuto.mode && (
+                                <Badge variant="outline">Режим: {String(dpAuto.mode)}</Badge>
+                              )}
+                              <Badge variant="outline">
+                                В очереди всего: {Number(run.domainParserQueueTotalDomains || 0)} доменов
+                              </Badge>
+                              <Badge variant="outline">
+                                По этому run осталось: {Number(run.domainParserQueueRunDomains || 0)}
+                              </Badge>
+                              <Badge variant="outline">
+                                Перед этим run: {Number(run.domainParserQueueAheadRuns || 0)} запусков / {Number(run.domainParserQueueAheadDomains || 0)} доменов
+                              </Badge>
+                              {!!(run.domainParserQueueAheadList && run.domainParserQueueAheadList.length) && (
+                                <Badge variant="outline">
+                                  Run в очереди: {run.domainParserQueueAheadList.length}
+                                </Badge>
+                              )}
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={!run.domainParserQueueActiveRunId || run.domainParserQueueActiveRunId === runId}
+                                onClick={() => {
+                                  if (run.domainParserQueueActiveRunId && run.domainParserQueueActiveRunId !== runId) {
+                                    router.push(`/parsing-runs/${run.domainParserQueueActiveRunId}`)
+                                  }
+                                }}
+                              >
+                                Открыть обрабатываемый run
+                              </Button>
+                            </div>
+                            {!!(run.domainParserQueueAheadList && run.domainParserQueueAheadList.length) && (
+                              <div className="flex flex-wrap gap-2">
+                                {run.domainParserQueueAheadList.map((item) => (
+                                  <Button
+                                    key={item.runId}
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => router.push(`/parsing-runs/${item.runId}`)}
+                                  >
+                                    {item.runId.slice(0, 8)}... ({item.remainingDomains} дом.)
+                                  </Button>
+                                ))}
+                              </div>
+                            )}
+                            {dpTotal > 0 && <Progress value={dpPercent} />}
+                            {dpAuto.lastDomain && (
+                              <p className="text-sm text-muted-foreground">
+                                Последний обработанный домен: {String(dpAuto.lastDomain)}
+                              </p>
+                            )}
+                            {dpAuto.error && (
+                              <p className="text-sm text-red-700">Ошибка обогащения: {String(dpAuto.error)}</p>
+                            )}
+                          </div>
+                        )}
                         {processLog.source_statistics && (
                           <div>
                             <h4 className="font-semibold mb-2">Статистика по источникам:</h4>
@@ -2119,6 +2506,80 @@ function ParsingRunDetailsPage() {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={!!innConflict} onOpenChange={(open) => !open && setInnConflict(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Конфликт ИНН</DialogTitle>
+            <DialogDescription>В базе уже есть поставщик с таким ИНН.</DialogDescription>
+          </DialogHeader>
+          {innConflict && (
+            <div className="space-y-2 text-sm">
+              <div>Поставщик: {innConflict.existingSupplierName || `ID ${innConflict.existingSupplierId}`}</div>
+              {innConflict.existingSupplierDomains?.length ? (
+                <div>Домены: {innConflict.existingSupplierDomains.join(", ")}</div>
+              ) : null}
+              {innConflict.existingSupplierEmails?.length ? (
+                <div>Email: {innConflict.existingSupplierEmails.join(", ")}</div>
+              ) : null}
+            </div>
+          )}
+          <DialogFooter className="flex flex-wrap gap-2">
+            <Button variant="outline" onClick={() => setInnConflict(null)}>
+              Отмена
+            </Button>
+            {innConflict && (
+              <Button
+                variant="secondary"
+                onClick={async () => {
+                  try {
+                    if (!supplierForm.domain) {
+                      toast.error("Укажите домен для привязки")
+                      return
+                    }
+                    await attachDomainToSupplier(innConflict.existingSupplierId, {
+                      domain: supplierForm.domain,
+                      email: supplierForm.email || null,
+                    })
+                    setSupplierDialogOpen(false)
+                    setEditingSupplierId(null)
+                    loadData()
+                  } finally {
+                    setInnConflict(null)
+                  }
+                }}
+              >
+                Привязать домен
+              </Button>
+            )}
+            {innConflict && (
+              <Button
+                onClick={async () => {
+                  try {
+                    await updateSupplier(innConflict.existingSupplierId, {
+                      name: supplierForm.name,
+                      inn: supplierForm.inn || null,
+                      email: supplierForm.email || null,
+                      domain: supplierForm.domain || null,
+                      emails: supplierForm.email ? [supplierForm.email] : null,
+                      domains: supplierForm.domain ? [supplierForm.domain] : null,
+                      address: supplierForm.address || null,
+                      type: supplierForm.type,
+                    })
+                    setSupplierDialogOpen(false)
+                    setEditingSupplierId(null)
+                    loadData()
+                  } finally {
+                    setInnConflict(null)
+                  }
+                }}
+              >
+                Обновить поставщика
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Blacklist Dialog */}
       <Dialog open={blacklistDialogOpen} onOpenChange={setBlacklistDialogOpen}>
         <DialogContent>
@@ -2216,5 +2677,3 @@ export default function ParsingRunDetailsPageWithAuth() {
     </AuthGuard>
   )
 }
-
-

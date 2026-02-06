@@ -21,6 +21,10 @@ class ModeratorSupplierDTO(BaseDTO):
     domain: Optional[str] = None
     address: Optional[str] = None
     type: str = "supplier"
+    allowDuplicateInn: bool = Field(False, alias="allow_duplicate_inn", serialization_alias="allowDuplicateInn")
+    dataStatus: str = Field("complete", alias="data_status", serialization_alias="dataStatus")
+    domains: List[str] = Field(default_factory=list)
+    emails: List[str] = Field(default_factory=list)
     
     # Checko fields
     ogrn: Optional[str] = None
@@ -70,6 +74,40 @@ class ModeratorSupplierDTO(BaseDTO):
             return v.isoformat()
         return v
 
+    @field_validator("domains", mode="before")
+    @classmethod
+    def normalize_domains(cls, v):
+        if v is None:
+            return []
+        if isinstance(v, list):
+            out = []
+            for item in v:
+                if isinstance(item, str):
+                    out.append(item)
+                else:
+                    domain = getattr(item, "domain", None)
+                    if domain:
+                        out.append(str(domain))
+            return out
+        return v
+
+    @field_validator("emails", mode="before")
+    @classmethod
+    def normalize_emails(cls, v):
+        if v is None:
+            return []
+        if isinstance(v, list):
+            out = []
+            for item in v:
+                if isinstance(item, str):
+                    out.append(item)
+                else:
+                    email = getattr(item, "email", None)
+                    if email:
+                        out.append(str(email))
+            return out
+        return v
+
 
 class CreateModeratorSupplierRequestDTO(BaseModel):
     """Request DTO for creating supplier."""
@@ -79,6 +117,10 @@ class CreateModeratorSupplierRequestDTO(BaseModel):
     domain: Optional[str] = None
     address: Optional[str] = None
     type: str = "supplier"
+    allowDuplicateInn: Optional[bool] = None
+    dataStatus: Optional[str] = None
+    domains: Optional[List[str]] = None
+    emails: Optional[List[str]] = None
     
     # Checko fields
     ogrn: Optional[str] = None
@@ -118,6 +160,10 @@ class UpdateModeratorSupplierRequestDTO(BaseModel):
     domain: Optional[str] = None
     address: Optional[str] = None
     type: Optional[str] = None
+    allowDuplicateInn: Optional[bool] = None
+    dataStatus: Optional[str] = None
+    domains: Optional[List[str]] = None
+    emails: Optional[List[str]] = None
     
     # Checko fields
     ogrn: Optional[str] = None
@@ -152,4 +198,3 @@ class ModeratorSuppliersListResponseDTO(BaseModel):
     total: int
     limit: int
     offset: int
-

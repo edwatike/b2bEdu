@@ -18,6 +18,11 @@ class DomainParserResultDTO(BaseModel):
     emails: List[str] = Field(default_factory=list, description="Extracted emails")
     sourceUrls: List[str] = Field(default_factory=list, description="URLs where data was found")
     error: Optional[str] = Field(None, description="Error message if parsing failed")
+    conflictInn: Optional[bool] = Field(None, description="True if INN conflicts with existing supplier")
+    conflictSupplierId: Optional[int] = Field(None, description="Existing supplier ID on INN conflict")
+    supplierCreated: Optional[bool] = Field(None, description="Supplier was created automatically")
+    supplierUpdated: Optional[bool] = Field(None, description="Supplier was updated automatically")
+    dataStatus: Optional[str] = Field(None, description="Supplier data status if created/updated")
 
 
 class DomainParserBatchResponseDTO(BaseModel):
@@ -35,4 +40,6 @@ class DomainParserStatusResponseDTO(BaseModel):
     status: str = Field(..., description="Status: running, completed, failed")
     processed: int = Field(0, description="Number of domains processed")
     total: int = Field(0, description="Total domains to process")
+    currentDomain: Optional[str] = Field(None, description="Current domain being processed")
+    currentSourceUrls: List[str] = Field(default_factory=list, description="Source URLs currently being checked")
     results: List[DomainParserResultDTO] = Field(default_factory=list, description="Parsing results")

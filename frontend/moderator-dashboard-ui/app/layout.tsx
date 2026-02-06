@@ -1,11 +1,8 @@
 import type { Metadata } from "next"
-import { Inter } from "next/font/google"
 import "./globals.css"
 import { Toaster } from "sonner"
 import { WebVitalsMonitor } from "../components/web-vitals-monitor"
 import { QueryProvider } from "../components/query-provider"
-
-const inter = Inter({ subsets: ["latin", "cyrillic"] })
 
 export const metadata: Metadata = {
   title: "B2B Platform - Moderator Dashboard",
@@ -28,7 +25,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ru" suppressHydrationWarning>
-      <body className={inter.className}>
+      <body>
         <QueryProvider>
           {children}
           <Toaster position="top-right" />

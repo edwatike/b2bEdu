@@ -5,13 +5,14 @@ import { usePathname, useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import { cn } from "@/lib/utils"
-import { LayoutDashboard, FilePlus2, Settings, LogOut, Shield } from "lucide-react"
+import { LayoutDashboard, FilePlus2, FileText, Settings, LogOut, Shield } from "lucide-react"
 import { AnimatedLogo } from "./animated-logo"
 import { toast } from "sonner"
 
 const navItems = [
-  { href: "/cabinet", label: "Обзор", icon: LayoutDashboard, color: "from-blue-600 to-purple-600" },
-  { href: "/cabinet/requests", label: "Заявки", icon: FilePlus2, color: "from-indigo-600 to-sky-600" },
+  { href: "/cabinet/overview", label: "Обзор", icon: LayoutDashboard, color: "from-blue-600 to-purple-600" },
+  { href: "/cabinet/requests/all", label: "Заявки", icon: FilePlus2, color: "from-indigo-600 to-sky-600" },
+  { href: "/cabinet/requests/drafts", label: "Черновики", icon: FileText, color: "from-amber-600 to-orange-600" },
   { href: "/cabinet/settings", label: "Настройки", icon: Settings, color: "from-slate-600 to-slate-800" },
 ]
 

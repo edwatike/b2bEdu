@@ -39,3 +39,17 @@ class DomainsQueueResponseDTO(BaseModel):
     limit: int
     offset: int
 
+
+class PendingDomainDTO(BaseModel):
+    """Pending domain DTO (not in blacklist and not a supplier)."""
+    domain: str
+    occurrences: int
+    last_seen_at: Optional[datetime] = None
+
+
+class PendingDomainsResponseDTO(BaseModel):
+    """Response DTO for pending domains list."""
+    entries: List[PendingDomainDTO]
+    total: int
+    limit: int
+    offset: int

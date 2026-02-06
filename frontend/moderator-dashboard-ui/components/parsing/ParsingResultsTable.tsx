@@ -55,8 +55,9 @@ interface ParsingDomainGroup {
     createdAt?: string
   }>
   totalUrls: number
-  supplierType?: "supplier" | "reseller" | null | undefined
+  supplierType?: "supplier" | "reseller" | "needs_moderation" | null | undefined
   supplierId?: number | null
+  hasChecko?: boolean
   sources?: string[]
   isBlacklisted?: boolean
   lastUpdate?: string
@@ -83,7 +84,13 @@ const densityConfig = {
 }
 
 // Status Badge Component (24px высотой)
-function StatusBadge({ type }: { type: "supplier" | "reseller" | null | undefined }) {
+function StatusBadge({
+  type,
+  hasChecko,
+}: {
+  type: "supplier" | "reseller" | "needs_moderation" | null | undefined
+  hasChecko?: boolean
+}) {
   if (!type) return null
 
   const config = {
@@ -101,6 +108,13 @@ function StatusBadge({ type }: { type: "supplier" | "reseller" | null | undefine
       icon: "🔄",
       label: "Реселлер",
     },
+    needs_moderation: {
+      bg: "bg-amber-50",
+      text: "text-amber-700",
+      border: "border-amber-200",
+      icon: "⚠️",
+      label: "Требуется модерация",
+    },
   }
 
   const cfg = config[type]
@@ -109,6 +123,7 @@ function StatusBadge({ type }: { type: "supplier" | "reseller" | null | undefine
     <Badge variant="outline" className={`${cfg.bg} ${cfg.text} ${cfg.border} border text-xs font-medium h-6 px-2`}>
       <span className="mr-1">{cfg.icon}</span>
       {cfg.label}
+      {(type === "supplier" || type === "reseller") && hasChecko ? <span className="ml-1">🛡 CHECKO</span> : null}
     </Badge>
   )
 }
@@ -144,7 +159,7 @@ function HoverActions({
   onMenu?: (action: string, domain: string) => void
   domain: string
   supplierId?: number | null
-  supplierType?: "supplier" | "reseller" | null
+  supplierType?: "supplier" | "reseller" | "needs_moderation" | null
 }) {
   return (
     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -158,7 +173,7 @@ function HoverActions({
         <Eye className="h-3.5 w-3.5" />
       </Button>
 
-      {supplierId && supplierType && (
+      {supplierId && supplierType && supplierType !== "needs_moderation" && (
         <Button
           variant="ghost"
           size="sm"
@@ -180,8 +195,8 @@ function HoverActions({
           <DropdownMenuItem onClick={() => onMenu?.("blacklist", domain)}>
             <AlertTriangle className="h-4 w-4 mr-2 text-red-600" />В Blacklist
           </DropdownMenuItem>
-          {supplierId ? (
-            <DropdownMenuItem onClick={() => onEdit?.(domain, supplierId, supplierType!)}>
+          {supplierId && supplierType && supplierType !== "needs_moderation" ? (
+            <DropdownMenuItem onClick={() => onEdit?.(domain, supplierId, supplierType)}>
               <Edit className="h-4 w-4 mr-2" />
               Изменить тип
             </DropdownMenuItem>
@@ -556,7 +571,7 @@ export function ParsingResultsTable({
                       <span className="font-mono text-sm text-neutral-600">{group.totalUrls}</span>
                     </TableCell>
                     <TableCell>
-                      <StatusBadge type={group.supplierType} />
+                      <StatusBadge type={group.supplierType} hasChecko={group.hasChecko} />
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1 text-xs text-neutral-500">

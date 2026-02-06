@@ -6,14 +6,9 @@ from typing import Optional, Dict, Any
 
 import os
 import re
-import time
-import secrets
-import hashlib
-import smtplib
-from email.message import EmailMessage
 
 from app.adapters.db.session import get_db
-from app.utils.auth import verify_password, get_password_hash, create_access_token, verify_token
+from app.utils.auth import get_password_hash, create_access_token, verify_token
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
 security = HTTPBearer()
@@ -30,7 +25,10 @@ def is_master_moderator_email(email: str | None) -> bool:
 
 
 def can_access_moderator_zone(user: dict) -> bool:
-    return is_master_moderator_email(user.get("email")) and str(user.get("role") or "") == "moderator"
+    role = str(user.get("role") or "")
+    if role in {"admin", "moderator"}:
+        return True
+    return is_master_moderator_email(user.get("email")) and role == "moderator"
 
 class UserLogin(BaseModel):
     username: str
@@ -42,18 +40,6 @@ class Token(BaseModel):
     user: dict
 
 
-class OtpRequest(BaseModel):
-    email: str
-
-
-class OtpVerify(BaseModel):
-    email: str
-    code: str
-
-
-_otp_storage: Dict[str, Dict[str, Any]] = {}
-
-
 def _normalize_email(email: str) -> str:
     return email.strip().lower()
 
@@ -62,69 +48,13 @@ def _is_valid_email(email: str) -> bool:
     return bool(re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", email))
 
 
-def _hash_code(code: str, salt: str) -> str:
-    return hashlib.sha256(f"{salt}:{code}".encode("utf-8")).hexdigest()
-
-
-def _send_otp_email(to_email: str, code: str) -> None:
-    import logging
-    logger = logging.getLogger(__name__)
-    
-    # Логируем OTP код для отладки
-    logger.info(f"OTP code for {to_email}: {code}")
-    print(f"[OTP] OTP CODE FOR {to_email}: {code}")
-    
-    smtp_host = os.getenv("SMTP_HOST")
-    smtp_port_raw = os.getenv("SMTP_PORT", "465")
-    smtp_user = os.getenv("SMTP_USER")
-    smtp_password = os.getenv("SMTP_PASSWORD")
-    smtp_security = (os.getenv("SMTP_SECURITY", "ssl") or "ssl").lower()
-    smtp_from = os.getenv("SMTP_FROM") or smtp_user
-
-    if not smtp_host or not smtp_user or not smtp_password or not smtp_from:
-        # В development режиме просто логируем код
-        if os.getenv("ENV", "development") == "development":
-            logger.warning("SMTP not configured, OTP code logged only")
-            return
-        raise RuntimeError("SMTP is not configured")
-
-    try:
-        smtp_port = int(smtp_port_raw)
-    except ValueError as exc:
-        raise RuntimeError("SMTP_PORT must be a number") from exc
-
-    msg = EmailMessage()
-    msg["From"] = smtp_from
-    msg["To"] = to_email
-    msg["Subject"] = "Код для входа в личный кабинет"
-    msg.set_content(
-        "Ваш одноразовый код для входа: "
-        f"{code}\n\n"
-        "Код действует 10 минут. Если вы не запрашивали вход — просто игнорируйте это письмо.\n"
-    )
-
-    if smtp_security in {"ssl", "smtps"}:
-        with smtplib.SMTP_SSL(smtp_host, smtp_port, timeout=20) as server:
-            server.login(smtp_user, smtp_password)
-            server.send_message(msg)
-        return
-
-    with smtplib.SMTP(smtp_host, smtp_port, timeout=20) as server:
-        server.ehlo()
-        if smtp_security in {"starttls", "tls"}:
-            server.starttls()
-            server.ehlo()
-        server.login(smtp_user, smtp_password)
-        server.send_message(msg)
-
-
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
     db: AsyncSession = Depends(get_db)
 ) -> dict:
     """Получение текущего пользователя по токену"""
     from sqlalchemy import text
-    
+
     token = credentials.credentials
     payload = verify_token(token)
     
@@ -191,172 +121,6 @@ async def me(current_user: dict = Depends(get_current_user)):
         },
     }
 
-@router.post("/login", response_model=Token)
-async def login(user_credentials: UserLogin, db: AsyncSession = Depends(get_db)):
-    """Вход пользователя"""
-    from sqlalchemy import text
-    
-    # Ищем пользователя через raw SQL
-    result = await db.execute(
-        text("SELECT id, username, email, hashed_password, role, is_active FROM users WHERE username = :username"),
-        {"username": user_credentials.username}
-    )
-    user_row = result.fetchone()
-    
-    # Проверяем пароль
-    if not user_row or not verify_password(user_credentials.password, user_row[3]):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    
-    if not user_row[5]:  # is_active
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Inactive user"
-        )
-    
-    # Создаем токен
-    access_token = create_access_token(data={
-        "sub": user_row[1],
-        "id": user_row[0],
-        "username": user_row[1],
-        "role": user_row[4],
-    })
-    
-    return {
-        "access_token": access_token,
-        "token_type": "bearer",
-        "user": {
-            "id": user_row[0],
-            "username": user_row[1],
-            "email": user_row[2],
-            "role": user_row[4]
-        }
-    }
-
-
-@router.post("/otp/request")
-async def request_otp(payload: OtpRequest):
-    raise HTTPException(status_code=404, detail="Not found")
-    email = _normalize_email(payload.email)
-    if not _is_valid_email(email):
-        raise HTTPException(status_code=400, detail="Invalid email")
-
-    now = int(time.time())
-    record = _otp_storage.get(email)
-    if record and now - int(record.get("sent_at", 0)) < 60:
-        raise HTTPException(status_code=429, detail="OTP recently sent. Please wait.")
-
-    code = f"{secrets.randbelow(1_000_000):06d}"
-    salt = secrets.token_hex(16)
-    code_hash = _hash_code(code, salt)
-
-    _otp_storage[email] = {
-        "code_hash": code_hash,
-        "salt": salt,
-        "expires_at": now + 10 * 60,
-        "attempts": 0,
-        "sent_at": now,
-    }
-
-    try:
-        _send_otp_email(email, code)
-    except Exception:
-        _otp_storage.pop(email, None)
-        raise HTTPException(status_code=500, detail="Failed to send OTP")
-
-    return {"success": True}
-
-
-@router.post("/otp/verify", response_model=Token)
-async def verify_otp(payload: OtpVerify, db: AsyncSession = Depends(get_db)):
-    raise HTTPException(status_code=404, detail="Not found")
-    from sqlalchemy import text
-
-    email = _normalize_email(payload.email)
-    code = (payload.code or "").strip()
-
-    if not _is_valid_email(email):
-        raise HTTPException(status_code=400, detail="Invalid email")
-    if not re.match(r"^\d{6}$", code):
-        raise HTTPException(status_code=400, detail="Invalid code")
-
-    now = int(time.time())
-    record = _otp_storage.get(email)
-    if not record:
-        raise HTTPException(status_code=400, detail="OTP not requested")
-
-    if now > int(record.get("expires_at", 0)):
-        _otp_storage.pop(email, None)
-        raise HTTPException(status_code=400, detail="OTP expired")
-
-    if int(record.get("attempts", 0)) >= 5:
-        _otp_storage.pop(email, None)
-        raise HTTPException(status_code=429, detail="Too many attempts")
-
-    expected_hash = record.get("code_hash")
-    salt = record.get("salt")
-    if not expected_hash or not salt:
-        _otp_storage.pop(email, None)
-        raise HTTPException(status_code=400, detail="OTP invalid")
-
-    if _hash_code(code, salt) != expected_hash:
-        record["attempts"] = int(record.get("attempts", 0)) + 1
-        _otp_storage[email] = record
-        raise HTTPException(status_code=400, detail="Incorrect code")
-
-    _otp_storage.pop(email, None)
-
-    result = await db.execute(
-        text("SELECT id, username, email, role, is_active, cabinet_access_enabled FROM users WHERE email = :email"),
-        {"email": email},
-    )
-    user_row = result.fetchone()
-
-    if user_row is None:
-        username_base = re.sub(r"[^a-zA-Z0-9_\.-]", "_", email.split("@", 1)[0])[:30] or "user"
-        username = f"{username_base}_{secrets.token_hex(3)}"
-        hashed_password = get_password_hash(secrets.token_urlsafe(32))
-
-        created = await db.execute(
-            text(
-                "INSERT INTO users (username, email, hashed_password, role, is_active) "
-                "VALUES (:username, :email, :hashed_password, :role, :is_active) "
-                "RETURNING id, username, email, role, is_active, cabinet_access_enabled"
-            ),
-            {
-                "username": username,
-                "email": email,
-                "hashed_password": hashed_password,
-                "role": "user",
-                "is_active": True,
-            },
-        )
-        await db.commit()
-        user_row = created.fetchone()
-    else:
-        if not user_row[4]:
-            raise HTTPException(status_code=400, detail="Inactive user")
-
-    access_token = create_access_token(data={
-        "sub": user_row[1],
-        "id": user_row[0],
-        "username": user_row[1],
-        "role": user_row[3],
-    })
-
-    return {
-        "access_token": access_token,
-        "token_type": "bearer",
-        "user": {
-            "id": user_row[0],
-            "username": user_row[1],
-            "email": user_row[2],
-            "role": user_row[3],
-        },
-    }
 
 @router.post("/logout")
 async def logout():

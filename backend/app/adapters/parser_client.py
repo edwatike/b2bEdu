@@ -15,7 +15,14 @@ class ParserClient:
             trust_env=False  # Disable proxy for local connections
         )
     
-    async def parse(self, keyword: str, depth: int = 10, source: str = "google", run_id: Optional[str] = None) -> Dict[str, Any]:
+    async def parse(
+        self,
+        keyword: str,
+        depth: int = 10,
+        source: str = "google",
+        run_id: Optional[str] = None,
+        resume_from: Optional[Dict[str, int]] = None,
+    ) -> Dict[str, Any]:
         """
         Start parsing for a keyword.
         
@@ -42,7 +49,8 @@ class ParserClient:
                     "keyword": keyword,
                     "depth": depth,
                     "source": source,
-                    "run_id": run_id
+                    "run_id": run_id,
+                    "resume_from": resume_from,
                 },
                 headers={
                     "Content-Type": "application/json; charset=utf-8"
@@ -158,4 +166,3 @@ class ParserClient:
     async def close(self):
         """Close HTTP client."""
         await self.client.aclose()
-

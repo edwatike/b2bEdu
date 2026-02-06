@@ -1,6 +1,6 @@
 """Database repositories for data access."""
 from typing import Optional, List
-from sqlalchemy import select, func, and_
+from sqlalchemy import select, func, and_, or_, text
 from sqlalchemy.exc import ProgrammingError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -8,6 +8,8 @@ from sqlalchemy.orm import selectinload
 from app.adapters.db.base_repository import BaseRepository
 from app.adapters.db.models import (
     ModeratorSupplierModel,
+    SupplierDomainModel,
+    SupplierEmailModel,
     KeywordModel,
     SupplierKeywordModel,
     BlacklistModel,
@@ -66,9 +68,19 @@ class ModeratorSupplierRepository:
     
     async def get_by_domain(self, domain: str) -> Optional[ModeratorSupplierModel]:
         """Get supplier by domain."""
+        if not domain:
+            return None
         result = await self.session.execute(
             select(ModeratorSupplierModel)
-            .where(ModeratorSupplierModel.domain == domain)
+            .outerjoin(SupplierDomainModel, SupplierDomainModel.supplier_id == ModeratorSupplierModel.id)
+            .where(
+                or_(
+                    ModeratorSupplierModel.domain == domain,
+                    SupplierDomainModel.domain == domain,
+                )
+            )
+            .order_by(ModeratorSupplierModel.created_at.desc())
+            .limit(1)
         )
         return result.scalar_one_or_none()
     
@@ -81,12 +93,83 @@ class ModeratorSupplierRepository:
             .limit(1)
         )
         return result.scalar_one_or_none()
+
+    async def list_domains(self, supplier_id: int) -> List[str]:
+        result = await self.session.execute(
+            select(SupplierDomainModel.domain)
+            .where(SupplierDomainModel.supplier_id == supplier_id)
+            .order_by(SupplierDomainModel.is_primary.desc(), SupplierDomainModel.domain.asc())
+        )
+        return [str(r[0]) for r in (result.fetchall() or []) if r and r[0]]
+
+    async def list_emails(self, supplier_id: int) -> List[str]:
+        result = await self.session.execute(
+            select(SupplierEmailModel.email)
+            .where(SupplierEmailModel.supplier_id == supplier_id)
+            .order_by(SupplierEmailModel.is_primary.desc(), SupplierEmailModel.email.asc())
+        )
+        return [str(r[0]) for r in (result.fetchall() or []) if r and r[0]]
+
+    async def replace_domains(self, supplier_id: int, domains: List[str]) -> None:
+        await self.session.execute(
+            text("DELETE FROM supplier_domains WHERE supplier_id = :sid"),
+            {"sid": int(supplier_id)},
+        )
+        for idx, domain in enumerate(domains or []):
+            await self.session.execute(
+                text(
+                    "INSERT INTO supplier_domains (supplier_id, domain, is_primary) "
+                    "VALUES (:sid, :domain, :is_primary) "
+                    "ON CONFLICT (supplier_id, domain) DO UPDATE SET is_primary = EXCLUDED.is_primary"
+                ),
+                {"sid": int(supplier_id), "domain": str(domain), "is_primary": bool(idx == 0)},
+            )
+
+    async def replace_emails(self, supplier_id: int, emails: List[str]) -> None:
+        await self.session.execute(
+            text("DELETE FROM supplier_emails WHERE supplier_id = :sid"),
+            {"sid": int(supplier_id)},
+        )
+        for idx, email in enumerate(emails or []):
+            await self.session.execute(
+                text(
+                    "INSERT INTO supplier_emails (supplier_id, email, is_primary) "
+                    "VALUES (:sid, :email, :is_primary) "
+                    "ON CONFLICT (supplier_id, email) DO UPDATE SET is_primary = EXCLUDED.is_primary"
+                ),
+                {"sid": int(supplier_id), "email": str(email), "is_primary": bool(idx == 0)},
+            )
+
+    async def add_domain(self, supplier_id: int, domain: str, is_primary: bool = False) -> None:
+        if not domain:
+            return
+        await self.session.execute(
+            text(
+                "INSERT INTO supplier_domains (supplier_id, domain, is_primary) "
+                "VALUES (:sid, :domain, :is_primary) "
+                "ON CONFLICT (supplier_id, domain) DO UPDATE SET is_primary = EXCLUDED.is_primary"
+            ),
+            {"sid": int(supplier_id), "domain": str(domain), "is_primary": bool(is_primary)},
+        )
+
+    async def add_email(self, supplier_id: int, email: str, is_primary: bool = False) -> None:
+        if not email:
+            return
+        await self.session.execute(
+            text(
+                "INSERT INTO supplier_emails (supplier_id, email, is_primary) "
+                "VALUES (:sid, :email, :is_primary) "
+                "ON CONFLICT (supplier_id, email) DO UPDATE SET is_primary = EXCLUDED.is_primary"
+            ),
+            {"sid": int(supplier_id), "email": str(email), "is_primary": bool(is_primary)},
+        )
     
     async def list(
         self,
         limit: int = 100,
         offset: int = 0,
-        type_filter: Optional[str] = None
+        type_filter: Optional[str] = None,
+        recent_days: Optional[int] = None,
     ) -> tuple[List[ModeratorSupplierModel], int]:
         """List suppliers with pagination."""
         query = select(ModeratorSupplierModel)
@@ -95,14 +178,23 @@ class ModeratorSupplierRepository:
         if type_filter:
             query = query.where(ModeratorSupplierModel.type == type_filter)
             count_query = count_query.where(ModeratorSupplierModel.type == type_filter)
+
+        if recent_days is not None and int(recent_days) > 0:
+            interval_expr = text("NOW() - (INTERVAL '1 day' * :days)")
+            query = query.where(ModeratorSupplierModel.created_at >= interval_expr)
+            count_query = count_query.where(ModeratorSupplierModel.created_at >= interval_expr)
         
         query = query.order_by(ModeratorSupplierModel.created_at.desc())
         query = query.limit(limit).offset(offset)
         
-        result = await self.session.execute(query)
+        params = {}
+        if recent_days is not None and int(recent_days) > 0:
+            params["days"] = int(recent_days)
+
+        result = await self.session.execute(query, params)
         suppliers = result.scalars().all()
         
-        count_result = await self.session.execute(count_query)
+        count_result = await self.session.execute(count_query, params)
         total = count_result.scalar() or 0
         
         return list(suppliers), total
@@ -365,7 +457,7 @@ class ParsingRunRepository:
         valid_fields = {
             'id', 'run_id', 'request_id', 'parser_task_id', 'status', 
             'depth', 'source', 'created_at', 'started_at', 'finished_at', 
-            'error_message', 'results_count'
+            'error_message', 'results_count', 'process_log'
         }
         
         # Log input data for debugging
@@ -467,6 +559,7 @@ class ParsingRunRepository:
         offset: int = 0,
         status: Optional[str] = None,
         keyword: Optional[str] = None,
+        request_id: Optional[int] = None,
         sort_by: str = "created_at",
         sort_order: str = "desc"
     ) -> tuple[List[ParsingRunModel], int]:
@@ -486,6 +579,10 @@ class ParsingRunRepository:
             # Фильтрация по статусу
             if status:
                 query = query.where(ParsingRunModel.status == status)
+
+            # Фильтрация по request_id
+            if request_id is not None:
+                query = query.where(ParsingRunModel.request_id == int(request_id))
 
             # Фильтрация по keyword (через parsing_requests)
             if keyword:
@@ -509,6 +606,8 @@ class ParsingRunRepository:
             )
             if status:
                 count_query = count_query.where(ParsingRunModel.status == status)
+            if request_id is not None:
+                count_query = count_query.where(ParsingRunModel.request_id == int(request_id))
             if keyword:
                 count_query = count_query.where(
                     (ParsingRequestModel.title.ilike(f"%{keyword}%")) |
@@ -785,4 +884,3 @@ class DomainQueueRepository(BaseRepository):
         await self.session.delete(entry)
         await self.session.flush()
         return True
-

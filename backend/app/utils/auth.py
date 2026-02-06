@@ -5,7 +5,8 @@ from typing import Optional
 import os
 
 # JWT настройки
-SECRET_KEY = os.getenv("JWT_SECRET", "your-super-secret-jwt-key-change-in-production")
+# Поддерживаем оба варианта переменных окружения (JWT_SECRET, JWT_SECRET_KEY).
+SECRET_KEY = os.getenv("JWT_SECRET") or os.getenv("JWT_SECRET_KEY") or "your-super-secret-jwt-key-change-in-production"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30 * 24 * 60  # 30 дней
 

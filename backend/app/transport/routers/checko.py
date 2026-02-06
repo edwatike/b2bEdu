@@ -4,8 +4,20 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.adapters.db.session import get_db
 from app.transport.schemas.checko import CheckoDataResponseDTO
 from app.usecases import get_checko_data
+from app.config import settings
 
 router = APIRouter()
+
+
+@router.get("/checko/health")
+async def get_checko_health_endpoint():
+    """Expose lightweight Checko integration status for UI prechecks."""
+    raw = (settings.CHECKO_API_KEY or "").strip()
+    keys = [k.strip() for k in raw.split(",") if k.strip()]
+    return {
+        "configured": bool(keys),
+        "keysLoaded": len(keys),
+    }
 
 
 @router.get("/checko/{inn}", response_model=CheckoDataResponseDTO)

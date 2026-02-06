@@ -16,7 +16,13 @@ from pydantic import BaseModel
 
 router = APIRouter()
 
+from app.config import settings
 from app.transport.routers.attachments import store_attachment, AttachmentDTO
+
+
+def _require_debug():
+    if str(getattr(settings, "ENV", "")).lower() != "development":
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found")
 
 
 class EmailMessage(BaseModel):
@@ -816,6 +822,7 @@ async def unspam_yandex_email_imap_message(message_id: str, request: IMAPMoveReq
 @router.get("/mail/yandex/test")
 async def test_imap_connection():
     """Test IMAP connection to Yandex."""
+    _require_debug()
     try:
         IMAP_SERVER = "imap.yandex.ru"
         IMAP_PORT = 993

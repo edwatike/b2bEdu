@@ -265,7 +265,7 @@ class Parser:
         finally:
             await page.close()
     
-    async def parse_keyword(self, keyword: str, depth: int = 10, source: str = "google", run_id: Optional[str] = None) -> List[dict]:
+    async def parse_keyword(self, keyword: str, depth: int = 10, source: str = "google", run_id: Optional[str] = None, resume_from: Optional[Dict[str, int]] = None) -> List[dict]:
         """Parse suppliers for a keyword.
         
         Args:
@@ -355,6 +355,17 @@ class Parser:
             
             # Initialize parsing logs structure
             parsing_logs = {}
+
+            # Resume support (per-engine start page)
+            resume_from_local = resume_from or {}
+            try:
+                google_start_page = int(resume_from_local.get("google") or 1)
+            except Exception:
+                google_start_page = 1
+            try:
+                yandex_start_page = int(resume_from_local.get("yandex") or 1)
+            except Exception:
+                yandex_start_page = 1
             
             # Create pages only for requested sources (use elif to ensure only one branch executes)
             # Note: Playwright automatically activates new pages, but we don't call bring_to_front()
@@ -364,31 +375,31 @@ class Parser:
                 yandex_page = await self.context.new_page()
                 # Don't bring to front - page will be activated only if CAPTCHA is detected
                 yandex_engine = YandexEngine()
-                tasks.append(yandex_engine.parse(yandex_page, query, depth, collected_links, run_id, keyword, parsing_logs))
+                tasks.append(yandex_engine.parse(yandex_page, query, depth, collected_links, run_id, keyword, parsing_logs, start_page=yandex_start_page))
             elif source_normalized == "google":
                 logger.info("Creating Google page only (source=google)")
                 google_page = await self.context.new_page()
                 # Don't bring to front - page will be activated only if CAPTCHA is detected
                 google_engine = GoogleEngine()
-                tasks.append(google_engine.parse(google_page, query, depth, collected_links, run_id, keyword, parsing_logs))
+                tasks.append(google_engine.parse(google_page, query, depth, collected_links, run_id, keyword, parsing_logs, start_page=google_start_page))
             elif source_normalized == "both":
                 logger.info("Creating both Yandex and Google pages (source=both)")
                 yandex_page = await self.context.new_page()
                 # Don't bring to front - page will be activated only if CAPTCHA is detected
                 yandex_engine = YandexEngine()
-                tasks.append(yandex_engine.parse(yandex_page, query, depth, collected_links, run_id, keyword, parsing_logs))
+                tasks.append(yandex_engine.parse(yandex_page, query, depth, collected_links, run_id, keyword, parsing_logs, start_page=yandex_start_page))
                 
                 google_page = await self.context.new_page()
                 # Don't bring to front - page will be activated only if CAPTCHA is detected
                 google_engine = GoogleEngine()
-                tasks.append(google_engine.parse(google_page, query, depth, collected_links, run_id, keyword, parsing_logs))
+                tasks.append(google_engine.parse(google_page, query, depth, collected_links, run_id, keyword, parsing_logs, start_page=google_start_page))
             else:
                 # Default to Google if source is invalid
                 logger.warning(f"Invalid source '{source_normalized}', defaulting to Google")
                 google_page = await self.context.new_page()
                 # Don't bring to front - page will be activated only if CAPTCHA is detected
                 google_engine = GoogleEngine()
-                tasks.append(google_engine.parse(google_page, query, depth, collected_links, run_id, keyword, parsing_logs))
+                tasks.append(google_engine.parse(google_page, query, depth, collected_links, run_id, keyword, parsing_logs, start_page=google_start_page))
             
             logger.info(f"Created {len(tasks)} task(s) for parsing")
             
@@ -419,8 +430,29 @@ class Parser:
                 logs_task = asyncio.create_task(send_logs_periodically())
                 
                 try:
-                    # Ждем завершения парсинга
-                    await asyncio.gather(*tasks)
+                    # Ждем завершения парсинга.
+                    # ВАЖНО: ошибки/таймауты отдельных источников не должны валить весь запуск.
+                    results = await asyncio.gather(*tasks, return_exceptions=True)
+                    for idx, r in enumerate(results):
+                        if isinstance(r, Exception):
+                            logger.error(
+                                "Search engine task failed (task_index=%s, run_id=%s, keyword=%s): %s",
+                                idx,
+                                run_id,
+                                keyword,
+                                r,
+                                exc_info=True,
+                            )
+                            try:
+                                parsing_logs.setdefault("errors", []).append(
+                                    {
+                                        "phase": "search_engine",
+                                        "task_index": int(idx),
+                                        "error": str(r),
+                                    }
+                                )
+                            except Exception:
+                                pass
                 finally:
                     # Отменяем задачу отправки логов и отправляем финальные логи
                     logs_task.cancel()

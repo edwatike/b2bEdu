@@ -1,29 +1,8 @@
-"""Routers module."""
+"""Routers package.
 
-from . import health
-from . import moderator_suppliers
-from . import moderator_users
-from . import keywords
-from . import blacklist
-from . import parsing
-from . import parsing_runs
-from . import domains_queue
-from . import attachments
-from . import checko
-from . import domain_parser
-from . import auth
-from . import cabinet
-from . import mail
-
-try:
-    from . import comet
-except Exception:
-    comet = None
-
-try:
-    from . import learning
-except Exception:
-    learning = None
+Keep this module side-effect free: importing the package must not eagerly import
+all router modules. This prevents startup hangs and circular-import cascades.
+"""
 
 __all__ = [
     "health",
@@ -40,10 +19,6 @@ __all__ = [
     "auth",
     "cabinet",
     "mail",
+    "learning",
 ]
 
-if comet is not None:
-    __all__.append("comet")
-
-if learning is not None:
-    __all__.append("learning")

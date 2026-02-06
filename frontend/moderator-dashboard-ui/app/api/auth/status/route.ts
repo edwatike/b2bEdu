@@ -7,6 +7,14 @@ export async function GET() {
     const token = cookieStore.get("auth_token")?.value
 
     if (!token) {
+      const backendUrl = `${process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000"}/api/auth/status`
+      const backendResp = await fetch(backendUrl, { cache: "no-store" })
+      if (backendResp.ok) {
+        const data = await backendResp.json().catch(() => ({ authenticated: false }))
+        if (data?.authenticated) {
+          return NextResponse.json(data)
+        }
+      }
       return NextResponse.json({ authenticated: false, user: null })
     }
 

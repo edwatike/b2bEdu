@@ -25,6 +25,15 @@ export async function GET(request: NextRequest) {
   const state = url.searchParams.get("state")
   const error = url.searchParams.get("error")
   const errorDescription = url.searchParams.get("error_description")
+
+  // IMPORTANT: keep OAuth flow on a single host.
+  // If callback hits 127.0.0.1 while state cookies were set on localhost (or vice versa),
+  // auth_token/state cookies won't match and UI falls into endless relogin/redirect loops.
+  if (url.hostname === "127.0.0.1") {
+    const fixed = new URL(request.url)
+    fixed.hostname = "localhost"
+    return NextResponse.redirect(fixed.toString())
+  }
   
   const isLocalhost = url.origin.includes('localhost') || url.origin.includes('127.0.0.1')
 

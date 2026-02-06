@@ -4,22 +4,35 @@ Lightweight, reliable for basic table extraction.
 """
 import os
 import logging
+import importlib
 from io import BytesIO
 from typing import List, Dict, Any, Optional
-try:
-    import easyocr
-except ImportError:
-    easyocr = None
 
 logger = logging.getLogger(__name__)
 
 # Global instance to avoid reloading models
 
 _reader: Optional[Any] = None
+_easyocr_module: Optional[Any] = None
+_easyocr_checked: bool = False
+
+
+def _get_easyocr_module() -> Optional[Any]:
+    """Import easyocr lazily to avoid heavy startup cost on API boot."""
+    global _easyocr_module, _easyocr_checked
+    if _easyocr_checked:
+        return _easyocr_module
+    _easyocr_checked = True
+    try:
+        _easyocr_module = importlib.import_module("easyocr")
+    except Exception:
+        _easyocr_module = None
+    return _easyocr_module
 
 def get_ocr_reader() -> Any:
     """Get or create EasyOCR reader."""
     global _reader
+    easyocr = _get_easyocr_module()
     if easyocr is None:
         raise RuntimeError("easyocr is not installed")
     if _reader is None:
@@ -53,6 +66,7 @@ def extract_text_from_image(image_bytes: bytes) -> str:
     from PIL import Image
     import numpy as np
     
+    easyocr = _get_easyocr_module()
     if easyocr is None:
         return _tesseract_image_ocr(image_bytes)
 

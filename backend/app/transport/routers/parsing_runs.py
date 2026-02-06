@@ -41,6 +41,7 @@ async def list_parsing_runs_endpoint(
     offset: int = Query(default=0, ge=0),
     status: Optional[str] = Query(default=None),
     keyword: Optional[str] = Query(default=None),
+    request_id: Optional[int] = Query(default=None),
     sort: Optional[str] = Query(default="created_at"),
     order: Optional[str] = Query(default="desc"),
     db = Depends(get_db)
@@ -65,32 +66,44 @@ async def list_parsing_runs_endpoint(
         offset=offset,
         status=status,
         keyword=keyword,
+        request_id=request_id,
         sort_by=sort,
         sort_order=order
     )
     
-    # Convert runs to DTOs, extracting keyword from request
+    # Convert runs to DTOs, extracting keyword from process_log/raw_keys_json/title
     run_dtos = []
     for run in runs:
         try:
-            # Extract keyword from request.title or raw_keys_json
             keyword = "Unknown"
-            if getattr(run, "request", None):
+
+            # 1) Prefer process_log keyword (this is the actual key used for this run)
+            try:
+                pl = getattr(run, "process_log", None)
+                if isinstance(pl, dict):
+                    k0 = pl.get("keyword")
+                    if isinstance(k0, str) and k0.strip():
+                        keyword = k0.strip()
+            except Exception:
+                pass
+
+            # 2) Fallback: use first key from request.raw_keys_json (if keyword still unknown)
+            if keyword == "Unknown" and getattr(run, "request", None) and getattr(run.request, "raw_keys_json", None):
+                try:
+                    keys_data = json.loads(run.request.raw_keys_json)
+                    if isinstance(keys_data, list) and len(keys_data) > 0:
+                        keyword = keys_data[0] if isinstance(keys_data[0], str) else str(keys_data[0])
+                    elif isinstance(keys_data, dict) and "keys" in keys_data:
+                        keys = keys_data["keys"]
+                        if isinstance(keys, list) and len(keys) > 0:
+                            keyword = keys[0] if isinstance(keys[0], str) else str(keys[0])
+                except (json.JSONDecodeError, KeyError, IndexError):
+                    pass
+
+            # 3) Last fallback: request title
+            if keyword == "Unknown" and getattr(run, "request", None) and getattr(run.request, "title", None):
                 if run.request.title:
                     keyword = run.request.title
-                elif run.request.raw_keys_json:
-                    try:
-                        keys_data = json.loads(run.request.raw_keys_json)
-                        if isinstance(keys_data, list) and len(keys_data) > 0:
-                            keyword = keys_data[0] if isinstance(keys_data[0], str) else str(keys_data[0])
-                        elif isinstance(keys_data, dict) and "keys" in keys_data:
-                            keys = keys_data["keys"]
-                            if isinstance(keys, list) and len(keys) > 0:
-                                keyword = keys[0] if isinstance(keys[0], str) else str(keys[0])
-                    except (json.JSONDecodeError, KeyError, IndexError):
-                        pass
-            elif getattr(run, "keyword", None):
-                keyword = str(run.keyword)
             
             # CRITICAL FIX: Always calculate results_count from domains_queue
             # This completely avoids AttributeError by never accessing the model attribute
@@ -291,20 +304,28 @@ async def get_parsing_run_endpoint(
         # Wrap in try-except to catch any AttributeError from accessing run attributes
         keyword = "Unknown"
         try:
+            pl = getattr(run, 'process_log', None)
+            if isinstance(pl, dict):
+                k0 = pl.get('keyword')
+                if isinstance(k0, str) and k0.strip():
+                    keyword = k0.strip()
+
             if run.request:
-                if run.request.title:
-                    keyword = run.request.title
-            elif run.request.raw_keys_json:
-                try:
-                    keys_data = json.loads(run.request.raw_keys_json)
-                    if isinstance(keys_data, list) and len(keys_data) > 0:
-                        keyword = keys_data[0] if isinstance(keys_data[0], str) else str(keys_data[0])
-                    elif isinstance(keys_data, dict) and "keys" in keys_data:
-                        keys = keys_data["keys"]
-                        if isinstance(keys, list) and len(keys) > 0:
-                            keyword = keys[0] if isinstance(keys[0], str) else str(keys[0])
-                except (json.JSONDecodeError, KeyError, IndexError):
-                    pass
+                if keyword == "Unknown" and getattr(run.request, 'title', None):
+                    if run.request.title:
+                        keyword = run.request.title
+
+                if keyword == "Unknown" and getattr(run.request, 'raw_keys_json', None):
+                    try:
+                        keys_data = json.loads(run.request.raw_keys_json)
+                        if isinstance(keys_data, list) and len(keys_data) > 0:
+                            keyword = keys_data[0] if isinstance(keys_data[0], str) else str(keys_data[0])
+                        elif isinstance(keys_data, dict) and "keys" in keys_data:
+                            keys = keys_data["keys"]
+                            if isinstance(keys, list) and len(keys) > 0:
+                                keyword = keys[0] if isinstance(keys[0], str) else str(keys[0])
+                    except (json.JSONDecodeError, KeyError, IndexError):
+                        pass
         except (AttributeError, KeyError) as e:
             # If accessing run.request or other attributes fails, just use default
             logger.warning(f"Error accessing run attributes: {e}")
@@ -320,6 +341,134 @@ async def get_parsing_run_endpoint(
             parsing_run_id=run_id
         )
         results_count = count if count > 0 else None
+        queue_stats = {
+            "total_domains": 0,
+            "ahead_domains": 0,
+            "ahead_runs": 0,
+            "run_domains": 0,
+            "active_run_id": None,
+            "ahead_list": [],
+        }
+        try:
+            qres = await db.execute(
+                text(
+                    """
+                    WITH auto_runs AS (
+                      SELECT
+                        pr.run_id,
+                        pr.created_at,
+                        COALESCE(pr.process_log->'domain_parser_auto'->>'status','') AS auto_status,
+                        GREATEST(
+                          0,
+                          (SELECT COUNT(DISTINCT dq.domain)::int FROM domains_queue dq WHERE dq.parsing_run_id = pr.run_id)
+                          - COALESCE(NULLIF(pr.process_log->'domain_parser_auto'->>'processed','')::int, 0)
+                          - COALESCE(NULLIF(pr.process_log->'domain_parser_auto'->>'skippedExisting','')::int, 0)
+                        ) AS remaining
+                      FROM parsing_runs pr
+                    ),
+                    current_run AS (
+                      SELECT created_at, auto_status, remaining
+                      FROM auto_runs
+                      WHERE run_id = :run_id
+                    ),
+                    active AS (
+                      SELECT run_id, created_at, auto_status, remaining
+                      FROM auto_runs
+                      WHERE auto_status IN ('queued', 'running')
+                    )
+                    SELECT
+                      COALESCE((SELECT SUM(remaining) FROM active), 0) AS total_domains,
+                      COALESCE((SELECT remaining FROM current_run), 0) AS run_domains,
+                      COALESCE(
+                        (
+                          SELECT SUM(a.remaining)
+                          FROM active a, current_run c
+                          WHERE c.auto_status = 'queued'
+                            AND a.auto_status = 'queued'
+                            AND a.created_at < c.created_at
+                        ),
+                        0
+                      ) AS ahead_domains,
+                      COALESCE(
+                        (
+                          SELECT COUNT(*)
+                          FROM active a, current_run c
+                          WHERE c.auto_status = 'queued'
+                            AND a.auto_status = 'queued'
+                            AND a.created_at < c.created_at
+                        ),
+                        0
+                      ) AS ahead_runs,
+                      COALESCE(
+                        (
+                          SELECT run_id
+                          FROM active
+                          WHERE auto_status = 'running'
+                          ORDER BY created_at ASC
+                          LIMIT 1
+                        ),
+                        (
+                          SELECT run_id
+                          FROM active
+                          WHERE auto_status = 'queued'
+                          ORDER BY created_at ASC
+                          LIMIT 1
+                        )
+                      ) AS active_run_id
+                    """
+                ),
+                {"run_id": run_id},
+            )
+            qrow = qres.fetchone()
+            if qrow:
+                queue_stats = {
+                    "total_domains": int(qrow[0] or 0),
+                    "run_domains": int(qrow[1] or 0),
+                    "ahead_domains": int(qrow[2] or 0),
+                    "ahead_runs": int(qrow[3] or 0),
+                    "active_run_id": str(qrow[4]) if qrow[4] else None,
+                    "ahead_list": [],
+                }
+            ahead_res = await db.execute(
+                text(
+                    """
+                    WITH auto_runs AS (
+                      SELECT
+                        pr.run_id,
+                        pr.created_at,
+                        COALESCE(pr.process_log->'domain_parser_auto'->>'status','') AS auto_status,
+                        GREATEST(
+                          0,
+                          (SELECT COUNT(DISTINCT dq.domain)::int FROM domains_queue dq WHERE dq.parsing_run_id = pr.run_id)
+                          - COALESCE(NULLIF(pr.process_log->'domain_parser_auto'->>'processed','')::int, 0)
+                          - COALESCE(NULLIF(pr.process_log->'domain_parser_auto'->>'skippedExisting','')::int, 0)
+                        ) AS remaining
+                      FROM parsing_runs pr
+                    ),
+                    current_run AS (
+                      SELECT created_at, auto_status
+                      FROM auto_runs
+                      WHERE run_id = :run_id
+                    )
+                    SELECT a.run_id, a.remaining
+                    FROM auto_runs a, current_run c
+                    WHERE c.auto_status = 'queued'
+                      AND a.auto_status = 'queued'
+                      AND a.created_at < c.created_at
+                      AND a.remaining > 0
+                    ORDER BY a.created_at ASC
+                    LIMIT 20
+                    """
+                ),
+                {"run_id": run_id},
+            )
+            queue_stats["ahead_list"] = [
+                {"runId": str(r[0]), "remainingDomains": int(r[1] or 0)}
+                for r in (ahead_res.fetchall() or [])
+                if r and r[0]
+            ]
+        except Exception:
+            logger.warning("Failed to calculate domain parser queue stats for run_id=%s", run_id, exc_info=True)
         from datetime import datetime
         _agent_debug_log({
             "location": "parsing_runs.py:176",
@@ -350,6 +499,12 @@ async def get_parsing_run_endpoint(
             "depth": getattr(run, 'depth', None),
             "source": getattr(run, 'source', None),
             "processLog": process_log if isinstance(process_log, dict) else None,
+            "domainParserQueueTotalDomains": queue_stats["total_domains"],
+            "domainParserQueueAheadDomains": queue_stats["ahead_domains"],
+            "domainParserQueueAheadRuns": queue_stats["ahead_runs"],
+            "domainParserQueueRunDomains": queue_stats["run_domains"],
+            "domainParserQueueActiveRunId": queue_stats["active_run_id"],
+            "domainParserQueueAheadList": queue_stats["ahead_list"],
         }
         _agent_debug_log({
             "location": "parsing_runs.py:193",

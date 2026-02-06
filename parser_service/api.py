@@ -45,6 +45,7 @@ class ParseRequest(BaseModel):
     depth: int = 10  # Number of search result pages to parse
     source: str = "google"  # "google", "yandex", or "both"
     run_id: Optional[str] = None  # Optional run_id for status updates
+    resume_from: Optional[Dict[str, int]] = None  # Optional resume page per engine
 
 
 class ParsedSupplier(BaseModel):
@@ -168,7 +169,7 @@ async def get_html_via_cdp(request: GetHtmlRequest):
                     for connect_endpoint in (ws_url, chrome_cdp_url_param):
                         try:
                             thread_logger.info(f"Connecting to Chrome CDP via {connect_endpoint}...")
-                            browser = await playwright.chromium.connect_over_cdp(connect_endpoint, timeout=60000)
+                            browser = await playwright.chromium.connect_over_cdp(connect_endpoint, timeout=settings.navigation_timeout)
                             break
                         except Exception as connect_err:
                             connect_errors.append((connect_endpoint, connect_err))
@@ -375,7 +376,14 @@ async def parse_keyword(request: ParseRequest):
         # This is EXACTLY the same approach as test_browser_connection.py
         if sys.platform == 'win32':
             logger.info("Using Windows-specific parsing in separate thread with asyncio.run()")
-            def run_parsing_in_thread(keyword_param, depth_param, source_param, chrome_cdp_url_param, run_id_param=None):
+            def run_parsing_in_thread(
+                keyword_param,
+                depth_param,
+                source_param,
+                chrome_cdp_url_param,
+                run_id_param=None,
+                resume_from_param=None,
+            ):
                 """Run parsing in a separate thread with its own event loop using asyncio.run().
                 
                 This function runs ALL parsing operations in ONE asyncio.run() call,
@@ -398,11 +406,14 @@ async def parse_keyword(request: ParseRequest):
                 from typing import Set, Dict
                 
                 async def parse_async():
+                    # Ensure defaults exist even if resume parsing data is missing or malformed.
+                    google_start_page = 1
+                    yandex_start_page = 1
                     """Async function to run ALL parsing operations in one event loop."""
                     import logging
                     thread_logger = logging.getLogger(__name__)
                     thread_logger.info("Starting parse_async() in thread with asyncio.run()")
-                    
+
                     from src.config import settings
 
                     thread_logger.info("Starting Playwright...")
@@ -430,7 +441,7 @@ async def parse_keyword(request: ParseRequest):
                             thread_logger.info(f"Got WebSocket URL: {ws_url}")
 
                         thread_logger.info("Playwright started, connecting to Chrome CDP...")
-                        browser = await playwright.chromium.connect_over_cdp(ws_url, timeout=60000)
+                        browser = await playwright.chromium.connect_over_cdp(ws_url, timeout=settings.navigation_timeout)
                         thread_logger.info("Connected to Chrome CDP successfully!")
                     
                     try:
@@ -479,8 +490,22 @@ async def parse_keyword(request: ParseRequest):
                         
                         # Normalize source parameter (lowercase, strip whitespace)
                         source_normalized = str(source_param).lower().strip() if source_param else "google"
-                        thread_logger.info(f"=== CREATING PAGES === Query: {query}, source (original): '{source_param}', source (normalized): '{source_normalized}', depth: {depth}")
-                        
+                        thread_logger.info(
+                            f"=== CREATING PAGES === Query: {query}, source (original): '{source_param}', "
+                            f"source (normalized): '{source_normalized}', depth: {depth}"
+                        )
+
+                        # Resume support (per-engine start page)
+                        resume_from_local = resume_from_param or {}
+                        try:
+                            google_start_page = int(resume_from_local.get("google") or 1)
+                        except Exception:
+                            google_start_page = 1
+                        try:
+                            yandex_start_page = int(resume_from_local.get("yandex") or 1)
+                        except Exception:
+                            yandex_start_page = 1
+
                         # Collect links from search engines with source tracking
                         # Use dict to track which source(s) found each URL
                         collected_links: Dict[str, Set[str]] = {}  # URL -> set of sources (google, yandex)
@@ -521,7 +546,7 @@ async def parse_keyword(request: ParseRequest):
                                 except:
                                     pass
                             yandex_engine = YandexEngine()
-                            tasks.append(yandex_engine.parse(yandex_page, query, depth, collected_links, run_id_param, keyword_param, parsing_logs))
+                            tasks.append(yandex_engine.parse(yandex_page, query, depth, collected_links, run_id_param, keyword_param, parsing_logs, start_page=yandex_start_page))
                         elif source_normalized == "google":
                             thread_logger.info(">>> Creating ONLY Google page (source=google)")
                             google_page = await context.new_page()
@@ -533,7 +558,7 @@ async def parse_keyword(request: ParseRequest):
                                 except:
                                     pass
                             google_engine = GoogleEngine()
-                            tasks.append(google_engine.parse(google_page, query, depth, collected_links, run_id_param, keyword_param, parsing_logs))
+                            tasks.append(google_engine.parse(google_page, query, depth, collected_links, run_id_param, keyword_param, parsing_logs, start_page=google_start_page))
                         elif source_normalized == "both":
                             thread_logger.info(">>> Creating BOTH Yandex and Google pages (source=both)")
                             yandex_page = await context.new_page()
@@ -547,9 +572,9 @@ async def parse_keyword(request: ParseRequest):
                                 except:
                                     pass
                             yandex_engine = YandexEngine()
-                            tasks.append(yandex_engine.parse(yandex_page, query, depth, collected_links, run_id_param, keyword_param, parsing_logs))
+                            tasks.append(yandex_engine.parse(yandex_page, query, depth, collected_links, run_id_param, keyword_param, parsing_logs, start_page=yandex_start_page))
                             google_engine = GoogleEngine()
-                            tasks.append(google_engine.parse(google_page, query, depth, collected_links, run_id_param, keyword_param, parsing_logs))
+                            tasks.append(google_engine.parse(google_page, query, depth, collected_links, run_id_param, keyword_param, parsing_logs, start_page=google_start_page))
                         else:
                             # Default to Google if source is invalid
                             thread_logger.warning(f">>> Invalid source '{source_normalized}', defaulting to Google")
@@ -562,7 +587,7 @@ async def parse_keyword(request: ParseRequest):
                                 except:
                                     pass
                             google_engine = GoogleEngine()
-                            tasks.append(google_engine.parse(google_page, query, depth, collected_links, run_id_param, keyword_param, parsing_logs))
+                            tasks.append(google_engine.parse(google_page, query, depth, collected_links, run_id_param, keyword_param, parsing_logs, start_page=google_start_page))
                         
                         thread_logger.info(f">>> TOTAL: Created {len(tasks)} task(s) for parsing")
                         
@@ -654,7 +679,8 @@ async def parse_keyword(request: ParseRequest):
                     request.depth,
                     request.source,
                     settings.CHROME_CDP_URL,
-                    request.run_id
+                    request.run_id,
+                    request.resume_from
                 )
                 # Handle both return formats (tuple with logs or just suppliers)
                 if isinstance(result_tuple, tuple) and len(result_tuple) == 2:
@@ -671,7 +697,8 @@ async def parse_keyword(request: ParseRequest):
                 keyword=request.keyword,
                 depth=request.depth,
                 source=request.source,
-                run_id=request.run_id
+                run_id=request.run_id,
+                resume_from=request.resume_from
             )
             # Handle both return formats (tuple with logs or just suppliers)
             if isinstance(result_tuple, tuple) and len(result_tuple) == 2:

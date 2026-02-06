@@ -22,7 +22,7 @@ class SearchEngine:
     def __init__(self, name: str):
         self.name = name
     
-    async def parse(self, page: Page, query: str, depth: int, collected_links: Dict[str, Set[str]], run_id: Optional[str] = None, keyword: Optional[str] = None, parsing_logs: Optional[Dict[str, Any]] = None):
+    async def parse(self, page: Page, query: str, depth: int, collected_links: Dict[str, Set[str]], run_id: Optional[str] = None, keyword: Optional[str] = None, parsing_logs: Optional[Dict[str, Any]] = None, start_page: int = 1):
         """Parse search results and collect links.
         
         Args:
@@ -43,9 +43,10 @@ class YandexEngine(SearchEngine):
     def __init__(self):
         super().__init__("YANDEX")
     
-    async def parse(self, page: Page, query: str, depth: int, collected_links: Dict[str, Set[str]], run_id: Optional[str] = None, keyword: Optional[str] = None, parsing_logs: Optional[Dict[str, Any]] = None):
+    async def parse(self, page: Page, query: str, depth: int, collected_links: Dict[str, Set[str]], run_id: Optional[str] = None, keyword: Optional[str] = None, parsing_logs: Optional[Dict[str, Any]] = None, start_page: int = 1):
         """Parse Yandex search results."""
         start_time = time.time()
+        start_page = max(1, int(start_page))
         logger.info(f"{self.name}: Начало парсинга '{query}'")
         print(f"\n[*] {self.name}: Старт парсинга...")
         
@@ -96,6 +97,10 @@ class YandexEngine(SearchEngine):
             wait_until="domcontentloaded",
             timeout=60000
         )
+
+        if start_page > 1:
+            page_url = f"{base_url}&p={start_page - 1}"
+            await page.goto(page_url, wait_until="domcontentloaded", timeout=60000)
         
         # Возвращаем фокус на предыдущую активную страницу (если она есть)
         # Это предотвращает автоматическое переключение вкладки
@@ -111,7 +116,9 @@ class YandexEngine(SearchEngine):
         await wait_for_captcha(page, self.name, run_id)
         
         logger.info(f"{self.name}: Starting to parse {depth} page(s)")
-        for n in range(1, depth + 1):
+        if start_page > depth:
+            return
+        for n in range(start_page, depth + 1):
             print(f"[PAGE] {self.name}: страница {n}/{depth}")
             logger.info(f"{self.name}: Processing page {n} of {depth}, current URL: {page.url}")
 
@@ -197,9 +204,10 @@ class GoogleEngine(SearchEngine):
     def __init__(self):
         super().__init__("GOOGLE")
     
-    async def parse(self, page: Page, query: str, depth: int, collected_links: Dict[str, Set[str]], run_id: Optional[str] = None, keyword: Optional[str] = None, parsing_logs: Optional[Dict[str, Any]] = None):
+    async def parse(self, page: Page, query: str, depth: int, collected_links: Dict[str, Set[str]], run_id: Optional[str] = None, keyword: Optional[str] = None, parsing_logs: Optional[Dict[str, Any]] = None, start_page: int = 1):
         """Parse Google search results."""
         start_time = time.time()
+        start_page = max(1, int(start_page))
         logger.info(f"{self.name}: Начало парсинга '{query}'")
         print(f"\n[*] {self.name}: Старт парсинга...")
         
@@ -232,8 +240,12 @@ class GoogleEngine(SearchEngine):
         except:
             pass
         
+        base_url = f"https://www.google.com/search?q={query.replace(' ', '+')}&hl=ru"
+        start_url = base_url
+        if start_page > 1:
+            start_url = f"{base_url}&start={(start_page - 1) * 10}"
         await page.goto(
-            f"https://www.google.com/search?q={query.replace(' ', '+')}&hl=ru",
+            start_url,
             timeout=60000,
             wait_until="domcontentloaded"
         )
@@ -277,7 +289,9 @@ class GoogleEngine(SearchEngine):
             logger.info(f"{self.name}: Ready to parse search results")
         
         logger.info(f"{self.name}: Starting to parse {depth} page(s)")
-        for n in range(1, depth + 1):
+        if start_page > depth:
+            return
+        for n in range(start_page, depth + 1):
             print(f"[PAGE] {self.name}: страница {n}/{depth}")
             logger.info(f"{self.name}: Processing page {n} of {depth}, current URL: {page.url}")
             

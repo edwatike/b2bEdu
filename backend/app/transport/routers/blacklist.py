@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.adapters.db.session import get_db
 from app.transport.routers.auth import can_access_moderator_zone, get_current_user
+from app.config import settings
 from app.transport.schemas.blacklist import (
     BlacklistEntryDTO,
     AddToBlacklistRequestDTO,
@@ -21,6 +22,10 @@ def _require_moderator(current_user: dict):
     if not can_access_moderator_zone(current_user):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
 
+def _require_debug():
+    if str(getattr(settings, "ENV", "")).lower() != "development":
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found")
+
 
 @router.get("/blacklist-debug", tags=["Debug"])
 async def debug_blacklist_endpoint(
@@ -29,6 +34,7 @@ async def debug_blacklist_endpoint(
 ):
     """Debug endpoint to check blacklist data directly from database."""
     _require_moderator(current_user)
+    _require_debug()
     from app.adapters.db.repositories import BlacklistRepository
     
     repo = BlacklistRepository(db)
@@ -204,4 +210,3 @@ async def remove_from_blacklist_endpoint(
         logger.error(f"Error removing domain {domain} from blacklist: {e}", exc_info=True)
         await db.rollback()
         raise
-

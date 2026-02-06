@@ -110,7 +110,13 @@ async def execute(
         checko_data_json = json.dumps(full_data, ensure_ascii=False)
         compressed_data = compress_checko_data_string(checko_data_json)
         supplier.checko_data = compressed_data
+        # Mark supplier as fully enriched once Checko payload is persisted.
+        try:
+            supplier.data_status = "complete"
+        except Exception:
+            pass
         await db.flush()
+        await db.commit()
         logger.info(f"Updated Checko data in DB for supplier ID {supplier.id} "
                    f"(compressed: {len(checko_data_json)} -> {len(compressed_data)} bytes)")
     else:
@@ -283,5 +289,3 @@ def _format_checko_data_for_frontend(full_data: Dict[str, Any]) -> Dict[str, Any
         result["legalCasesAsDefendant"] = legal.get("Ответчик")
     
     return result
-
-

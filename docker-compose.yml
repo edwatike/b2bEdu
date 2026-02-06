@@ -51,7 +51,8 @@ services:
       - REDIS_URL=redis://redis:6379
       - API_HOST=0.0.0.0
       - API_PORT=8000
-      - ENVIRONMENT=production
+      - ENV=production
+      - PARSER_SERVICE_URL=http://parser:9000
     ports:
       - "8000:8000"
     depends_on:
@@ -78,12 +79,13 @@ services:
     container_name: b2b-parser
     environment:
       - PARSER_HOST=0.0.0.0
-      - PARSER_PORT=8001
-      - DATABASE_URL=postgresql://b2b_user:b2b_password@postgres:5432/b2b_platform
+      - PARSER_PORT=9000
+      - BACKEND_URL=http://backend:8000
+      - DATABASE_URL=postgresql+asyncpg://b2b_user:b2b_password@postgres:5432/b2b_platform
       - REDIS_URL=redis://redis:6379
       - PLAYWRIGHT_HEADLESS=true
     ports:
-      - "8001:8001"
+      - "9000:9000"
     depends_on:
       postgres:
         condition: service_healthy
@@ -95,7 +97,7 @@ services:
     volumes:
       - ./logs:/app/logs
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:9000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -108,7 +110,7 @@ services:
     container_name: b2b-frontend
     environment:
       - NEXT_PUBLIC_API_URL=http://localhost:8000
-      - NEXT_PUBLIC_PARSER_URL=http://localhost:8001
+      - NEXT_PUBLIC_PARSER_URL=http://localhost:9000
       - NEXT_PUBLIC_ENVIRONMENT=production
       - ROUNDCUBE_INTERNAL_URL=http://roundcube:80
     ports:

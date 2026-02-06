@@ -6,11 +6,9 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { Card, CardContent } from "@/components/ui/card"
 import { toast } from "sonner"
-import { ShoppingCart, DollarSign, Truck, Brain, Eye, EyeOff, Lock, User, Sparkles, Shield, Zap, Mail } from "lucide-react"
+import { ShoppingCart, DollarSign, Truck, Brain, Shield, Zap, Mail } from "lucide-react"
 
 // Плавающие иконки для фона
 const floatingIcons = [
@@ -182,10 +180,6 @@ function FloatingIcon({ Icon, color, delay, index }: { Icon: any; color: string;
 
 export default function LoginPage() {
   const router = useRouter()
-  const [username, setUsername] = useState("")
-  const [password, setPassword] = useState("")
-  const [showPassword, setShowPassword] = useState(false)
-  const [loading, setLoading] = useState(false)
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
@@ -226,45 +220,6 @@ export default function LoginPage() {
       const cleanUrl = window.location.pathname
       window.history.replaceState({}, "", cleanUrl)
     }
-  }
-
-  async function handleLogin(e: React.FormEvent) {
-    e.preventDefault()
-
-    if (!username.trim() || !password.trim()) {
-      toast.error("Заполните все поля")
-      return
-    }
-
-    setLoading(true)
-
-    try {
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ username, password }),
-      })
-
-      const data = await response.json()
-
-      if (response.ok && data.success) {
-        toast.success("Добро пожаловать в систему!")
-        
-        // Проверяем есть ли redirect параметр
-        const urlParams = new URLSearchParams(window.location.search)
-        const redirectPath = urlParams.get("redirect") || "/"
-        
-        router.push(redirectPath)
-      } else {
-        toast.error(data.error || "Неверный логин или пароль")
-      }
-    } catch (error) {
-      toast.error("Ошибка соединения с сервером")
-    }
-
-    setLoading(false)
   }
 
   async function handleYandexLogin() {
@@ -376,119 +331,17 @@ export default function LoginPage() {
           {/* Форма */}
           <Card className="bg-white/5 backdrop-blur-xl border-white/10 shadow-2xl">
             <CardContent className="p-8">
-              <form onSubmit={handleLogin} className="space-y-6">
-                <motion.div
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.3 }}
-                  className="space-y-2"
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+                <Button
+                  type="button"
+                  onClick={handleYandexLogin}
+                  className="w-full h-12 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-semibold shadow-lg shadow-red-500/25 transition-all duration-300"
                 >
-                  <Label htmlFor="username" className="text-slate-300 text-sm font-medium">
-                    Логин
-                  </Label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-500" />
-                    <Input
-                      id="username"
-                      name="username"
-                      type="text"
-                      autoComplete="username"
-                      placeholder="Введите логин"
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
-                      className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500/20 h-12"
-                    />
-                  </div>
-                </motion.div>
-
-                <motion.div
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.4 }}
-                  className="space-y-2"
-                >
-                  <Label htmlFor="password" className="text-slate-300 text-sm font-medium">
-                    Пароль
-                  </Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-500" />
-                    <Input
-                      id="password"
-                      name="password"
-                      type={showPassword ? "text" : "password"}
-                      autoComplete="current-password"
-                      placeholder="Введите пароль"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="pl-10 pr-10 bg-white/5 border-white/10 text-white placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500/20 h-12"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
-                    >
-                      {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                    </button>
-                  </div>
-                </motion.div>
-
-                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
-                  <Button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full h-12 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-semibold shadow-lg shadow-blue-500/25 transition-all duration-300"
-                  >
-                    {loading ? (
-                      <motion.div className="flex items-center gap-2" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                        <motion.div
-                          className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full"
-                          animate={{ rotate: 360 }}
-                          transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
-                        />
-                        Вход...
-                      </motion.div>
-                    ) : (
-                      <span className="flex items-center gap-2">
-                        <Sparkles className="h-5 w-5" />
-                        Войти в систему
-                      </span>
-                    )}
-                  </Button>
-                </motion.div>
-
-                {/* Разделитель */}
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }} className="flex items-center gap-4 my-6">
-                  <div className="flex-1 h-px bg-slate-700"></div>
-                  <span className="text-xs text-slate-500">или</span>
-                  <div className="flex-1 h-px bg-slate-700"></div>
-                </motion.div>
-
-                {/* Кнопка входа через Яндекс */}
-                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 }}>
-                  <Button
-                    asChild
-                    type="button"
-                    className="w-full h-12 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-semibold shadow-lg shadow-red-500/25 transition-all duration-300"
-                  >
-                    <a href="/api/yandex/login" className="flex items-center justify-center gap-2">
-                      <Mail className="h-5 w-5" />
-                      Войти через Яндекс
-                    </a>
-                  </Button>
-                </motion.div>
-              </form>
-
-              {/* Подсказка */}
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.7 }}
-                className="mt-6 p-4 rounded-xl bg-white/5 border border-white/10"
-              >
-                <p className="text-xs text-slate-400 text-center">
-                  Демо доступ: <span className="text-slate-300 font-mono">admin</span> /{" "}
-                  <span className="text-slate-300 font-mono">admin123</span>
-                </p>
+                  <span className="flex items-center justify-center gap-2">
+                    <Mail className="h-5 w-5" />
+                    Войти через Яндекс
+                  </span>
+                </Button>
               </motion.div>
             </CardContent>
           </Card>

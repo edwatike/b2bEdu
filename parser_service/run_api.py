@@ -11,15 +11,21 @@ if sys.platform == 'win32':
 
 if __name__ == "__main__":
     from api import app
+    import os
     
     # Use uvicorn directly (Hypercorn hangs on Windows)
     import uvicorn
     
     async def run_server():
+        host = (os.getenv("PARSER_HOST") or "127.0.0.1").strip()
+        try:
+            port = int((os.getenv("PARSER_PORT") or "9000").strip())
+        except Exception:
+            port = 9000
         config = uvicorn.Config(
             app=app,
-            host="127.0.0.1",
-            port=9004,
+            host=host,
+            port=port,
             log_level="info",
             access_log=True
         )
@@ -27,4 +33,3 @@ if __name__ == "__main__":
         await server.serve()
     
     asyncio.run(run_server())
-

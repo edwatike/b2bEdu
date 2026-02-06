@@ -245,6 +245,63 @@ def normalize_item_names(items: List[str]) -> List[str]:
     return out
 
 
+def group_similar_item_names(items: List[str]) -> List[str]:
+    import re
+
+    out: list[str] = []
+    seen: set[str] = set()
+
+    alpha_re = re.compile(r"[A-Za-zА-Яа-я]")
+    adjective_re = re.compile(
+        r"^(?:[A-Za-zА-Яа-я]+(?:ый|ий|ая|яя|ое|ее|ые|ие|ого|его|ому|ему|ым|им|ую|юю|ых|их|ом|ем))$",
+        re.IGNORECASE,
+    )
+
+    base_to_mods: dict[str, set[str]] = {}
+    base_to_rep: dict[str, str] = {}
+
+    def _canon_tokens(s: str) -> list[str]:
+        toks = [t for t in (s or "").split() if alpha_re.search(t)]
+        return [" ".join(tok.split()) for tok in toks if tok]
+
+    for raw in items or []:
+        s = " ".join(str(raw or "").split()).strip()
+        if not s:
+            continue
+        toks = _canon_tokens(s)
+        if not toks:
+            continue
+        base = toks[0].lower()
+        base_to_rep.setdefault(base, toks[0])
+        mod = ""
+        if len(toks) >= 2 and adjective_re.fullmatch(toks[1] or ""):
+            mod = toks[1].lower()
+        base_to_mods.setdefault(base, set())
+        if mod:
+            base_to_mods[base].add(mod)
+
+    # Stable output: prefer base+modifier when modifiers exist; otherwise use base.
+    for base, rep in base_to_rep.items():
+        base_name = rep
+        mods = sorted(base_to_mods.get(base) or set())
+        if not mods:
+            low_base = base_name.lower()
+            if low_base not in seen:
+                seen.add(low_base)
+                out.append(base_name)
+            continue
+
+        for m in mods:
+            full = f"{base_name} {m}".strip()
+            low = full.lower()
+            if low in seen:
+                continue
+            seen.add(low)
+            out.append(full)
+
+    return out
+
+
 def extract_item_names_via_groq(*, text: str, api_key: str) -> List[str]:
     names, _usage = extract_item_names_via_groq_with_usage(text=text, api_key=api_key)
     return names
@@ -635,6 +692,7 @@ def extract_search_keys_via_groq(*, text: str, api_key: str, max_retries: int = 
         "ПРАВИЛА создания search_keys:\n"
         "1. ОБЪЕДИНЯЙ все похожие товары в ОДИН поисковый ключ\n"
         "2. Ключ = тип товара + материал (если критично важен)\n"
+        "2.1 НЕ возвращай слишком общий ключ (например 'Труба', 'Муфта'), если в тексте есть подтипы — тогда верни только подтипы (например 'Труба гофрированная', 'Труба жесткая').\n"
         "3. НЕ включай: размеры, DN, диаметры, количество, цены, артикулы, параметры\n"
         "4. СТРОГИЕ ЛИМИТЫ (НИКОГДА не превышай!):\n"
         "   - 1-3 позиции в тексте → МАКСИМУМ 1 ключ\n"
@@ -757,10 +815,41 @@ def extract_search_keys_via_groq(*, text: str, api_key: str, max_retries: int = 
     if not isinstance(search_keys, list):
         search_keys = []
 
+    def _refine_key_from_text(key_in: str, full_text: str) -> str:
+        import re
+
+        k = " ".join((key_in or "").split()).strip()
+        if not k:
+            return ""
+
+        low_k = k.lower()
+        t = " ".join((full_text or "").split())
+        low_t = t.lower()
+
+        # 1) 'Отвод' -> try to preserve 'сварной' when present in text.
+        if low_k in {"отвод", "отводы"} and re.search(r"\bотвод\w*\s+сварн\w*\b", low_t):
+            return "Отвод сварной"
+
+        # 2) Truncated 'гофрированная спиральновитая' -> expand to metallic pipe if text contains it.
+        if "спиральновит" in low_k and "труба" not in low_k:
+            if re.search(r"\bтруб\w*\b", low_t) and re.search(r"\bметалл\w*\b", low_t):
+                # Prefer a stable compact key.
+                return "Труба гофрированная спиральновитая металлическая"
+
+        # 3) Generic 'гофрированная' -> if text has metallic pipe, keep as pipe.
+        if low_k in {"гофрированная", "гофрированная спиральновитая", "гофрированная спиральновитая металлическая"}:
+            if re.search(r"\bтруб\w*\b", low_t) and re.search(r"\bспиральновит\w*\b", low_t):
+                if re.search(r"\bметалл\w*\b", low_t):
+                    return "Труба гофрированная спиральновитая металлическая"
+                return "Труба гофрированная спиральновитая"
+
+        return k
+
     keys = []
     seen = set()
     for k in search_keys:
-        s = str(k or "").strip()
+        s0 = str(k or "").strip()
+        s = _refine_key_from_text(s0, raw)
         if not s or len(s) < 2:
             continue
         s = " ".join(s.split())
@@ -1927,6 +2016,22 @@ def _extract_docx_text(data: bytes) -> str:
 
     doc = Document(BytesIO(data))
     parts: List[str] = []
+    try:
+        for section in doc.sections:
+            try:
+                ht = (getattr(section.header, "text", "") or "").strip()
+                if ht:
+                    parts.append(ht)
+            except Exception:
+                pass
+            try:
+                ft = (getattr(section.footer, "text", "") or "").strip()
+                if ft:
+                    parts.append(ft)
+            except Exception:
+                pass
+    except Exception:
+        pass
     for table in doc.tables:
         for row in table.rows:
             cells = [c.text.strip() for c in row.cells if (c.text or "").strip()]
@@ -1936,7 +2041,7 @@ def _extract_docx_text(data: bytes) -> str:
         t = (p.text or "").strip()
         if t:
             parts.append(t)
-    return "\n".join(parts)
+    return "\n".join([p for p in (x.strip() for x in parts) if p])
 
 
 def _extract_xlsx_text(data: bytes) -> str:
@@ -1981,11 +2086,11 @@ def _ocr_via_parser_service(filename: str, content: bytes) -> str:
     try:
         with httpx.Client(timeout=30.0) as client:
             resp = client.post(
-                "http://127.0.0.1:9004/ocr/extract-text",
+                "http://127.0.0.1:9000/ocr/extract-text",
                 files={"file": (filename or "file", content)},
             )
         if resp.status_code != 200:
-            return ""
+            raise RecognitionDependencyError(f"parser_service OCR failed: {resp.status_code} {resp.text}")
         data = resp.json() or {}
         return (data.get("text") or "").strip()
     except Exception:

@@ -12,10 +12,19 @@ import { handleStartParsing } from "../actions/parsing"
 import { Navigation } from "@/components/navigation"
 import { AuthGuard } from "@/components/auth-guard"
 import { ParsingProgressBar } from "@/components/dashboard/parsing-progress-bar"
-import { APIError, getParsingRuns, getDomainsQueue, getBlacklist, getSuppliers, getParsingRun, getParsingLogs } from "@/lib/api"
+import {
+  APIError,
+  getParsingRuns,
+  getDomainsQueue,
+  getBlacklist,
+  getSuppliers,
+  getParsingRun,
+  getParsingLogs,
+  getModeratorDashboardStats,
+} from "@/lib/api"
 import { extractRootDomain } from "@/lib/utils-domain"
 import { toast } from "sonner"
-import { ArrowRight, Play, TrendingUp, AlertCircle, Ban, Activity, Globe, Users } from "lucide-react"
+import { ArrowRight, Play, TrendingUp, AlertCircle, Ban, Activity, Globe, Users, Flame, Sparkles } from "lucide-react"
 import type { ParsingRunDTO } from "@/lib/types"
 
 function DashboardPage() {
@@ -26,9 +35,11 @@ function DashboardPage() {
   const [loading, setLoading] = useState(false)
   const [stats, setStats] = useState({
     domainsInQueue: 0,
+    enrichmentDomainsInQueue: 0,
     newSuppliers: 0,
     activeRuns: 0,
     blacklistCount: 0,
+    moderatorTasks: 0,
   })
   const [recentRuns, setRecentRuns] = useState<ParsingRunDTO[]>([])
   const [parsingProgress, setParsingProgress] = useState<{
@@ -91,11 +102,11 @@ function DashboardPage() {
   useEffect(() => {
     if (!parsingProgress.isRunning || !parsingProgress.runId) return
 
-    // Адаптивный интервал: 2 сек для running, 5 сек для completed/failed
+    // Адаптивный интервал: реже опрашиваем для снижения нагрузки
     const getPollingInterval = (status: string) => {
-      if (status === "running") return 2000 // 2 секунды
-      if (status === "completed" || status === "failed") return 5000 // 5 секунд для финальной проверки
-      return 2000 // По умолчанию 2 секунды
+      if (status === "running") return 8000 // 8 секунд
+      if (status === "completed" || status === "failed") return 12000 // 12 секунд для финальной проверки
+      return 8000 // По умолчанию 8 секунд
     }
 
     let pollCount = 0 // Счетчик для остановки polling после завершения
@@ -417,84 +428,18 @@ function DashboardPage() {
 
   async function loadDashboardData() {
     try {
-      // Загружаем данные порциями, так как backend ограничивает limit до 1000
-      const [suppliersData, runsData, blacklistData] = await Promise.all([
-        getSuppliers({ limit: 1000 }), // Загружаем всех поставщиков
-        getParsingRuns({ status: "running", limit: 1 }),
-        getBlacklist({ limit: 1000 }), // Загружаем весь blacklist
+      const [statsData, recentRunsData] = await Promise.all([
+        getModeratorDashboardStats(),
+        getParsingRuns({ limit: 10, sort: "created_at", order: "desc" }),
       ])
 
-      const recentRunsData = await getParsingRuns({ limit: 10, sort: "created_at", order: "desc" })
-
-      // Получаем все завершенные parsing runs для подсчета доменов из результатов парсинга
-      // Ограничиваем последними 50 runs для оптимизации
-      const completedRunsData = await getParsingRuns({
-        status: "completed",
-        limit: 50,
-        sort: "created_at",
-        order: "desc",
-      })
-
-      // Загружаем домены только из завершенных parsing runs
-      const uniqueDomains = new Set<string>()
-
-      // Для каждого завершенного run загружаем его домены
-      for (const run of completedRunsData.runs) {
-        const runId = run.runId || run.run_id
-        if (!runId) continue
-
-        let offset = 0
-        const limit = 1000
-        let hasMore = true
-
-        while (hasMore) {
-          try {
-            const domainsData = await getDomainsQueue({ parsingRunId: runId, limit, offset })
-            domainsData.entries.forEach((entry) => {
-              const rootDomain = extractRootDomain(entry.domain).toLowerCase()
-              uniqueDomains.add(rootDomain)
-            })
-
-            if (domainsData.entries.length < limit || offset + limit >= domainsData.total) {
-              hasMore = false
-            } else {
-              offset += limit
-            }
-          } catch (error) {
-            if (!(error instanceof APIError && error.status === 499)) {
-              console.error(`Error loading domains for run ${runId}:`, error)
-            }
-            hasMore = false
-          }
-        }
-      }
-
-      // Получаем домены из blacklist
-      const blacklistedDomains = new Set<string>()
-      blacklistData.entries.forEach((entry) => {
-        const rootDomain = extractRootDomain(entry.domain).toLowerCase()
-        blacklistedDomains.add(rootDomain)
-      })
-
-      // Получаем домены из suppliers (поставщики и реселлеры)
-      const processedDomains = new Set<string>()
-      suppliersData.suppliers.forEach((supplier) => {
-        if (supplier.domain) {
-          const rootDomain = extractRootDomain(supplier.domain).toLowerCase()
-          processedDomains.add(rootDomain)
-        }
-      })
-
-      // Фильтруем: домены, которые НЕ в blacklist и НЕ в suppliers
-      const unprocessedDomains = Array.from(uniqueDomains).filter(
-        (domain) => !blacklistedDomains.has(domain) && !processedDomains.has(domain),
-      )
-
       setStats({
-        domainsInQueue: unprocessedDomains.length, // Количество уникальных необработанных доменов
-        newSuppliers: suppliersData.total,
-        activeRuns: runsData.total,
-        blacklistCount: blacklistData.total,
+        domainsInQueue: statsData.domains_in_queue,
+        enrichmentDomainsInQueue: statsData.enrichment_domains_in_queue ?? 0,
+        newSuppliers: statsData.new_suppliers_week ?? statsData.new_suppliers,
+        activeRuns: statsData.active_runs,
+        blacklistCount: statsData.blacklist_count,
+        moderatorTasks: statsData.open_tasks,
       })
       setRecentRuns(recentRunsData.runs)
     } catch (error) {
@@ -584,12 +529,104 @@ function DashboardPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.2 }}
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8"
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6 mb-8"
         >
           <motion.div whileHover={{ scale: 1.02, y: -2 }} transition={{ type: "spring", stiffness: 300 }}>
-            <Card className="card-hover bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
+            <Card
+              role="button"
+              tabIndex={0}
+              onClick={() => router.push("/moderator/tasks")}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") router.push("/moderator/tasks")
+              }}
+              className="card-hover relative overflow-hidden bg-gradient-to-br from-orange-50 via-amber-100 to-red-100 border-orange-200 cursor-pointer"
+            >
+              {/* Flame border */}
+              <motion.div
+                className="pointer-events-none absolute inset-0 rounded-xl"
+                animate={{ opacity: [0.65, 0.95, 0.65] }}
+                transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
+                style={{
+                  padding: 2,
+                  background:
+                    "conic-gradient(from 0deg, rgba(255,35,0,0.95), rgba(255,120,0,0.85), rgba(255,220,140,0.75), rgba(255,120,0,0.85), rgba(255,35,0,0.95))",
+                  WebkitMask:
+                    "linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)",
+                  WebkitMaskComposite: "xor",
+                  maskComposite: "exclude" as any,
+                }}
+              />
+              <motion.div
+                className="pointer-events-none absolute inset-0 rounded-xl opacity-60 blur-xl"
+                animate={{
+                  rotate: [0, 4, -4, 0],
+                  scale: [1, 1.02, 1.01, 1],
+                }}
+                transition={{ duration: 2.0, ease: "easeInOut", repeat: Infinity }}
+                style={{
+                  background:
+                    "radial-gradient(closest-side at 20% 10%, rgba(255,90,0,0.55), rgba(255,200,80,0.22), rgba(255,255,255,0))",
+                }}
+              />
+              <motion.div
+                className="pointer-events-none absolute inset-0 rounded-xl opacity-55 blur-xl"
+                animate={{
+                  rotate: [0, -6, 6, 0],
+                  scale: [1, 1.01, 1.03, 1],
+                }}
+                transition={{ duration: 2.7, ease: "easeInOut", repeat: Infinity }}
+                style={{
+                  background:
+                    "radial-gradient(closest-side at 80% 30%, rgba(255,40,0,0.45), rgba(255,150,0,0.18), rgba(255,255,255,0))",
+                }}
+              />
+              {/* Flame tongues at top edge */}
+              <motion.div
+                className="pointer-events-none absolute left-2 right-2 top-0 h-10 opacity-50 blur-lg"
+                animate={{ y: [0, -3, 0], opacity: [0.45, 0.7, 0.45] }}
+                transition={{ duration: 0.9, repeat: Infinity, ease: "easeInOut" }}
+                style={{
+                  background:
+                    "radial-gradient(12px 20px at 10% 90%, rgba(255,120,0,0.9), rgba(255,120,0,0)) , radial-gradient(14px 22px at 30% 90%, rgba(255,60,0,0.85), rgba(255,60,0,0)) , radial-gradient(16px 24px at 50% 90%, rgba(255,180,60,0.8), rgba(255,180,60,0)) , radial-gradient(14px 22px at 70% 90%, rgba(255,80,0,0.85), rgba(255,80,0,0)) , radial-gradient(12px 20px at 90% 90%, rgba(255,150,40,0.8), rgba(255,150,40,0))",
+                }}
+              />
+
+              <CardContent className="relative p-6 min-h-[104px] flex items-center">
+                <div className="w-full flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-orange-700 font-medium">Задачи</p>
+                    <p className="text-3xl font-bold text-orange-900 mt-1">{stats.moderatorTasks}</p>
+                  </div>
+                  <motion.div
+                    className="h-12 w-12 rounded-full bg-orange-200 flex items-center justify-center"
+                    animate={{
+                      boxShadow: [
+                        "0 0 0px rgba(255,120,0,0)",
+                        "0 0 22px rgba(255,120,0,0.55)",
+                        "0 0 0px rgba(255,120,0,0)",
+                      ],
+                    }}
+                    transition={{ duration: 1.0, repeat: Infinity, ease: "easeInOut" }}
+                  >
+                    <Flame className="h-6 w-6 text-orange-700" />
+                  </motion.div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <motion.div whileHover={{ scale: 1.02, y: -2 }} transition={{ type: "spring", stiffness: 300 }}>
+            <Card
+              role="button"
+              tabIndex={0}
+              onClick={() => router.push("/domains")}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") router.push("/domains")
+              }}
+              className="card-hover bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 cursor-pointer"
+            >
+              <CardContent className="p-6 min-h-[104px] flex items-center">
+                <div className="w-full flex items-center justify-between">
                   <div>
                     <p className="text-sm text-blue-600 font-medium">Домены в очереди</p>
                     <p className="text-3xl font-bold text-blue-900 mt-1">{stats.domainsInQueue}</p>
@@ -603,11 +640,44 @@ function DashboardPage() {
           </motion.div>
 
           <motion.div whileHover={{ scale: 1.02, y: -2 }} transition={{ type: "spring", stiffness: 300 }}>
-            <Card className="card-hover bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
+            <Card
+              role="button"
+              tabIndex={0}
+              onClick={() => router.push("/domains")}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") router.push("/domains")
+              }}
+              className="card-hover bg-gradient-to-br from-cyan-50 to-cyan-100 border-cyan-200 cursor-pointer"
+            >
+              <CardContent className="p-6 min-h-[104px] flex items-center">
+                <div className="w-full flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-green-600 font-medium">Новые поставщики</p>
+                    <p className="text-sm text-cyan-700 font-medium">Обогащение</p>
+                    <p className="text-3xl font-bold text-cyan-900 mt-1">{stats.enrichmentDomainsInQueue}</p>
+                    <p className="text-xs text-cyan-700 mt-1">Домены в очереди на ИНН/email</p>
+                  </div>
+                  <div className="h-12 w-12 rounded-full bg-cyan-200 flex items-center justify-center">
+                    <Sparkles className="h-6 w-6 text-cyan-700" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <motion.div whileHover={{ scale: 1.02, y: -2 }} transition={{ type: "spring", stiffness: 300 }}>
+            <Card
+              role="button"
+              tabIndex={0}
+              onClick={() => router.push("/suppliers?recentDays=7")}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") router.push("/suppliers?recentDays=7")
+              }}
+              className="card-hover bg-gradient-to-br from-green-50 to-green-100 border-green-200 cursor-pointer"
+            >
+              <CardContent className="p-6 min-h-[104px] flex items-center">
+                <div className="w-full flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-green-600 font-medium">Новые поставщики за неделю</p>
                     <p className="text-3xl font-bold text-green-900 mt-1">{stats.newSuppliers}</p>
                   </div>
                   <div className="h-12 w-12 rounded-full bg-green-200 flex items-center justify-center">
@@ -619,9 +689,17 @@ function DashboardPage() {
           </motion.div>
 
           <motion.div whileHover={{ scale: 1.02, y: -2 }} transition={{ type: "spring", stiffness: 300 }}>
-            <Card className="card-hover bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
+            <Card
+              role="button"
+              tabIndex={0}
+              onClick={() => router.push("/parsing-runs?status=running")}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") router.push("/parsing-runs?status=running")
+              }}
+              className="card-hover bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200 cursor-pointer"
+            >
+              <CardContent className="p-6 min-h-[104px] flex items-center">
+                <div className="w-full flex items-center justify-between">
                   <div>
                     <p className="text-sm text-purple-600 font-medium">Активные запуски</p>
                     <p className="text-3xl font-bold text-purple-900 mt-1">{stats.activeRuns}</p>
@@ -635,9 +713,17 @@ function DashboardPage() {
           </motion.div>
 
           <motion.div whileHover={{ scale: 1.02, y: -2 }} transition={{ type: "spring", stiffness: 300 }}>
-            <Card className="card-hover bg-gradient-to-br from-red-50 to-red-100 border-red-200">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
+            <Card
+              role="button"
+              tabIndex={0}
+              onClick={() => router.push("/blacklist")}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") router.push("/blacklist")
+              }}
+              className="card-hover bg-gradient-to-br from-red-50 to-red-100 border-red-200 cursor-pointer"
+            >
+              <CardContent className="p-6 min-h-[104px] flex items-center">
+                <div className="w-full flex items-center justify-between">
                   <div>
                     <p className="text-sm text-red-600 font-medium">Blacklist</p>
                     <p className="text-3xl font-bold text-red-900 mt-1">{stats.blacklistCount}</p>
@@ -773,60 +859,12 @@ function DashboardPage() {
         </div>
 
         {/* Быстрые действия */}
-        {/* Метрики */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-8">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                В очереди
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <div className="text-4xl font-bold mb-1">{stats.domainsInQueue}</div>
-              <div className="text-xs text-muted-foreground">доменов</div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Новые</CardTitle>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <div className="text-4xl font-bold mb-1 text-green-600">{stats.newSuppliers}</div>
-              <div className="text-xs text-muted-foreground">поставщиков</div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                Активных
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <div className="text-4xl font-bold mb-1 text-blue-600">{stats.activeRuns}</div>
-              <div className="text-xs text-muted-foreground">парсингов</div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                Blacklist
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <div className="text-4xl font-bold mb-1 text-red-600">{stats.blacklistCount}</div>
-              <div className="text-xs text-muted-foreground">доменов</div>
-            </CardContent>
-          </Card>
-        </div>
 
         {/* Последние запуски */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-xl font-bold">Последние запуски</h2>
-            <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => router.push("/parsing-runs")}>
+            <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => router.push("/parsing-runs?status=running")}>
               Все запуски
               <ArrowRight className="ml-2 h-3 w-3" />
             </Button>
@@ -896,7 +934,7 @@ function DashboardPage() {
             variant="outline"
             size="lg"
             className="h-12 text-sm justify-start bg-transparent"
-            onClick={() => router.push("/parsing-runs")}
+            onClick={() => router.push("/parsing-runs?status=running")}
           >
             <TrendingUp className="mr-2 h-4 w-4" />
             Обработать очередь

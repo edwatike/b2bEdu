@@ -17,7 +17,7 @@ const navigation = [
   { name: "Поставщики", href: "/suppliers", icon: Package },
   { name: "Ключевые слова", href: "/keywords", icon: Search },
   { name: "Черный список", href: "/blacklist", icon: Ban },
-  { name: "История парсинга", href: "/parsing-runs", icon: History },
+  { name: "Запуски", href: "/parsing-runs", icon: History },
   { name: "Ручной парсинг", href: "/manual-parsing", icon: Play },
 ]
 

@@ -26,7 +26,6 @@ class LearnManualInnRequestDTO(BaseModel):
 class LearningStatisticsDTO(BaseModel):
     """Статистика обучения."""
     totalLearned: int = Field(0, description="Всего выучено паттернов")
-    cometContributions: int = Field(0, description="Количество обучений от Comet")
     successRateBefore: float = Field(0.0, description="Процент успеха до обучения")
     successRateAfter: float = Field(0.0, description="Процент успеха после обучения")
 

@@ -186,8 +186,14 @@ export async function apiFetch<T>(endpoint: string, options?: RequestInit): Prom
       // Разные уровни логирования для разных статусов
       // 404 - ожидаемая ошибка (ресурс не найден), логируем как warning
       // 400 - ожидаемая ошибка (неверный запрос), логируем как warning
+      // 401/403 - ожидаемая ошибка авторизации (например, сессия истекла), логируем как warning
       // 500+ - реальная ошибка сервера, логируем как error
-      if (response.status === 404 || response.status === 400) {
+      if (
+        response.status === 404 ||
+        response.status === 400 ||
+        response.status === 401 ||
+        response.status === 403
+      ) {
         console.warn(`[API] ${response.status} ${errorMessage}:`, {
           endpoint: endpoint,
           url: url,
@@ -419,6 +425,7 @@ export async function getSuppliers(params?: {
   limit?: number
   offset?: number
   type?: string
+  recentDays?: number
 }): Promise<{
   suppliers: SupplierDTO[]
   total: number
@@ -429,6 +436,7 @@ export async function getSuppliers(params?: {
   if (params?.limit) queryParams.append("limit", params.limit.toString())
   if (params?.offset) queryParams.append("offset", params.offset.toString())
   if (params?.type) queryParams.append("type", params.type)
+  if (params?.recentDays) queryParams.append("recentDays", params.recentDays.toString())
 
   const queryString = queryParams.toString()
   return apiFetch<{
@@ -437,6 +445,44 @@ export async function getSuppliers(params?: {
     limit: number
     offset: number
   }>(`/moderator/suppliers${queryString ? `?${queryString}` : ""}`)
+}
+
+export async function getPendingDomains(params?: {
+  limit?: number
+  offset?: number
+  search?: string
+}): Promise<{
+  entries: Array<{ domain: string; occurrences: number; last_seen_at?: string | null }>
+  total: number
+  limit: number
+  offset: number
+}> {
+  const queryParams = new URLSearchParams()
+  if (params?.limit) queryParams.append("limit", params.limit.toString())
+  if (params?.offset) queryParams.append("offset", params.offset.toString())
+  if (params?.search) queryParams.append("search", params.search)
+  const queryString = queryParams.toString()
+  return apiFetch(`/domains/pending${queryString ? `?${queryString}` : ""}`)
+}
+
+export async function enrichPendingDomain(domain: string): Promise<{
+  domain: string
+  inn?: string | null
+  emails?: string[]
+  status: string
+  error?: string | null
+}> {
+  return apiFetch(`/domains/pending/enrich`, {
+    method: "POST",
+    body: JSON.stringify({ domain }),
+  })
+}
+
+export async function clearPendingDomains(domains?: string[]): Promise<{ deleted: number }> {
+  return apiFetch(`/domains/pending/clear`, {
+    method: "POST",
+    body: JSON.stringify({ domains: domains?.length ? domains : null }),
+  })
 }
 
 // Blacklist API
@@ -537,6 +583,15 @@ export interface CheckoDataResponse {
   checkoData: string
 }
 
+export interface CheckoHealthResponse {
+  configured: boolean
+  keysLoaded: number
+}
+
+export async function getCheckoHealth(): Promise<CheckoHealthResponse> {
+  return apiFetchWithRetry<CheckoHealthResponse>("/moderator/checko/health", undefined, 2)
+}
+
 export async function getCheckoData(inn: string, forceRefresh?: boolean): Promise<CheckoDataResponse> {
   const params = new URLSearchParams()
   if (forceRefresh) {
@@ -544,7 +599,7 @@ export async function getCheckoData(inn: string, forceRefresh?: boolean): Promis
   }
   const queryString = params.toString()
   const url = `/moderator/checko/${inn}${queryString ? `?${queryString}` : ""}`
-  return apiFetch<CheckoDataResponse>(url)
+  return apiFetchWithRetry<CheckoDataResponse>(url, undefined, 3)
 }
 
 // Suppliers API
@@ -553,8 +608,12 @@ export async function createSupplier(data: {
   inn?: string | null
   email?: string | null
   domain?: string | null
+  emails?: string[] | null
+  domains?: string[] | null
   address?: string | null
   type: "supplier" | "reseller"
+  allowDuplicateInn?: boolean | null
+  dataStatus?: string | null
   // Checko fields
   ogrn?: string | null
   kpp?: string | null
@@ -589,8 +648,12 @@ export async function updateSupplier(
     inn?: string | null
     email?: string | null
     domain?: string | null
+    emails?: string[] | null
+    domains?: string[] | null
     address?: string | null
     type?: "supplier" | "reseller"
+    allowDuplicateInn?: boolean | null
+    dataStatus?: string | null
     // Checko fields
     ogrn?: string | null
     kpp?: string | null
@@ -616,6 +679,16 @@ export async function updateSupplier(
   return apiFetch<SupplierDTO>(`/moderator/suppliers/${supplierId}`, {
     method: "PUT",
     body: JSON.stringify(data),
+  })
+}
+
+export async function attachDomainToSupplier(
+  supplierId: number,
+  payload: { domain: string; email?: string | null },
+): Promise<SupplierDTO> {
+  return apiFetch<SupplierDTO>(`/moderator/suppliers/${supplierId}/attach-domain`, {
+    method: "POST",
+    body: JSON.stringify(payload),
   })
 }
 
@@ -658,8 +731,7 @@ export async function extractINNBatch(domains: string[]): Promise<INNExtractionB
   })
 }
 
-// Comet Extraction API
-export async function startCometExtractBatch(runId: string, domains: string[]): Promise<CometExtractBatchResponse> {
+export async function startDomainParserBatch(runId: string, domains: string[]): Promise<DomainParserBatchResponse> {
   return apiFetch<DomainParserBatchResponse>("/domain-parser/extract-batch", {
     method: "POST",
     headers: {
@@ -669,11 +741,12 @@ export async function startCometExtractBatch(runId: string, domains: string[]): 
   })
 }
 
-// Alias for backward compatibility
-export const startDomainParserBatch = startCometExtractBatch
-
 export async function getDomainParserStatus(parserRunId: string): Promise<DomainParserStatusResponse> {
   return apiFetch<DomainParserStatusResponse>(`/domain-parser/status/${parserRunId}`)
+}
+
+export async function getDomainModerationDomains(limit = 5000): Promise<{ domains: string[]; total: number }> {
+  return apiFetch<{ domains: string[]; total: number }>(`/domain-parser/moderation-domains?limit=${limit}`)
 }
 
 // Learning API
@@ -688,16 +761,8 @@ export interface LearnedItem {
 
 export interface LearningStatistics {
   totalLearned: number
-  cometContributions: number
   successRateBefore: number
   successRateAfter: number
-}
-
-export interface LearnFromCometResponse {
-  runId: string
-  learningSessionId: string | null
-  learnedItems: LearnedItem[]
-  statistics: LearningStatistics
 }
 
 export interface LearnManualInnResponse {
@@ -705,20 +770,6 @@ export interface LearnManualInnResponse {
   learningSessionId: string | null
   learnedItems: LearnedItem[]
   statistics: LearningStatistics
-}
-
-export async function learnFromComet(
-  runId: string,
-  domains: string[],
-  learningSessionId?: string,
-): Promise<LearnFromCometResponse> {
-  return apiFetch<LearnFromCometResponse>("/learning/learn-from-comet", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ runId, domains, learningSessionId }),
-  })
 }
 
 export async function learnManualInn(
@@ -902,12 +953,59 @@ export async function getCabinetStats(): Promise<CabinetStatsDTO> {
   return apiFetch<CabinetStatsDTO>("/cabinet/stats")
 }
 
-export async function getCabinetRequests(params?: { limit?: number; offset?: number }): Promise<CabinetParsingRequestDTO[]> {
+export async function getGroqStatus(): Promise<{ configured: boolean; available: boolean }> {
+  return apiFetch<{ configured: boolean; available: boolean }>("/cabinet/groq/status")
+}
+
+export async function getCabinetRequests(params?: {
+  limit?: number
+  offset?: number
+  submitted?: boolean
+}): Promise<CabinetParsingRequestDTO[]> {
+  const query = new URLSearchParams()
+  if (params?.limit != null) query.set("limit", String(params.limit))
+  if (params?.offset != null) query.set("offset", String(params.offset))
+  if (params?.submitted != null) query.set("submitted", String(params.submitted))
+  const qs = query.toString()
+  return apiFetch<CabinetParsingRequestDTO[]>(`/cabinet/requests${qs ? `?${qs}` : ""}`)
+}
+
+export type ModeratorTaskDTO = {
+  id: number
+  request_id: number
+  created_by: number
+  title?: string | null
+  status: string
+  source: string
+  depth: number
+  created_at: string
+  parsing_runs?: Array<{ run_id: string; status: string; created_at?: string | null; keyword?: string | null }>
+}
+
+export async function getModeratorTasks(params?: { limit?: number; offset?: number }): Promise<ModeratorTaskDTO[]> {
   const query = new URLSearchParams()
   if (params?.limit != null) query.set("limit", String(params.limit))
   if (params?.offset != null) query.set("offset", String(params.offset))
   const qs = query.toString()
-  return apiFetch<CabinetParsingRequestDTO[]>(`/cabinet/requests${qs ? `?${qs}` : ""}`)
+  return apiFetch<ModeratorTaskDTO[]>(`/moderator/tasks${qs ? `?${qs}` : ""}`)
+}
+
+export type ModeratorDashboardStatsDTO = {
+  domains_in_queue: number
+  enrichment_domains_in_queue: number
+  new_suppliers: number
+  new_suppliers_week: number
+  active_runs: number
+  blacklist_count: number
+  open_tasks: number
+}
+
+export async function getModeratorDashboardStats(): Promise<ModeratorDashboardStatsDTO> {
+  return apiFetch<ModeratorDashboardStatsDTO>("/moderator/dashboard-stats")
+}
+
+export async function getCabinetRequest(requestId: number): Promise<CabinetParsingRequestDTO> {
+  return apiFetch<CabinetParsingRequestDTO>(`/cabinet/requests/${encodeURIComponent(String(requestId))}`)
 }
 
 export async function createCabinetRequest(payload: {
@@ -925,7 +1023,7 @@ export async function createCabinetRequest(payload: {
     body: JSON.stringify({
       title: payload.title,
       keys: payload.keys || [],
-      depth: payload.depth ?? 25,
+      depth: payload.depth ?? 5,
       source: payload.source ?? "google",
       comment: payload.comment ?? null,
     }),
@@ -955,6 +1053,23 @@ export async function submitCabinetRequest(requestId: number): Promise<CabinetPa
   return apiFetch<CabinetParsingRequestDTO>(`/cabinet/requests/${encodeURIComponent(String(requestId))}/submit`, {
     method: "POST",
   })
+}
+
+export async function bulkDeleteCabinetRequests(
+  requestIds: number[],
+): Promise<{ requested: number; deleted: number; skipped_submitted: number; not_found: number }> {
+  return apiFetch<{ requested: number; deleted: number; skipped_submitted: number; not_found: number }>(
+    `/cabinet/requests/bulk-delete`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        ids: requestIds,
+      }),
+    },
+  )
 }
 
 export async function uploadCabinetRequestPositions(requestId: number, file: File): Promise<CabinetParsingRequestDTO> {
@@ -1081,24 +1196,6 @@ export async function sendCabinetRequestEmailToSupplier(
         subject: payload?.subject ?? null,
         body: payload?.body ?? null,
       }),
-    },
-  )
-}
-
-export async function simulateCabinetRequestSupplierReply(
-  requestId: number,
-  supplierId: number,
-  body?: string,
-): Promise<CabinetRequestSupplierDTO> {
-  const query = new URLSearchParams()
-  if (body) query.set("body", body)
-  const qs = query.toString()
-  return apiFetch<CabinetRequestSupplierDTO>(
-    `/cabinet/requests/${encodeURIComponent(String(requestId))}/suppliers/${encodeURIComponent(String(supplierId))}/simulate-reply${
-      qs ? `?${qs}` : ""
-    }`,
-    {
-      method: "POST",
     },
   )
 }

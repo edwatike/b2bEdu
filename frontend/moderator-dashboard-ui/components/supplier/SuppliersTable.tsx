@@ -36,7 +36,7 @@ import {
 import { Card } from "@/components/ui/card"
 import { DataTable, DataTableHeader, DataTableRow, DataTableCell, DataTableEmpty } from "@/components/ui/data-table"
 import { toast } from "sonner"
-import { deleteSupplier, addToBlacklist } from "@/lib/api"
+import { deleteSupplier, addToBlacklist, getCheckoData, getCheckoHealth, apiFetchWithRetry } from "@/lib/api"
 import { getRiskColor } from "@/lib/design-system"
 import type { SupplierDTO } from "@/lib/types"
 
@@ -47,6 +47,7 @@ interface SuppliersTableProps {
 
 type SortField = "name" | "inn" | "type" | "email" | "domain"
 type SortOrder = "asc" | "desc"
+type DataFilter = "all" | "with_data" | "without_data"
 
 export function SuppliersTable({ suppliers, onRefresh }: SuppliersTableProps) {
   const router = useRouter()
@@ -55,8 +56,10 @@ export function SuppliersTable({ suppliers, onRefresh }: SuppliersTableProps) {
   const [typeFilter, setTypeFilter] = useState<"all" | "supplier" | "reseller">("all")
   const [sortField, setSortField] = useState<SortField>("name")
   const [sortOrder, setSortOrder] = useState<SortOrder>("asc")
+  const [dataFilter, setDataFilter] = useState<DataFilter>("all")
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
   const [isDeleting, setIsDeleting] = useState(false)
+  const [isEnriching, setIsEnriching] = useState(false)
 
   const filteredAndSortedSuppliers = useMemo(() => {
     let result = [...suppliers]
@@ -68,12 +71,19 @@ export function SuppliersTable({ suppliers, onRefresh }: SuppliersTableProps) {
           s.name?.toLowerCase().includes(query) ||
           s.inn?.toLowerCase().includes(query) ||
           s.email?.toLowerCase().includes(query) ||
+          (s.emails || []).some((e) => e.toLowerCase().includes(query)) ||
           s.domain?.toLowerCase().includes(query),
       )
     }
 
     if (typeFilter !== "all") {
       result = result.filter((s) => s.type === typeFilter)
+    }
+    if (dataFilter === "with_data") {
+      result = result.filter((s) => s.dataStatus === "complete")
+    }
+    if (dataFilter === "without_data") {
+      result = result.filter((s) => s.dataStatus !== "complete")
     }
 
     result.sort((a, b) => {
@@ -89,7 +99,7 @@ export function SuppliersTable({ suppliers, onRefresh }: SuppliersTableProps) {
     })
 
     return result
-  }, [suppliers, searchQuery, typeFilter, sortField, sortOrder])
+  }, [suppliers, searchQuery, typeFilter, dataFilter, sortField, sortOrder])
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -182,6 +192,81 @@ export function SuppliersTable({ suppliers, onRefresh }: SuppliersTableProps) {
     }
   }
 
+  const runWithConcurrency = async <T, R>(
+    items: T[],
+    concurrency: number,
+    worker: (item: T) => Promise<R>,
+  ): Promise<R[]> => {
+    const results: R[] = []
+    let idx = 0
+    const workers = Array.from({ length: Math.max(1, concurrency) }).map(async () => {
+      while (idx < items.length) {
+        const current = idx++
+        results[current] = await worker(items[current])
+      }
+    })
+    await Promise.all(workers)
+    return results
+  }
+
+  const handleBulkEnrichChecko = async () => {
+    if (selectedIds.size === 0 || isEnriching) return
+
+    // Precheck: backend must be reachable and Checko must be configured.
+    try {
+      await apiFetchWithRetry("/health", undefined, 2)
+    } catch {
+      toast.error("Backend временно недоступен. Повторите через несколько секунд.")
+      return
+    }
+
+    try {
+      const checkoHealth = await getCheckoHealth()
+      if (!checkoHealth.configured || checkoHealth.keysLoaded < 1) {
+        toast.error("Checko API не настроен: отсутствуют ключи.")
+        return
+      }
+    } catch {
+      toast.error("Не удалось проверить статус Checko API.")
+      return
+    }
+
+    const selected = suppliers.filter((s) => selectedIds.has(s.id))
+    const targets = selected.filter((s) => s.dataStatus !== "complete" && !!s.inn)
+    const skippedNoInn = selected.filter((s) => !s.inn).length
+
+    if (targets.length === 0) {
+      toast.info("Нет выбранных компаний с ИНН и без данных Checko")
+      return
+    }
+
+    setIsEnriching(true)
+    try {
+      const results = await runWithConcurrency(targets, 3, async (supplier) => {
+        try {
+          await getCheckoData(String(supplier.inn), true)
+          return { ok: true as const, supplierId: supplier.id }
+        } catch (error) {
+          console.error(`[CHECKO] Failed for supplier ${supplier.id} (${supplier.inn}):`, error)
+          return { ok: false as const, supplierId: supplier.id }
+        }
+      })
+
+      const success = results.filter((r) => r.ok).length
+      const failed = results.length - success
+      const reportParts = [`Получено данных: ${success} из ${targets.length}`]
+      if (failed > 0) reportParts.push(`ошибок: ${failed}`)
+      if (skippedNoInn > 0) reportParts.push(`без ИНН пропущено: ${skippedNoInn}`)
+      toast.success(reportParts.join(" · "))
+
+      // After successful enrichment refresh suppliers list and clear selection.
+      setSelectedIds(new Set())
+      onRefresh()
+    } finally {
+      setIsEnriching(false)
+    }
+  }
+
   const getSortIcon = (field: SortField) => {
     if (sortField !== field) {
       return <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground/50" />
@@ -232,6 +317,18 @@ export function SuppliersTable({ suppliers, onRefresh }: SuppliersTableProps) {
               <SelectItem value="reseller">Реселлеры</SelectItem>
             </SelectContent>
           </Select>
+
+          <Select value={dataFilter} onValueChange={(value: DataFilter) => setDataFilter(value)}>
+            <SelectTrigger className="w-full lg:w-[220px]">
+              <Filter className="h-4 w-4 mr-2" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Все по данным</SelectItem>
+              <SelectItem value="without_data">Без данных Checko</SelectItem>
+              <SelectItem value="with_data">С данными Checko</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Bulk actions */}
@@ -251,6 +348,14 @@ export function SuppliersTable({ suppliers, onRefresh }: SuppliersTableProps) {
                 <div className="flex items-center gap-2">
                   <Button variant="outline" size="sm" onClick={() => setSelectedIds(new Set())}>
                     Снять выбор
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={handleBulkEnrichChecko}
+                    disabled={isEnriching}
+                    className="gap-2"
+                  >
+                    {isEnriching ? "Получаем данные..." : "Получить данные"}
                   </Button>
                   <Button
                     variant="destructive"
@@ -288,7 +393,7 @@ export function SuppliersTable({ suppliers, onRefresh }: SuppliersTableProps) {
 
       {/* Table */}
       <DataTable>
-        <DataTableHeader className="grid-cols-[40px_1fr_120px_120px_160px_100px_80px]">
+        <DataTableHeader className="grid-cols-[40px_1fr_120px_120px_160px_140px_100px_80px]">
           <div className="flex items-center justify-center">
             <Checkbox
               checked={selectedIds.size === filteredAndSortedSuppliers.length && filteredAndSortedSuppliers.length > 0}
@@ -314,6 +419,7 @@ export function SuppliersTable({ suppliers, onRefresh }: SuppliersTableProps) {
             Тип {getSortIcon("type")}
           </button>
           <div>Контакты</div>
+          <div>Статус данных</div>
           <div>Риск</div>
           <div></div>
         </DataTableHeader>
@@ -336,7 +442,7 @@ export function SuppliersTable({ suppliers, onRefresh }: SuppliersTableProps) {
                   index={index}
                   isSelected={selectedIds.has(supplier.id)}
                   onClick={() => handleView(supplier.id)}
-                  className="grid-cols-[40px_1fr_120px_120px_160px_100px_80px] group"
+                  className="grid-cols-[40px_1fr_120px_120px_160px_140px_100px_80px] group"
                 >
                   <DataTableCell className="flex items-center justify-center">
                     <Checkbox
@@ -388,6 +494,12 @@ export function SuppliersTable({ suppliers, onRefresh }: SuppliersTableProps) {
                           {supplier.email}
                         </p>
                       )}
+                      {!supplier.email && supplier.emails && supplier.emails.length > 0 && (
+                        <p className="text-xs flex items-center gap-1.5 text-muted-foreground truncate">
+                          <Mail className="h-3 w-3 flex-shrink-0" />
+                          {supplier.emails[0]}
+                        </p>
+                      )}
                       {supplier.phone && (
                         <p className="text-xs flex items-center gap-1.5 text-muted-foreground">
                           <Phone className="h-3 w-3 flex-shrink-0" />
@@ -396,6 +508,18 @@ export function SuppliersTable({ suppliers, onRefresh }: SuppliersTableProps) {
                       )}
                       {!supplier.email && !supplier.phone && <span className="text-xs text-muted-foreground">—</span>}
                     </div>
+                  </DataTableCell>
+
+                  <DataTableCell>
+                    {supplier.dataStatus !== "complete" ? (
+                      <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
+                        Данные не получены
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
+                        Данные получены
+                      </Badge>
+                    )}
                   </DataTableCell>
 
                   <DataTableCell>

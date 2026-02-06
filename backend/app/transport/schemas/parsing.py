@@ -5,6 +5,10 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from app.transport.schemas.common import BaseDTO
 
+class DomainParserQueueAheadRunDTO(BaseModel):
+    runId: str
+    remainingDomains: int
+
 
 class StartParsingRequestDTO(BaseModel):
     """Request DTO for starting parsing."""
@@ -48,6 +52,12 @@ class ParsingRunDTO(BaseDTO):
     depth: Optional[int] = None  # Depth of parsing (number of pages)
     source: Optional[str] = Field(None, description="Source for parsing: 'google', 'yandex', or 'both'")
     processLog: Optional[Dict[str, Any]] = Field(None, alias="process_log", description="Detailed parsing process information")
+    domainParserQueueTotalDomains: Optional[int] = None
+    domainParserQueueAheadDomains: Optional[int] = None
+    domainParserQueueAheadRuns: Optional[int] = None
+    domainParserQueueRunDomains: Optional[int] = None
+    domainParserQueueActiveRunId: Optional[str] = None
+    domainParserQueueAheadList: Optional[List[DomainParserQueueAheadRunDTO]] = None
     
     model_config = ConfigDict(
         from_attributes=True,
@@ -80,4 +90,3 @@ class ParsingRunsListResponseDTO(BaseModel):
     total: int
     limit: int
     offset: int
-

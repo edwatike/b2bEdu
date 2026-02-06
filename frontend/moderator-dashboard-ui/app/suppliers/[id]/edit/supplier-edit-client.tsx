@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { apiFetch, APIError } from "@/lib/api"
 import { SupplierDTO } from "@/lib/types"
 import { Button } from "@/components/ui/button"
@@ -10,19 +10,31 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { CheckoInfoDialog } from "@/components/checko-info-dialog"
 import { Navigation } from "@/components/navigation"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Textarea } from "@/components/ui/textarea"
+import { attachDomainToSupplier, updateSupplier } from "@/lib/api"
 
 export function SupplierEditClient({ supplierId }: { supplierId: number }) {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [supplier, setSupplier] = useState<SupplierDTO | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string | null>>({})
+  const [innConflict, setInnConflict] = useState<{
+    existingSupplierId: number
+    existingSupplierName?: string
+    existingSupplierDomains?: string[]
+    existingSupplierEmails?: string[]
+  } | null>(null)
   const [formData, setFormData] = useState({
     name: "",
     inn: "",
     email: "",
     domain: "",
+    emailsText: "",
+    domainsText: "",
     address: "",
     type: "supplier" as "supplier" | "reseller",
     // Checko fields
@@ -54,10 +66,21 @@ export function SupplierEditClient({ supplierId }: { supplierId: number }) {
       // Для нового поставщика не загружаем данные
       setLoading(false)
       setSupplier(null)
+      const prefillDomain = searchParams.get("domain")
+      if (prefillDomain) {
+        setFormData((prev) => {
+          if (prev.domain || prev.domainsText) return prev
+          return {
+            ...prev,
+            domain: prefillDomain,
+            domainsText: prefillDomain,
+          }
+        })
+      }
     } else {
       loadSupplier()
     }
-  }, [supplierId, isNewSupplier])
+  }, [supplierId, isNewSupplier, searchParams])
 
   async function loadSupplier() {
     try {
@@ -69,6 +92,8 @@ export function SupplierEditClient({ supplierId }: { supplierId: number }) {
         inn: data.inn || "",
         email: data.email || "",
         domain: data.domain || "",
+        emailsText: (data.emails && data.emails.length ? data.emails : data.email ? [data.email] : []).join(", "),
+        domainsText: (data.domains && data.domains.length ? data.domains : data.domain ? [data.domain] : []).join(", "),
         address: data.address || "",
         type: data.type || "supplier",
         // Checko fields
@@ -105,19 +130,28 @@ export function SupplierEditClient({ supplierId }: { supplierId: number }) {
   }
 
   function validateForm(): boolean {
+    const emailsList = parseList(formData.emailsText)
+    const primaryEmail = (formData.email || emailsList[0] || "").trim()
     if (!formData.name.trim()) {
       setError("Название обязательно для заполнения")
       return false
     }
-    if (formData.inn && !/^\d{10,12}$/.test(formData.inn)) {
+    if (!formData.inn || !/^\d{10,12}$/.test(formData.inn)) {
       setError("ИНН должен содержать 10 или 12 цифр")
       return false
     }
-    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+    if (!primaryEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(primaryEmail)) {
       setError("Некорректный формат email")
       return false
     }
     return true
+  }
+
+  function parseList(raw: string): string[] {
+    return raw
+      .split(/[;,\\n\\s]+/)
+      .map((x) => x.trim())
+      .filter(Boolean)
   }
 
   async function handleSave() {
@@ -129,6 +163,12 @@ export function SupplierEditClient({ supplierId }: { supplierId: number }) {
     try {
       setSaving(true)
       setError(null)
+      setInnConflict(null)
+
+      const emails = parseList(formData.emailsText)
+      const domains = parseList(formData.domainsText)
+      const primaryEmail = (formData.email || emails[0] || "").trim()
+      const primaryDomain = (formData.domain || domains[0] || "").trim()
       
       if (isNewSupplier) {
         // Создание нового поставщика
@@ -137,8 +177,10 @@ export function SupplierEditClient({ supplierId }: { supplierId: number }) {
           body: JSON.stringify({
             name: formData.name,
             inn: formData.inn || null,
-            email: formData.email || null,
-            domain: formData.domain || null,
+            email: primaryEmail || null,
+            domain: primaryDomain || null,
+            emails: emails.length ? emails : null,
+            domains: domains.length ? domains : null,
             address: formData.address || null,
             type: formData.type,
             // Checko fields
@@ -171,8 +213,10 @@ export function SupplierEditClient({ supplierId }: { supplierId: number }) {
           body: JSON.stringify({
             name: formData.name,
             inn: formData.inn || null,
-            email: formData.email || null,
-            domain: formData.domain || null,
+            email: primaryEmail || null,
+            domain: primaryDomain || null,
+            emails: emails.length ? emails : null,
+            domains: domains.length ? domains : null,
             address: formData.address || null,
             type: formData.type,
             // Checko fields
@@ -202,6 +246,16 @@ export function SupplierEditClient({ supplierId }: { supplierId: number }) {
     } catch (err) {
       if (err instanceof APIError) {
         // Улучшенная обработка ошибок валидации
+        const detail = (err.data as any)?.detail
+        if (err.status === 409 && detail?.code === "inn_conflict") {
+          setInnConflict({
+            existingSupplierId: Number(detail.existingSupplierId),
+            existingSupplierName: detail.existingSupplierName,
+            existingSupplierDomains: detail.existingSupplierDomains,
+            existingSupplierEmails: detail.existingSupplierEmails,
+          })
+          return
+        }
         if (err.status === 422) {
           // Ошибки валидации от Backend
           const errorData = err.data as any
@@ -355,12 +409,32 @@ export function SupplierEditClient({ supplierId }: { supplierId: number }) {
           </div>
 
           <div>
+            <Label htmlFor="emails">Emails (несколько)</Label>
+            <Textarea
+              id="emails"
+              value={formData.emailsText}
+              onChange={(e) => setFormData({ ...formData, emailsText: e.target.value })}
+              placeholder="email1@example.com, email2@example.com"
+            />
+          </div>
+
+          <div>
             <Label htmlFor="domain">Домен</Label>
             <Input
               id="domain"
               name="domain"
               value={formData.domain}
               onChange={(e) => setFormData({ ...formData, domain: e.target.value })}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="domains">Домены (несколько)</Label>
+            <Textarea
+              id="domains"
+              value={formData.domainsText}
+              onChange={(e) => setFormData({ ...formData, domainsText: e.target.value })}
+              placeholder="example.com, sub.example.com"
             />
           </div>
 
@@ -405,6 +479,85 @@ export function SupplierEditClient({ supplierId }: { supplierId: number }) {
       </Card>
         </div>
       </main>
+
+      <Dialog open={!!innConflict} onOpenChange={(open) => !open && setInnConflict(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Конфликт ИНН</DialogTitle>
+            <DialogDescription>
+              В базе уже есть поставщик с таким ИНН.
+            </DialogDescription>
+          </DialogHeader>
+          {innConflict && (
+            <div className="space-y-2 text-sm">
+              <div>Поставщик: {innConflict.existingSupplierName || `ID ${innConflict.existingSupplierId}`}</div>
+              {innConflict.existingSupplierDomains?.length ? (
+                <div>Домены: {innConflict.existingSupplierDomains.join(", ")}</div>
+              ) : null}
+              {innConflict.existingSupplierEmails?.length ? (
+                <div>Email: {innConflict.existingSupplierEmails.join(", ")}</div>
+              ) : null}
+            </div>
+          )}
+          <DialogFooter className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setInnConflict(null)}
+            >
+              Отмена
+            </Button>
+            {innConflict && (
+              <Button
+                variant="secondary"
+                onClick={async () => {
+                  try {
+                    const domains = parseList(formData.domainsText)
+                    const domain = (formData.domain || domains[0] || "").trim()
+                    if (!domain) {
+                      setError("Укажите домен для привязки")
+                      return
+                    }
+                    await attachDomainToSupplier(innConflict.existingSupplierId, {
+                      domain,
+                      email: formData.email || null,
+                    })
+                    router.push(`/suppliers/${innConflict.existingSupplierId}`)
+                  } finally {
+                    setInnConflict(null)
+                  }
+                }}
+              >
+                Привязать домен
+              </Button>
+            )}
+            {innConflict && (
+              <Button
+                onClick={async () => {
+                  try {
+                    const emails = parseList(formData.emailsText)
+                    const domains = parseList(formData.domainsText)
+                    await updateSupplier(innConflict.existingSupplierId, {
+                      name: formData.name,
+                      inn: formData.inn || null,
+                      email: formData.email || emails[0] || null,
+                      domain: formData.domain || domains[0] || null,
+                      emails: emails.length ? emails : null,
+                      domains: domains.length ? domains : null,
+                      address: formData.address || null,
+                      type: formData.type,
+                    })
+                    router.push(`/suppliers/${innConflict.existingSupplierId}`)
+                  } finally {
+                    setInnConflict(null)
+                  }
+                }}
+              >
+                Обновить поставщика
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

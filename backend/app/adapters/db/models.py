@@ -3,7 +3,7 @@ from datetime import datetime, date
 from typing import Optional
 from sqlalchemy import (
     String, Integer, BigInteger, Text, Date, JSON,
-    ForeignKey, UniqueConstraint, Index, LargeBinary
+    ForeignKey, UniqueConstraint, Index, LargeBinary, Boolean
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
@@ -28,6 +28,8 @@ class ModeratorSupplierModel(Base):
     domain: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     address: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     type: Mapped[str] = mapped_column(String(32), nullable=False, default="supplier")
+    allow_duplicate_inn: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    data_status: Mapped[str] = mapped_column(String(32), nullable=False, default="complete")
     
     # Checko requisites
     ogrn: Mapped[Optional[str]] = mapped_column(String(15), nullable=True)
@@ -75,12 +77,78 @@ class ModeratorSupplierModel(Base):
         back_populates="supplier",
         cascade="all, delete-orphan"
     )
+    domains: Mapped[list["SupplierDomainModel"]] = relationship(
+        "SupplierDomainModel",
+        back_populates="supplier",
+        cascade="all, delete-orphan"
+    )
+    emails: Mapped[list["SupplierEmailModel"]] = relationship(
+        "SupplierEmailModel",
+        back_populates="supplier",
+        cascade="all, delete-orphan"
+    )
     
     # Indexes
     __table_args__ = (
         Index("idx_suppliers_inn", "inn"),
         Index("idx_suppliers_domain", "domain"),
         Index("idx_suppliers_type", "type"),
+    )
+
+
+class SupplierDomainModel(Base):
+    """Domains associated with a supplier."""
+    __tablename__ = "supplier_domains"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    supplier_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("moderator_suppliers.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    domain: Mapped[str] = mapped_column(String(255), nullable=False)
+    is_primary: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    created_at: Mapped[datetime] = mapped_column(
+        server_default=func.now(),
+        nullable=False
+    )
+
+    supplier: Mapped["ModeratorSupplierModel"] = relationship(
+        "ModeratorSupplierModel",
+        back_populates="domains"
+    )
+
+    __table_args__ = (
+        UniqueConstraint("supplier_id", "domain", name="uq_supplier_domains_supplier_domain"),
+        Index("idx_supplier_domains_domain", "domain"),
+    )
+
+
+class SupplierEmailModel(Base):
+    """Emails associated with a supplier."""
+    __tablename__ = "supplier_emails"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    supplier_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("moderator_suppliers.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    email: Mapped[str] = mapped_column(String(320), nullable=False)
+    is_primary: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    created_at: Mapped[datetime] = mapped_column(
+        server_default=func.now(),
+        nullable=False
+    )
+
+    supplier: Mapped["ModeratorSupplierModel"] = relationship(
+        "ModeratorSupplierModel",
+        back_populates="emails"
+    )
+
+    __table_args__ = (
+        UniqueConstraint("supplier_id", "email", name="uq_supplier_emails_supplier_email"),
+        Index("idx_supplier_emails_email", "email"),
     )
 
 
@@ -156,6 +224,24 @@ class BlacklistModel(Base):
     # Indexes
     __table_args__ = (
         Index("idx_blacklist_domain", "domain"),
+    )
+
+
+class DomainModerationModel(Base):
+    """Domains that require manual moderation and must be skipped by auto enrichment globally."""
+    __tablename__ = "domain_moderation"
+
+    domain: Mapped[str] = mapped_column(String(255), primary_key=True)
+    status: Mapped[str] = mapped_column(String(32), nullable=False, default="requires_moderation")
+    reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        server_default=func.now(),
+        nullable=False
+    )
+
+    __table_args__ = (
+        Index("idx_domain_moderation_domain", "domain"),
+        Index("idx_domain_moderation_status", "status"),
     )
 
 
