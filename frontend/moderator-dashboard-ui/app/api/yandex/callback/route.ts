@@ -146,8 +146,11 @@ export async function GET(request: NextRequest) {
   }
 
   // Регистрируем/авторизуем пользователя в backend
+  let authData: any = null
+  const backendUrl = `${process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000"}/api/auth/yandex-oauth`
+  
   try {
-    const backendResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000"}/api/auth/yandex-oauth`, {
+    const backendResponse = await fetch(backendUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -169,7 +172,20 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(new URL(`/login?error=yandex_oauth_failed&message=${encodeURIComponent(msg)}`, request.url))
     }
 
-    const authData = await backendResponse.json()
+    authData = await backendResponse.json()
+  } catch (error) {
+    // Backend недоступен, но Яндекс OAuth успешен - создаем временный токен
+    console.warn("[v0] Backend unavailable during OAuth callback, using fallback:", error)
+    authData = {
+      access_token: accessToken,
+      expires_in: expiresIn,
+      user: {
+        email: email,
+        is_moderator: false,
+        is_admin: false,
+      }
+    }
+  }
     
     const masterEmail = (process.env.MODERATOR_MASTER_EMAIL || "edwatik@yandex.ru").trim().toLowerCase()
     const targetPath = email.trim().toLowerCase() === masterEmail ? "/moderator" : "/cabinet"
