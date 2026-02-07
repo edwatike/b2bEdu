@@ -1,17 +1,13 @@
 "use client"
 
 import type React from "react"
-
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
-import Link from "next/link"
-import { motion, AnimatePresence } from "framer-motion"
+import { useEffect, useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
+import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { Card, CardContent } from "@/components/ui/card"
 import { toast } from "sonner"
-import { ShoppingCart, DollarSign, Truck, Brain, Eye, EyeOff, Lock, User, Sparkles, Shield, Zap, Mail, CheckCircle, XCircle, Loader2 } from "lucide-react"
+import { ShoppingCart, DollarSign, Truck, Brain, Shield, Zap, Mail, CheckCircle, XCircle, AlertCircle, Loader2 } from "lucide-react"
 
 // Плавающие иконки для фона
 const floatingIcons = [
@@ -101,482 +97,317 @@ function AnimatedCenterLogo() {
             ease: "linear",
           }}
         />
-      </motion.div>
 
-      {/* Иконка */}
-      <div className="absolute inset-0 flex items-center justify-center">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={currentIndex}
-            initial={{ scale: 0, rotate: -180, opacity: 0 }}
-            animate={{ scale: 1, rotate: 0, opacity: 1 }}
-            exit={{ scale: 0, rotate: 180, opacity: 0 }}
-            transition={{
-              duration: 0.6,
-              type: "spring",
-              stiffness: 180,
-              damping: 12,
-            }}
-          >
-            <current.Icon className="h-10 w-10 text-white drop-shadow-lg" />
-          </motion.div>
-        </AnimatePresence>
-      </div>
-
-      {/* Орбитальные частицы */}
-      {[...Array(6)].map((_, i) => (
+        {/* Иконка в центре */}
         <motion.div
-          key={i}
-          className={`absolute h-2 w-2 rounded-full bg-gradient-to-r ${current.gradient}`}
-          style={{
-            top: "50%",
-            left: "50%",
-          }}
-          animate={{
-            x: [0, Math.cos((i * Math.PI) / 3) * 50, 0],
-            y: [0, Math.sin((i * Math.PI) / 3) * 50, 0],
-            opacity: [0, 1, 0],
-            scale: [0, 1.5, 0],
-          }}
-          transition={{
-            duration: 2.5,
-            repeat: Number.POSITIVE_INFINITY,
-            delay: i * 0.4,
-            ease: "easeInOut",
-          }}
-        />
-      ))}
+          key={currentIndex}
+          initial={{ opacity: 0, scale: 0.5 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5 }}
+          className="relative z-10"
+        >
+          <current.Icon className="h-12 w-12 text-white" />
+        </motion.div>
+      </motion.div>
     </div>
-  )
-}
-
-// Плавающая иконка на фоне
-function FloatingIcon({ Icon, color, delay, index }: { Icon: any; color: string; delay: number; index: number }) {
-  const randomX = 10 + (index % 3) * 30
-  const randomY = 10 + Math.floor(index / 3) * 40
-
-  return (
-    <motion.div
-      className={`absolute ${color} opacity-20`}
-      style={{
-        left: `${randomX}%`,
-        top: `${randomY}%`,
-      }}
-      initial={{ opacity: 0, scale: 0 }}
-      animate={{
-        opacity: [0.1, 0.3, 0.1],
-        scale: [0.8, 1.2, 0.8],
-        y: [0, -30, 0],
-        rotate: [0, 10, -10, 0],
-      }}
-      transition={{
-        duration: 6,
-        repeat: Number.POSITIVE_INFINITY,
-        delay,
-        ease: "easeInOut",
-      }}
-    >
-      <Icon className="h-12 w-12" />
-    </motion.div>
   )
 }
 
 export default function LoginPage() {
   const router = useRouter()
-  const [username, setUsername] = useState("")
-  const [password, setPassword] = useState("")
-  const [showPassword, setShowPassword] = useState(false)
-  const [loading, setLoading] = useState(false)
+  const searchParams = useSearchParams()
   const [mounted, setMounted] = useState(false)
-  const [yandexOAuthEnabled, setYandexOAuthEnabled] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
   const [backendConnected, setBackendConnected] = useState<boolean | null>(null)
+  const [yandexConfigured, setYandexConfigured] = useState<boolean | null>(null)
 
   useEffect(() => {
     setMounted(true)
-    // Проверяем, авторизован ли пользователь через серверную проверку
-    checkAuthStatus()
-    
-    // Проверяем OAuth ошибки от Яндекса
-    checkOAuthErrors()
-    
-    // Проверяем, доступен ли Яндекс OAuth
-    checkYandexOAuthConfig()
-    
-    // Проверяем подключение к backend
-    checkBackendConnection()
-  }, [])
-  
-  async function checkYandexOAuthConfig() {
-    try {
-      const response = await fetch("/api/yandex/config")
-      const data = await response.json()
-      setYandexOAuthEnabled(data.yandexOAuthEnabled || false)
-    } catch (error) {
-      // Если не удалось получить конфиг, OAuth недоступен
-      setYandexOAuthEnabled(false)
+
+    // Проверяем ошибки OAuth
+    const error = searchParams.get("error")
+    const message = searchParams.get("message")
+    if (error === "yandex_oauth_failed" && message) {
+      toast.error(message)
     }
-  }
-  
-  async function checkBackendConnection() {
+
+    // Проверяем подключение к backend и конфигурацию Яндекса
+    checkServices()
+  }, [searchParams])
+
+  async function checkServices() {
+    // Проверяем backend
     try {
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000"
       const response = await fetch(`${backendUrl}/health`, {
-        headers: {
-          "ngrok-skip-browser-warning": "true"
-        }
+        headers: { "ngrok-skip-browser-warning": "true" },
       })
       setBackendConnected(response.ok)
-    } catch (error) {
+    } catch {
       setBackendConnected(false)
     }
-  }
 
-  async function checkAuthStatus() {
+    // Проверяем конфигурацию Яндекса
     try {
-      const response = await fetch("/api/auth/status")
-      const data = await response.json().catch(() => ({ authenticated: false }))
-      if (response.ok && data.authenticated) {
-        router.push("/")
-      }
-    } catch (error) {
-      // Пользователь не авторизован, остаемся на странице логина
-    }
-  }
-
-  function checkOAuthErrors() {
-    const urlParams = new URLSearchParams(window.location.search)
-    const error = urlParams.get("error")
-    const message = urlParams.get("message")
-    const details = urlParams.get("details")
-    
-    if (error === "yandex_oauth_failed" && message) {
-      // Показываем ошибку OAuth
-      toast.error(message, {
-        description: details || "",
-        duration: 5000
-      })
-      
-      // Очищаем URL от параметров ошибки
-      const cleanUrl = window.location.pathname
-      window.history.replaceState({}, "", cleanUrl)
-    }
-  }
-
-  async function handleLogin(e: React.FormEvent) {
-    e.preventDefault()
-
-    if (!username.trim() || !password.trim()) {
-      toast.error("Заполните все поля")
-      return
-    }
-
-    setLoading(true)
-
-    try {
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ username, password }),
-      })
-
+      const response = await fetch("/api/yandex/config")
       const data = await response.json()
-
-      if (response.ok && data.success) {
-        toast.success("Добро пожаловать в систему!")
-        
-        // Проверяем есть ли redirect параметр
-        const urlParams = new URLSearchParams(window.location.search)
-        const redirectPath = urlParams.get("redirect") || "/"
-        
-        router.push(redirectPath)
-      } else {
-        toast.error(data.error || "Неверный логин или пароль")
-      }
-    } catch (error) {
-      toast.error("Ошибка соединения с сервером")
+      setYandexConfigured(data.yandexOAuthEnabled === true)
+    } catch {
+      setYandexConfigured(false)
     }
-
-    setLoading(false)
   }
 
   async function handleYandexLogin() {
+    setIsLoading(true)
     try {
+      // Перенаправляем на endpoint логина через Яндекс
       window.location.href = "/api/yandex/login"
     } catch (error) {
-      toast.error("Ошибка при переходе к авторизации Яндекса")
+      console.error("Yandex login error:", error)
+      toast.error("Ошибка при попытке входа через Яндекс")
+      setIsLoading(false)
     }
   }
 
   if (!mounted) return null
 
   return (
-    <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-      {/* Анимированный фон */}
-      <div className="absolute inset-0">
-        {/* Сетка */}
-        <div
-          className="absolute inset-0 opacity-[0.03]"
-          style={{
-            backgroundImage: `
-              linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
-              linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)
-            `,
-            backgroundSize: "50px 50px",
-          }}
-        />
-
-        {/* Градиентные пятна */}
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-950 relative overflow-hidden flex items-center justify-center">
+      {/* Фоновые элементы */}
+      <div className="absolute inset-0 overflow-hidden">
+        {/* Градиентные сферы */}
         <motion.div
-          className="absolute top-0 left-0 w-[600px] h-[600px] bg-blue-500/20 rounded-full blur-[120px]"
+          className="absolute -top-40 -left-40 w-80 h-80 bg-blue-500/20 rounded-full blur-3xl"
           animate={{
-            x: [0, 100, 0],
-            y: [0, 50, 0],
-            scale: [1, 1.2, 1],
+            y: [0, 100, 0],
+            x: [0, 50, 0],
           }}
           transition={{
-            duration: 15,
+            duration: 20,
             repeat: Number.POSITIVE_INFINITY,
             ease: "easeInOut",
           }}
         />
         <motion.div
-          className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-purple-500/20 rounded-full blur-[100px]"
+          className="absolute top-1/4 right-0 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl"
           animate={{
-            x: [0, -80, 0],
-            y: [0, -60, 0],
-            scale: [1, 1.3, 1],
+            y: [0, -80, 0],
+            x: [0, -60, 0],
           }}
           transition={{
-            duration: 12,
+            duration: 25,
             repeat: Number.POSITIVE_INFINITY,
             ease: "easeInOut",
           }}
         />
         <motion.div
-          className="absolute top-1/2 left-1/3 w-[400px] h-[400px] bg-cyan-500/10 rounded-full blur-[80px]"
+          className="absolute bottom-0 left-1/4 w-80 h-80 bg-cyan-500/10 rounded-full blur-3xl"
           animate={{
-            x: [0, 60, 0],
-            y: [0, -40, 0],
+            y: [0, 60, 0],
+            x: [0, 40, 0],
           }}
           transition={{
-            duration: 10,
+            duration: 30,
             repeat: Number.POSITIVE_INFINITY,
             ease: "easeInOut",
           }}
         />
-
-        {/* Плавающие иконки */}
-        {floatingIcons.map((item, index) => (
-          <FloatingIcon key={index} {...item} index={index} />
-        ))}
       </div>
 
-      {/* Контент */}
-      <div className="relative z-10 min-h-screen flex items-center justify-center p-4">
+      {/* Плавающие иконки */}
+      {floatingIcons.map(({ Icon, color, delay }, idx) => (
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
+          key={idx}
+          className="absolute"
+          style={{
+            top: `${Math.random() * 100}%`,
+            left: `${Math.random() * 100}%`,
+          }}
+          animate={{
+            y: [0, -30, 0],
+            opacity: [0.1, 0.3, 0.1],
+          }}
+          transition={{
+            duration: 4 + Math.random() * 2,
+            delay: delay,
+            repeat: Number.POSITIVE_INFINITY,
+            ease: "easeInOut",
+          }}
+        >
+          <Icon className={`${color} h-8 w-8`} />
+        </motion.div>
+      ))}
+
+      {/* Основной контент */}
+      <div className="relative z-10 max-w-md w-full mx-4 px-4">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, ease: "easeOut" }}
-          className="w-full max-w-md"
+          transition={{ duration: 0.6 }}
+          className="text-center"
         >
           {/* Логотип */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.5 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="flex flex-col items-center mb-8"
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ delay: 0.2, duration: 0.5, type: "spring" }}
+            className="flex justify-center mb-8"
           >
             <AnimatedCenterLogo />
-            <motion.h1
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-              className="mt-6 text-3xl font-bold text-white"
-            >
-              Модератор
-            </motion.h1>
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.5 }}
-              className="mt-2 text-slate-400 text-sm"
-            >
-              Система управления поставщиками
-            </motion.p>
           </motion.div>
 
-          {/* Статус подключения к backend */}
-          {backendConnected !== null && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
-              className="mb-4"
-            >
-              <div className={`p-3 rounded-lg border ${
-                backendConnected 
-                  ? 'bg-emerald-500/10 border-emerald-500/20' 
-                  : 'bg-red-500/10 border-red-500/20'
-              }`}>
-                <div className="flex items-center gap-2 text-sm">
-                  {backendConnected ? (
-                    <>
-                      <CheckCircle className="h-4 w-4 text-emerald-400" />
-                      <span className="text-emerald-400 font-medium">Backend подключен</span>
-                      <span className="text-emerald-400/60 text-xs ml-auto">{process.env.NEXT_PUBLIC_API_URL}</span>
-                    </>
-                  ) : (
-                    <>
-                      <XCircle className="h-4 w-4 text-red-400" />
-                      <span className="text-red-400 font-medium">Backend недоступен</span>
-                    </>
-                  )}
-                </div>
-              </div>
-            </motion.div>
-          )}
-
-          {/* Форма */}
-          <Card className="bg-white/5 backdrop-blur-xl border-white/10 shadow-2xl">
-            <CardContent className="p-8">
-              <form onSubmit={handleLogin} className="space-y-6">
-                <motion.div
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.3 }}
-                  className="space-y-2"
-                >
-                  <Label htmlFor="username" className="text-slate-300 text-sm font-medium">
-                    Логин
-                  </Label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-500" />
-                    <Input
-                      id="username"
-                      name="username"
-                      type="text"
-                      autoComplete="username"
-                      placeholder="Введите логин"
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
-                      className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500/20 h-12"
-                    />
-                  </div>
-                </motion.div>
-
-                <motion.div
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.4 }}
-                  className="space-y-2"
-                >
-                  <Label htmlFor="password" className="text-slate-300 text-sm font-medium">
-                    Пароль
-                  </Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-500" />
-                    <Input
-                      id="password"
-                      name="password"
-                      type={showPassword ? "text" : "password"}
-                      autoComplete="current-password"
-                      placeholder="Введите пароль"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="pl-10 pr-10 bg-white/5 border-white/10 text-white placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500/20 h-12"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
-                    >
-                      {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                    </button>
-                  </div>
-                </motion.div>
-
-                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
-                  <Button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full h-12 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-semibold shadow-lg shadow-blue-500/25 transition-all duration-300"
-                  >
-                    {loading ? (
-                      <motion.div className="flex items-center gap-2" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                        <motion.div
-                          className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full"
-                          animate={{ rotate: 360 }}
-                          transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
-                        />
-                        Вход...
-                      </motion.div>
-                    ) : (
-                      <span className="flex items-center gap-2">
-                        <Sparkles className="h-5 w-5" />
-                        Войти в систему
-                      </span>
-                    )}
-                  </Button>
-                </motion.div>
-
-                {/* Разделитель и кнопка Яндекса (только если OAuth настроен) */}
-                {yandexOAuthEnabled && (
-                  <>
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }} className="flex items-center gap-4 my-6">
-                      <div className="flex-1 h-px bg-slate-700"></div>
-                      <span className="text-xs text-slate-500">или</span>
-                      <div className="flex-1 h-px bg-slate-700"></div>
-                    </motion.div>
-
-                    {/* Кнопка входа через Яндекс */}
-                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 }}>
-                      <Button
-                        asChild
-                        type="button"
-                        className="w-full h-12 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-semibold shadow-lg shadow-red-500/25 transition-all duration-300"
-                      >
-                        <a href="/api/yandex/login" className="flex items-center justify-center gap-2">
-                          <Mail className="h-5 w-5" />
-                          Войти через Яндекс
-                        </a>
-                      </Button>
-                    </motion.div>
-                  </>
-                )}
-              </form>
-
-              {/* Подсказка */}
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.7 }}
-                className="mt-6 p-4 rounded-xl bg-white/5 border border-white/10"
-              >
-                <p className="text-xs text-slate-400 text-center mb-2">
-                  Демо доступ: <span className="text-slate-300 font-mono">admin</span> /{" "}
-                  <span className="text-slate-300 font-mono">admin123</span>
-                </p>
-                <Link 
-                  href="/auth-help" 
-                  className="text-xs text-blue-400 hover:text-blue-300 hover:underline block text-center mt-2"
-                >
-                  Нужна помощь с авторизацией?
-                </Link>
-              </motion.div>
-            </CardContent>
-          </Card>
-
-          {/* Футер */}
+          {/* Заголовок */}
+          <motion.h1
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.4 }}
+            className="text-4xl font-bold text-white mb-2"
+          >
+            B2B Платформа
+          </motion.h1>
           <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.8 }}
-            className="mt-6 text-center text-xs text-slate-500"
+            transition={{ delay: 0.5 }}
+            className="text-slate-400 mb-8"
           >
-            © 2026 Moderator System. Все права защищены.
+            Система управления поставщиками и модератоацией
           </motion.p>
+        </motion.div>
+
+        {/* Статус backend */}
+        {backendConnected !== null && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="mb-4"
+          >
+            <div
+              className={`p-3 rounded-lg border ${
+                backendConnected
+                  ? "bg-emerald-500/10 border-emerald-500/20"
+                  : "bg-red-500/10 border-red-500/20"
+              }`}
+            >
+              <div className="flex items-center gap-2 text-sm">
+                {backendConnected ? (
+                  <>
+                    <CheckCircle className="h-4 w-4 text-emerald-400" />
+                    <span className="text-emerald-400 font-medium">Backend подключен</span>
+                  </>
+                ) : (
+                  <>
+                    <XCircle className="h-4 w-4 text-red-400" />
+                    <span className="text-red-400 font-medium">Backend недоступен</span>
+                  </>
+                )}
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Статус Яндекса */}
+        {yandexConfigured !== null && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.1 }}
+            className="mb-6"
+          >
+            <div
+              className={`p-3 rounded-lg border ${
+                yandexConfigured
+                  ? "bg-blue-500/10 border-blue-500/20"
+                  : "bg-yellow-500/10 border-yellow-500/20"
+              }`}
+            >
+              <div className="flex items-center gap-2 text-sm">
+                {yandexConfigured ? (
+                  <>
+                    <CheckCircle className="h-4 w-4 text-blue-400" />
+                    <span className="text-blue-400 font-medium">Яндекс OAuth настроен</span>
+                  </>
+                ) : (
+                  <>
+                    <AlertCircle className="h-4 w-4 text-yellow-400" />
+                    <span className="text-yellow-400 font-medium">Яндекс не настроен</span>
+                  </>
+                )}
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Форма входа */}
+        <Card className="bg-white/5 backdrop-blur-xl border-white/10 shadow-2xl">
+          <CardContent className="p-8">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6 }}
+            >
+              <h2 className="text-xl font-semibold text-white mb-6 text-center">Войти в систему</h2>
+
+              {/* Кнопка входа через Яндекс */}
+              <Button
+                onClick={handleYandexLogin}
+                disabled={isLoading || !yandexConfigured}
+                type="button"
+                className="w-full h-12 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold shadow-lg shadow-red-500/25 transition-all duration-300"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                    Перенаправление на Яндекс...
+                  </>
+                ) : (
+                  <>
+                    <Mail className="h-5 w-5 mr-2" />
+                    Войти через Яндекс.Паспорт
+                  </>
+                )}
+              </Button>
+
+              {/* Сообщение если Яндекс не настроен */}
+              {yandexConfigured === false && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.7 }}
+                  className="mt-4 p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg"
+                >
+                  <p className="text-sm text-yellow-400 text-center">
+                    ⚠️ Яндекс.Паспорт не настроен. Обратитесь к администратору.
+                  </p>
+                </motion.div>
+              )}
+
+              {/* Информация о системе */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.8 }}
+                className="mt-6 p-4 rounded-xl bg-white/5 border border-white/10"
+              >
+                <p className="text-xs text-slate-400 text-center">
+                  Безопасный вход через{" "}
+                  <span className="text-slate-300 font-semibold">Яндекс.Паспорт</span>
+                </p>
+              </motion.div>
+            </motion.div>
+          </CardContent>
+        </Card>
+
+        {/* Информация внизу */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.9 }}
+          className="mt-6 text-center text-xs text-slate-500"
+        >
+          <p>B2B Platform v1.0.0</p>
+          <p className="mt-1">Powered by Yandex.Passport</p>
         </motion.div>
       </div>
     </div>
