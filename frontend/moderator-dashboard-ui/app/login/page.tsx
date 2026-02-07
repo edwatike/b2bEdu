@@ -4,13 +4,14 @@ import type React from "react"
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { motion, AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent } from "@/components/ui/card"
 import { toast } from "sonner"
-import { ShoppingCart, DollarSign, Truck, Brain, Eye, EyeOff, Lock, User, Sparkles, Shield, Zap, Mail } from "lucide-react"
+import { ShoppingCart, DollarSign, Truck, Brain, Eye, EyeOff, Lock, User, Sparkles, Shield, Zap, Mail, CheckCircle, XCircle, Loader2 } from "lucide-react"
 
 // Плавающие иконки для фона
 const floatingIcons = [
@@ -187,6 +188,8 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [mounted, setMounted] = useState(false)
+  const [yandexOAuthEnabled, setYandexOAuthEnabled] = useState(false)
+  const [backendConnected, setBackendConnected] = useState<boolean | null>(null)
 
   useEffect(() => {
     setMounted(true)
@@ -195,7 +198,38 @@ export default function LoginPage() {
     
     // Проверяем OAuth ошибки от Яндекса
     checkOAuthErrors()
+    
+    // Проверяем, доступен ли Яндекс OAuth
+    checkYandexOAuthConfig()
+    
+    // Проверяем подключение к backend
+    checkBackendConnection()
   }, [])
+  
+  async function checkYandexOAuthConfig() {
+    try {
+      const response = await fetch("/api/yandex/config")
+      const data = await response.json()
+      setYandexOAuthEnabled(data.yandexOAuthEnabled || false)
+    } catch (error) {
+      // Если не удалось получить конфиг, OAuth недоступен
+      setYandexOAuthEnabled(false)
+    }
+  }
+  
+  async function checkBackendConnection() {
+    try {
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000"
+      const response = await fetch(`${backendUrl}/health`, {
+        headers: {
+          "ngrok-skip-browser-warning": "true"
+        }
+      })
+      setBackendConnected(response.ok)
+    } catch (error) {
+      setBackendConnected(false)
+    }
+  }
 
   async function checkAuthStatus() {
     try {
@@ -373,6 +407,37 @@ export default function LoginPage() {
             </motion.p>
           </motion.div>
 
+          {/* Статус подключения к backend */}
+          {backendConnected !== null && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className="mb-4"
+            >
+              <div className={`p-3 rounded-lg border ${
+                backendConnected 
+                  ? 'bg-emerald-500/10 border-emerald-500/20' 
+                  : 'bg-red-500/10 border-red-500/20'
+              }`}>
+                <div className="flex items-center gap-2 text-sm">
+                  {backendConnected ? (
+                    <>
+                      <CheckCircle className="h-4 w-4 text-emerald-400" />
+                      <span className="text-emerald-400 font-medium">Backend подключен</span>
+                      <span className="text-emerald-400/60 text-xs ml-auto">{process.env.NEXT_PUBLIC_API_URL}</span>
+                    </>
+                  ) : (
+                    <>
+                      <XCircle className="h-4 w-4 text-red-400" />
+                      <span className="text-red-400 font-medium">Backend недоступен</span>
+                    </>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          )}
+
           {/* Форма */}
           <Card className="bg-white/5 backdrop-blur-xl border-white/10 shadow-2xl">
             <CardContent className="p-8">
@@ -456,26 +521,30 @@ export default function LoginPage() {
                   </Button>
                 </motion.div>
 
-                {/* Разделитель */}
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }} className="flex items-center gap-4 my-6">
-                  <div className="flex-1 h-px bg-slate-700"></div>
-                  <span className="text-xs text-slate-500">или</span>
-                  <div className="flex-1 h-px bg-slate-700"></div>
-                </motion.div>
+                {/* Разделитель и кнопка Яндекса (только если OAuth настроен) */}
+                {yandexOAuthEnabled && (
+                  <>
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }} className="flex items-center gap-4 my-6">
+                      <div className="flex-1 h-px bg-slate-700"></div>
+                      <span className="text-xs text-slate-500">или</span>
+                      <div className="flex-1 h-px bg-slate-700"></div>
+                    </motion.div>
 
-                {/* Кнопка входа через Яндекс */}
-                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 }}>
-                  <Button
-                    asChild
-                    type="button"
-                    className="w-full h-12 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-semibold shadow-lg shadow-red-500/25 transition-all duration-300"
-                  >
-                    <a href="/api/yandex/login" className="flex items-center justify-center gap-2">
-                      <Mail className="h-5 w-5" />
-                      Войти через Яндекс
-                    </a>
-                  </Button>
-                </motion.div>
+                    {/* Кнопка входа через Яндекс */}
+                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 }}>
+                      <Button
+                        asChild
+                        type="button"
+                        className="w-full h-12 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-semibold shadow-lg shadow-red-500/25 transition-all duration-300"
+                      >
+                        <a href="/api/yandex/login" className="flex items-center justify-center gap-2">
+                          <Mail className="h-5 w-5" />
+                          Войти через Яндекс
+                        </a>
+                      </Button>
+                    </motion.div>
+                  </>
+                )}
               </form>
 
               {/* Подсказка */}
@@ -485,10 +554,16 @@ export default function LoginPage() {
                 transition={{ delay: 0.7 }}
                 className="mt-6 p-4 rounded-xl bg-white/5 border border-white/10"
               >
-                <p className="text-xs text-slate-400 text-center">
+                <p className="text-xs text-slate-400 text-center mb-2">
                   Демо доступ: <span className="text-slate-300 font-mono">admin</span> /{" "}
                   <span className="text-slate-300 font-mono">admin123</span>
                 </p>
+                <Link 
+                  href="/auth-help" 
+                  className="text-xs text-blue-400 hover:text-blue-300 hover:underline block text-center mt-2"
+                >
+                  Нужна помощь с авторизацией?
+                </Link>
               </motion.div>
             </CardContent>
           </Card>
