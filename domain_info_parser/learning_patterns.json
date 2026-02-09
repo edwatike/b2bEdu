@@ -1,0 +1,842 @@
+{
+  "version": "1.0",
+  "last_updated": "2026-02-09T19:35:31.856406",
+  "learned_patterns": {
+    "inn_patterns": [],
+    "email_patterns": [
+      "*@betonolit.ru",
+      "*@materik-m.ru",
+      "*@tgresurs.ru",
+      "*@ccc1.ru",
+      "*@feroteks.ru",
+      "*@gazobetonvspb.ru",
+      "*@gazosilikatstroy.ru",
+      "*@gbi78.ru",
+      "*@mail.ru",
+      "*@pbkbeton.ru",
+      "*@snabblock.ru",
+      "*@yandex.ru",
+      "*@vladblok.ru",
+      "*@velesark.ru",
+      "*@ao-gns.ru",
+      "*@sls.by",
+      "*@dizos.ru",
+      "*@tophouse.ru",
+      "*@kirpich-gazobeton.ru",
+      "*@poritep.ru"
+    ],
+    "successful_urls": {
+      "inn": [
+        "/kontakty.html",
+        "/requisites",
+        "/requisiti",
+        "/upload",
+        "/contacts"
+      ],
+      "email": [
+        "/kontakty.html",
+        "/requisites",
+        "/contacts",
+        "/about",
+        "/requisiti",
+        "/info",
+        "/o-kompanii",
+        "/partners.html",
+        "/ur-licam.html",
+        "/kontakty",
+        "/optovikam",
+        "/partnery",
+        "/company",
+        "/kontaktyi",
+        "/ur-lica",
+        "/gazobetonnye-bloki-optom"
+      ]
+    },
+    "domain_specific": {
+      "betonolit.ru": {
+        "inn_urls": [
+          "https://betonolit.ru/kontakty.html"
+        ],
+        "email_urls": [
+          "https://betonolit.ru/",
+          "https://betonolit.ru/kontakty.html"
+        ],
+        "inn_found_count": 1,
+        "email_found_count": 1
+      },
+      "materik-m.ru": {
+        "inn_urls": [
+          "https://www.materik-m.ru/rekvizity/"
+        ],
+        "email_urls": [
+          "https://www.materik-m.ru/",
+          "https://www.materik-m.ru/contacts/",
+          "https://www.materik-m.ru/about/",
+          "https://www.materik-m.ru/rekvizity/"
+        ],
+        "inn_found_count": 1,
+        "email_found_count": 1
+      },
+      "tgresurs.ru": {
+        "inn_urls": [
+          "https://tgresurs.ru/requisiti/"
+        ],
+        "email_urls": [
+          "https://tgresurs.ru/",
+          "https://tgresurs.ru/kontakty.html",
+          "https://tgresurs.ru/requisiti/"
+        ],
+        "inn_found_count": 1,
+        "email_found_count": 1
+      },
+      "bgazobeton.ru": {
+        "inn_urls": [
+          "https://bgazobeton.ru/upload/requizit.pdf"
+        ],
+        "email_urls": [],
+        "inn_found_count": 1,
+        "email_found_count": 0
+      },
+      "ccc1.ru": {
+        "inn_urls": [],
+        "email_urls": [
+          "https://www.ccc1.ru/",
+          "https://www.ccc1.ru/info/",
+          "https://www.ccc1.ru/about-us.html"
+        ],
+        "inn_found_count": 0,
+        "email_found_count": 1
+      },
+      "feroteks.ru": {
+        "inn_urls": [],
+        "email_urls": [
+          "https://feroteks.ru/",
+          "https://feroteks.ru/info/",
+          "https://feroteks.ru/about/",
+          "https://feroteks.ru/contacts/"
+        ],
+        "inn_found_count": 0,
+        "email_found_count": 1
+      },
+      "gazobetonvspb.ru": {
+        "inn_urls": [],
+        "email_urls": [
+          "https://gazobetonvspb.ru/",
+          "https://gazobetonvspb.ru/contacts",
+          "https://gazobetonvspb.ru/about"
+        ],
+        "inn_found_count": 0,
+        "email_found_count": 1
+      },
+      "gazosilikatstroy.ru": {
+        "inn_urls": [],
+        "email_urls": [
+          "https://gazosilikatstroy.ru/",
+          "https://gazosilikatstroy.ru/contacts/",
+          "https://gazosilikatstroy.ru/o-kompanii/"
+        ],
+        "inn_found_count": 0,
+        "email_found_count": 1
+      },
+      "gbi78.ru": {
+        "inn_urls": [],
+        "email_urls": [
+          "https://gbi78.ru/",
+          "https://gbi78.ru/partners.html",
+          "https://gbi78.ru/ur-licam.html",
+          "https://gbi78.ru/contacts.html"
+        ],
+        "inn_found_count": 0,
+        "email_found_count": 1
+      },
+      "konkrit.ru": {
+        "inn_urls": [],
+        "email_urls": [
+          "https://konkrit.ru/",
+          "https://konkrit.ru/contact/",
+          "https://konkrit.ru/about/"
+        ],
+        "inn_found_count": 0,
+        "email_found_count": 1
+      },
+      "pbkbeton.ru": {
+        "inn_urls": [],
+        "email_urls": [
+          "https://pbkbeton.ru/",
+          "https://pbkbeton.ru/partnery",
+          "https://pbkbeton.ru/optovikam",
+          "https://pbkbeton.ru/kontakty"
+        ],
+        "inn_found_count": 0,
+        "email_found_count": 1
+      },
+      "snabblock.ru": {
+        "inn_urls": [],
+        "email_urls": [
+          "https://snabblock.ru/",
+          "https://snabblock.ru/company/",
+          "https://snabblock.ru/contacts/"
+        ],
+        "inn_found_count": 0,
+        "email_found_count": 1
+      },
+      "stdostavka.ru": {
+        "inn_urls": [],
+        "email_urls": [
+          "https://stdostavka.ru/",
+          "https://stdostavka.ru/contacts/",
+          "https://stdostavka.ru/company/",
+          "https://stdostavka.ru/info/"
+        ],
+        "inn_found_count": 0,
+        "email_found_count": 1
+      },
+      "vladblok.ru": {
+        "inn_urls": [],
+        "email_urls": [
+          "https://vladblok.ru/",
+          "https://vladblok.ru/kontaktyi"
+        ],
+        "inn_found_count": 0,
+        "email_found_count": 1
+      },
+      "velesark.ru": {
+        "inn_urls": [],
+        "email_urls": [
+          "https://velesark.ru/",
+          "https://velesark.ru/contact",
+          "https://velesark.ru/o-kompanii/",
+          "https://velesark.ru/ur-lica"
+        ],
+        "inn_found_count": 0,
+        "email_found_count": 1
+      },
+      "sibyt.ru": {
+        "inn_urls": [],
+        "email_urls": [
+          "https://sibyt.ru/",
+          "https://sibyt.ru/o-kompanii/"
+        ],
+        "inn_found_count": 0,
+        "email_found_count": 1
+      },
+      "sls.by": {
+        "inn_urls": [],
+        "email_urls": [
+          "https://sls.by/",
+          "https://sls.by/o-kompanii",
+          "https://sls.by/contacts",
+          "https://sls.by/gazobetonnye-bloki-optom"
+        ],
+        "inn_found_count": 0,
+        "email_found_count": 1
+      },
+      "tiberg.ru": {
+        "inn_urls": [],
+        "email_urls": [
+          "https://tiberg.ru/",
+          "https://tiberg.ru/contact-us/",
+          "https://tiberg.ru/about_us"
+        ],
+        "inn_found_count": 0,
+        "email_found_count": 1
+      },
+      "tophouse.ru": {
+        "inn_urls": [
+          "https://tophouse.ru/company/rekvizit.php"
+        ],
+        "email_urls": [
+          "https://www.tophouse.ru/",
+          "https://www.tophouse.ru/company/"
+        ],
+        "inn_found_count": 1,
+        "email_found_count": 1
+      },
+      "kirpich-gazobeton.ru": {
+        "inn_urls": [],
+        "email_urls": [
+          "https://kirpich-gazobeton.ru/",
+          "https://kirpich-gazobeton.ru/contacts/",
+          "https://kirpich-gazobeton.ru/company/",
+          "https://kirpich-gazobeton.ru/info/"
+        ],
+        "inn_found_count": 0,
+        "email_found_count": 1
+      },
+      "poritep.ru": {
+        "inn_urls": [],
+        "email_urls": [
+          "https://poritep.ru/",
+          "https://poritep.ru/contacts/",
+          "https://poritep.ru/company/"
+        ],
+        "inn_found_count": 0,
+        "email_found_count": 1
+      },
+      "tn.ru": {
+        "inn_urls": [
+          "https://shop.tn.ru/contact",
+          "https://shop.tn.ru/contact"
+        ],
+        "email_urls": [],
+        "inn_found_count": 2,
+        "email_found_count": 0
+      }
+    }
+  },
+  "statistics": {
+    "total_learned": 27,
+    "comet_contributions": 0,
+    "success_rate_before": 0.0,
+    "success_rate_after": 0.0
+  },
+  "strategy_cache": {
+    "dirock.ru": {
+      "attempts": [
+        {
+          "strategy": "playwright",
+          "found_inn": true,
+          "found_email": true,
+          "time_ms": 31375,
+          "timestamp": "2026-02-09T02:46:32.976641"
+        }
+      ],
+      "best_strategy": "playwright"
+    },
+    "tn.ru": {
+      "attempts": [
+        {
+          "strategy": "playwright",
+          "found_inn": false,
+          "found_email": true,
+          "time_ms": 51594,
+          "timestamp": "2026-02-09T02:47:28.924859"
+        }
+      ]
+    },
+    "ventcomp.ru": {
+      "attempts": [
+        {
+          "strategy": "http",
+          "found_inn": true,
+          "found_email": true,
+          "time_ms": 890,
+          "timestamp": "2026-02-09T02:47:29.834500"
+        }
+      ],
+      "best_strategy": "http"
+    },
+    "isover.ru": {
+      "attempts": [
+        {
+          "strategy": "playwright",
+          "found_inn": false,
+          "found_email": true,
+          "time_ms": 7718,
+          "timestamp": "2026-02-09T02:47:41.749921"
+        },
+        {
+          "strategy": "playwright",
+          "found_inn": false,
+          "found_email": true,
+          "time_ms": 7155,
+          "timestamp": "2026-02-09T17:21:06.074847"
+        },
+        {
+          "strategy": "playwright",
+          "found_inn": false,
+          "found_email": true,
+          "time_ms": 6890,
+          "timestamp": "2026-02-09T18:21:41.163032"
+        }
+      ]
+    },
+    "tdvasya.ru": {
+      "attempts": [
+        {
+          "strategy": "playwright",
+          "found_inn": false,
+          "found_email": true,
+          "time_ms": 76639,
+          "timestamp": "2026-02-09T02:48:58.394463"
+        },
+        {
+          "strategy": "playwright",
+          "found_inn": false,
+          "found_email": true,
+          "time_ms": 84562,
+          "timestamp": "2026-02-09T16:59:58.767575"
+        },
+        {
+          "strategy": "playwright",
+          "found_inn": false,
+          "found_email": true,
+          "time_ms": 82092,
+          "timestamp": "2026-02-09T17:22:28.200162"
+        },
+        {
+          "strategy": "playwright",
+          "found_inn": false,
+          "found_email": true,
+          "time_ms": 81827,
+          "timestamp": "2026-02-09T17:38:38.201473"
+        },
+        {
+          "strategy": "playwright",
+          "found_inn": false,
+          "found_email": true,
+          "time_ms": 82686,
+          "timestamp": "2026-02-09T18:23:03.890807"
+        }
+      ]
+    },
+    "brozex.ru": {
+      "attempts": [
+        {
+          "strategy": "http",
+          "found_inn": true,
+          "found_email": true,
+          "time_ms": 7765,
+          "timestamp": "2026-02-09T02:49:06.180184"
+        }
+      ],
+      "best_strategy": "http"
+    },
+    "tstn.ru": {
+      "attempts": [
+        {
+          "strategy": "playwright",
+          "found_inn": false,
+          "found_email": false,
+          "time_ms": 3952,
+          "timestamp": "2026-02-09T02:49:14.244309"
+        }
+      ]
+    },
+    "utepliteli-optom.ru": {
+      "attempts": [
+        {
+          "strategy": "playwright",
+          "found_inn": false,
+          "found_email": true,
+          "time_ms": 47875,
+          "timestamp": "2026-02-09T16:09:23.610180"
+        },
+        {
+          "strategy": "playwright",
+          "found_inn": false,
+          "found_email": true,
+          "time_ms": 46641,
+          "timestamp": "2026-02-09T17:00:45.429546"
+        },
+        {
+          "strategy": "playwright",
+          "found_inn": false,
+          "found_email": true,
+          "time_ms": 45219,
+          "timestamp": "2026-02-09T17:23:13.462920"
+        },
+        {
+          "strategy": "playwright",
+          "found_inn": false,
+          "found_email": true,
+          "time_ms": 45530,
+          "timestamp": "2026-02-09T17:39:23.751737"
+        },
+        {
+          "strategy": "playwright",
+          "found_inn": false,
+          "found_email": true,
+          "time_ms": 51264,
+          "timestamp": "2026-02-09T18:23:55.201326"
+        }
+      ]
+    },
+    "st-par.ru": {
+      "attempts": [
+        {
+          "strategy": "http",
+          "found_inn": true,
+          "found_email": true,
+          "time_ms": 2655,
+          "timestamp": "2026-02-09T02:50:07.404510"
+        }
+      ],
+      "best_strategy": "http"
+    },
+    "tophouse.ru": {
+      "attempts": [
+        {
+          "strategy": "http",
+          "found_inn": true,
+          "found_email": false,
+          "time_ms": 9188,
+          "timestamp": "2026-02-09T02:50:20.585310"
+        },
+        {
+          "strategy": "http",
+          "found_inn": true,
+          "found_email": false,
+          "time_ms": 9344,
+          "timestamp": "2026-02-09T16:07:01.887506"
+        }
+      ],
+      "best_strategy": "http"
+    },
+    "baurex.ru": {
+      "attempts": [
+        {
+          "strategy": "http",
+          "found_inn": true,
+          "found_email": true,
+          "time_ms": 3764,
+          "timestamp": "2026-02-09T02:50:24.373791"
+        }
+      ],
+      "best_strategy": "http"
+    },
+    "stroyshans.ru": {
+      "attempts": [
+        {
+          "strategy": "playwright",
+          "found_inn": false,
+          "found_email": true,
+          "time_ms": 38437,
+          "timestamp": "2026-02-09T02:51:06.825248"
+        },
+        {
+          "strategy": "playwright",
+          "found_inn": false,
+          "found_email": true,
+          "time_ms": 39094,
+          "timestamp": "2026-02-09T17:23:52.580690"
+        },
+        {
+          "strategy": "playwright",
+          "found_inn": false,
+          "found_email": true,
+          "time_ms": 39921,
+          "timestamp": "2026-02-09T18:24:35.148931"
+        }
+      ]
+    },
+    "spectehnoprom.ru": {
+      "attempts": [
+        {
+          "strategy": "http",
+          "found_inn": true,
+          "found_email": true,
+          "time_ms": 3764,
+          "timestamp": "2026-02-09T02:51:10.614454"
+        }
+      ],
+      "best_strategy": "http"
+    },
+    "teplocom-s.ru": {
+      "attempts": [
+        {
+          "strategy": "http",
+          "found_inn": true,
+          "found_email": true,
+          "time_ms": 2842,
+          "timestamp": "2026-02-09T02:51:17.651032"
+        }
+      ],
+      "best_strategy": "http"
+    },
+    "arm-plast.ru": {
+      "attempts": [
+        {
+          "strategy": "playwright",
+          "found_inn": false,
+          "found_email": true,
+          "time_ms": 51281,
+          "timestamp": "2026-02-09T02:52:12.718879"
+        },
+        {
+          "strategy": "playwright",
+          "found_inn": false,
+          "found_email": true,
+          "time_ms": 57141,
+          "timestamp": "2026-02-09T17:24:49.754627"
+        },
+        {
+          "strategy": "playwright",
+          "found_inn": false,
+          "found_email": true,
+          "time_ms": 54875,
+          "timestamp": "2026-02-09T18:25:30.077447"
+        }
+      ]
+    },
+    "www-minvata.ru": {
+      "attempts": [
+        {
+          "strategy": "playwright",
+          "found_inn": false,
+          "found_email": true,
+          "time_ms": 37655,
+          "timestamp": "2026-02-09T02:52:50.400160"
+        },
+        {
+          "strategy": "playwright",
+          "found_inn": false,
+          "found_email": true,
+          "time_ms": 44094,
+          "timestamp": "2026-02-09T17:25:33.890178"
+        }
+      ]
+    },
+    "stpart.ru": {
+      "attempts": [
+        {
+          "strategy": "playwright",
+          "found_inn": false,
+          "found_email": true,
+          "time_ms": 41046,
+          "timestamp": "2026-02-09T02:53:31.464856"
+        },
+        {
+          "strategy": "playwright",
+          "found_inn": false,
+          "found_email": true,
+          "time_ms": 42061,
+          "timestamp": "2026-02-09T17:26:16.000038"
+        },
+        {
+          "strategy": "playwright",
+          "found_inn": false,
+          "found_email": true,
+          "time_ms": 44094,
+          "timestamp": "2026-02-09T19:21:21.257506"
+        },
+        {
+          "strategy": "playwright",
+          "found_inn": true,
+          "found_email": true,
+          "time_ms": 50172,
+          "timestamp": "2026-02-09T19:25:27.444187"
+        }
+      ],
+      "best_strategy": "playwright"
+    },
+    "tnsystem.ru": {
+      "attempts": [
+        {
+          "strategy": "playwright",
+          "found_inn": false,
+          "found_email": false,
+          "time_ms": 13670,
+          "timestamp": "2026-02-09T02:53:45.150503"
+        },
+        {
+          "strategy": "playwright",
+          "found_inn": false,
+          "found_email": false,
+          "time_ms": 15046,
+          "timestamp": "2026-02-09T16:11:26.385752"
+        },
+        {
+          "strategy": "playwright",
+          "found_inn": false,
+          "found_email": false,
+          "time_ms": 16750,
+          "timestamp": "2026-02-09T17:02:34.898965"
+        },
+        {
+          "strategy": "playwright",
+          "found_inn": false,
+          "found_email": false,
+          "time_ms": 16360,
+          "timestamp": "2026-02-09T17:26:32.377137"
+        },
+        {
+          "strategy": "playwright",
+          "found_inn": false,
+          "found_email": false,
+          "time_ms": 16594,
+          "timestamp": "2026-02-09T17:41:28.854708"
+        }
+      ]
+    },
+    "shop4sezona.ru": {
+      "attempts": [
+        {
+          "strategy": "http",
+          "found_inn": true,
+          "found_email": true,
+          "time_ms": 3062,
+          "timestamp": "2026-02-09T02:53:48.220495"
+        }
+      ],
+      "best_strategy": "http"
+    },
+    "rzhevka-market.ru": {
+      "attempts": [
+        {
+          "strategy": "http",
+          "found_inn": true,
+          "found_email": false,
+          "time_ms": 3734,
+          "timestamp": "2026-02-09T16:08:35.716134"
+        },
+        {
+          "strategy": "http",
+          "found_inn": true,
+          "found_email": false,
+          "time_ms": 6219,
+          "timestamp": "2026-02-09T19:35:31.856406"
+        }
+      ],
+      "best_strategy": "http"
+    },
+    "alterteplo.ru": {
+      "attempts": [
+        {
+          "strategy": "playwright",
+          "found_inn": false,
+          "found_email": true,
+          "time_ms": 47312,
+          "timestamp": "2026-02-09T16:10:10.955766"
+        },
+        {
+          "strategy": "playwright",
+          "found_inn": false,
+          "found_email": true,
+          "time_ms": 44469,
+          "timestamp": "2026-02-09T17:01:29.935500"
+        },
+        {
+          "strategy": "playwright",
+          "found_inn": false,
+          "found_email": true,
+          "time_ms": 56032,
+          "timestamp": "2026-02-09T17:40:19.854398"
+        },
+        {
+          "strategy": "playwright",
+          "found_inn": false,
+          "found_email": true,
+          "time_ms": 41000,
+          "timestamp": "2026-02-09T19:15:54.526225"
+        },
+        {
+          "strategy": "playwright",
+          "found_inn": false,
+          "found_email": true,
+          "time_ms": 46905,
+          "timestamp": "2026-02-09T19:35:25.614898"
+        }
+      ]
+    },
+    "famarket.ru": {
+      "attempts": [
+        {
+          "strategy": "playwright",
+          "found_inn": false,
+          "found_email": true,
+          "time_ms": 60327,
+          "timestamp": "2026-02-09T16:11:11.296381"
+        },
+        {
+          "strategy": "playwright",
+          "found_inn": false,
+          "found_email": true,
+          "time_ms": 48155,
+          "timestamp": "2026-02-09T17:02:18.120130"
+        },
+        {
+          "strategy": "playwright",
+          "found_inn": false,
+          "found_email": true,
+          "time_ms": 52313,
+          "timestamp": "2026-02-09T17:41:12.230157"
+        }
+      ]
+    },
+    "e-uteplitel.ru": {
+      "attempts": [
+        {
+          "strategy": "playwright",
+          "found_inn": false,
+          "found_email": true,
+          "time_ms": 19780,
+          "timestamp": "2026-02-09T17:02:54.718204"
+        },
+        {
+          "strategy": "playwright",
+          "found_inn": false,
+          "found_email": true,
+          "time_ms": 20578,
+          "timestamp": "2026-02-09T17:41:49.459368"
+        }
+      ]
+    },
+    "s-stroy.ru": {
+      "attempts": [
+        {
+          "strategy": "http",
+          "found_inn": true,
+          "found_email": true,
+          "time_ms": 3389,
+          "timestamp": "2026-02-09T17:02:58.145995"
+        }
+      ],
+      "best_strategy": "http"
+    },
+    "promzapas.ru": {
+      "attempts": [
+        {
+          "strategy": "http",
+          "found_inn": true,
+          "found_email": true,
+          "time_ms": 905,
+          "timestamp": "2026-02-09T17:03:03.211074"
+        }
+      ],
+      "best_strategy": "http"
+    },
+    "stroisnab77.ru": {
+      "attempts": [
+        {
+          "strategy": "playwright",
+          "found_inn": true,
+          "found_email": true,
+          "time_ms": 53672,
+          "timestamp": "2026-02-09T17:05:35.044709"
+        }
+      ],
+      "best_strategy": "playwright"
+    },
+    "tk-stroyresurs.ru": {
+      "attempts": [
+        {
+          "strategy": "playwright",
+          "found_inn": true,
+          "found_email": true,
+          "time_ms": 61311,
+          "timestamp": "2026-02-09T17:06:43.278807"
+        }
+      ],
+      "best_strategy": "playwright"
+    },
+    "profkom64.ru": {
+      "attempts": [
+        {
+          "strategy": "playwright",
+          "found_inn": false,
+          "found_email": true,
+          "time_ms": 41389,
+          "timestamp": "2026-02-09T17:07:28.655424"
+        },
+        {
+          "strategy": "playwright",
+          "found_inn": false,
+          "found_email": true,
+          "time_ms": 38234,
+          "timestamp": "2026-02-09T17:43:57.960064"
+        }
+      ]
+    }
+  }
+}

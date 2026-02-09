@@ -1,0 +1,19 @@
+D:\b2b\frontend\moderator-dashboard-ui\app\moderator\page.tsx:3:export { default } from "./page-optimized"
+D:\b2b\frontend\moderator-dashboard-ui\app\suppliers\suppliers-client.tsx:10:import { SuppliersTableVirtualized } from "@/components/supplier/SuppliersTableVirtualized"
+D:\b2b\frontend\moderator-dashboard-ui\app\suppliers\suppliers-client.tsx:155:          <SuppliersTableVirtualized suppliers={suppliers} onRefresh={() => loadSuppliers()} />
+D:\b2b\frontend\moderator-dashboard-ui\components\dynamic\ChartSection.tsx:6:const ChartSectionImpl = dynamic(
+D:\b2b\frontend\moderator-dashboard-ui\components\dynamic\SupplierCard.tsx:7:const SupplierCardImpl = dynamic(() => import("../supplier-card").then(mod => ({ default: mod.SupplierCard })), {
+D:\b2b\frontend\moderator-dashboard-ui\components\supplier\SuppliersTableVirtualized.tsx:44:interface SuppliersTableVirtualizedProps {
+D:\b2b\frontend\moderator-dashboard-ui\components\supplier\SuppliersTableVirtualized.tsx:53:export function SuppliersTableVirtualized({ suppliers, onRefresh }: SuppliersTableVirtualizedProps) {
+D:\b2b\frontend\moderator-dashboard-ui\components\ui\EmptyState.tsx:6:interface EmptyStateProps {
+D:\b2b\frontend\moderator-dashboard-ui\components\ui\EmptyState.tsx:14:export function EmptyState({ 
+D:\b2b\frontend\moderator-dashboard-ui\components\ui\EmptyState.tsx:20:}: EmptyStateProps) {
+D:\b2b\frontend\moderator-dashboard-ui\components\ui\LoadingState.tsx:6:interface LoadingStateProps {
+D:\b2b\frontend\moderator-dashboard-ui\components\ui\LoadingState.tsx:12:export function LoadingState({ 
+D:\b2b\frontend\moderator-dashboard-ui\components\ui\LoadingState.tsx:16:}: LoadingStateProps) {
+D:\b2b\frontend\moderator-dashboard-ui\components\ui\PageShell.tsx:6:interface PageShellProps {
+D:\b2b\frontend\moderator-dashboard-ui\components\ui\PageShell.tsx:14:export function PageShell({ 
+D:\b2b\frontend\moderator-dashboard-ui\components\ui\PageShell.tsx:20:}: PageShellProps) {
+D:\b2b\frontend\moderator-dashboard-ui\components\ui\SectionCard.tsx:7:interface SectionCardProps {
+D:\b2b\frontend\moderator-dashboard-ui\components\ui\SectionCard.tsx:15:export function SectionCard({ 
+D:\b2b\frontend\moderator-dashboard-ui\components\ui\SectionCard.tsx:21:}: SectionCardProps) {

@@ -1,0 +1,10 @@
+components\dynamic\ChartSection.tsx:const ChartSectionImpl = dynamic(() => import("../supplier-card/ChartSection"), {
+components\dynamic\SupplierCard.tsx:const SupplierCardImpl = dynamic(() => import("../supplier-card").then(mod => ({ default: mod.SupplierCard })), {
+node_modules\next\dist\server\app-render\dynamic-rendering.d.ts:export declare function markCurrentScopeAsDynamic(store: WorkStore, workUnitStore: undefined | Exclude<WorkUnitStore, PrerenderStoreModern>, expression: string): void;
+node_modules\next\dist\server\app-render\dynamic-rendering.d.ts:export declare function throwIfDisallowedDynamic(workStore: WorkStore, prelude: PreludeState, dynamicValidation: DynamicValidationState, serverDynamic: DynamicTrackingState): void;
+node_modules\next\dist\server\render-result.d.ts:    get isDynamic(): boolean;
+node_modules\next\dist\server\route-matchers\route-matcher.d.ts:    get isDynamic(): boolean;
+node_modules\tailwindcss\node_modules\fast-glob\out\readers\async.d.ts:    dynamic(root: string, options: ReaderOptions): Promise<Entry[]>;
+node_modules\tailwindcss\node_modules\fast-glob\out\readers\reader.d.ts:    abstract dynamic(root: string, options: ReaderOptions): T;
+node_modules\tailwindcss\node_modules\fast-glob\out\readers\stream.d.ts:    dynamic(root: string, options: ReaderOptions): Readable;
+node_modules\tailwindcss\node_modules\fast-glob\out\readers\sync.d.ts:    dynamic(root: string, options: ReaderOptions): Entry[];

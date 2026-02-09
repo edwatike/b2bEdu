@@ -1,0 +1,92 @@
+====================================================================================================
+UNIFIED ERROR FORMAT EXAMPLES
+Generated: 2026-02-07 17:55 UTC+3
+====================================================================================================
+
+FORMAT (all error responses now follow this schema):
+{
+  "error": "<error_code>",      // machine-readable: "unauthorized", "forbidden", etc.
+  "detail": "<human message>",  // human-readable description
+  "status": <http_status_code>, // integer: 401, 403, 404, 422, 429, 500, etc.
+  "path": "<request_path>",     // e.g. "/parsing/start"
+  "timestamp": "<ISO8601>"      // e.g. "2026-02-07T14:55:00+00:00"
+}
+
+IMPLEMENTATION:
+  - _build_error_body() in main.py — single function for all handlers
+  - _status_to_error() — maps HTTP status codes to error strings
+
+EXAMPLE RESPONSES:
+
+1. 401 Unauthorized (no token):
+{
+  "error": "unauthorized",
+  "detail": "Invalid authentication credentials",
+  "status": 401,
+  "path": "/parsing/runs",
+  "timestamp": "2026-02-07T14:55:00+00:00"
+}
+
+2. 403 Forbidden (user without moderator role):
+{
+  "error": "forbidden",
+  "detail": "Forbidden: moderator or admin role required",
+  "status": 403,
+  "path": "/parsing/start",
+  "timestamp": "2026-02-07T14:55:01+00:00"
+}
+
+3. 404 Not Found:
+{
+  "error": "not_found",
+  "detail": "Parsing run not found",
+  "status": 404,
+  "path": "/parsing/status/abc123",
+  "timestamp": "2026-02-07T14:55:02+00:00"
+}
+
+4. 422 Validation Error (bad request body):
+{
+  "error": "validation_error",
+  "detail": "[{'type': 'missing', 'loc': ('body', 'keyword'), 'msg': 'Field required'}]",
+  "status": 422,
+  "path": "/parsing/start",
+  "timestamp": "2026-02-07T14:55:03+00:00"
+}
+
+5. 429 Rate Limit Exceeded (PathRateLimitMiddleware):
+{
+  "error": "rate_limit_exceeded",
+  "detail": "Rate limit exceeded: 10 requests per 60s",
+  "retry_after": 60
+}
+Headers: Retry-After: 60
+
+6. 500 Internal Server Error:
+{
+  "error": "internal_server_error",
+  "detail": "TypeError: 'NoneType' object is not subscriptable",
+  "status": 500,
+  "path": "/moderator/suppliers",
+  "timestamp": "2026-02-07T14:55:04+00:00"
+}
+
+7. 504 Gateway Timeout (IMAP):
+{
+  "error": "gateway_timeout",
+  "detail": "IMAP request timeout",
+  "status": 504,
+  "path": "/api/mail/yandex/imap",
+  "timestamp": "2026-02-07T14:55:05+00:00"
+}
+
+HANDLERS UPDATED (all use _build_error_body):
+  - validation_exception_handler (422)     — main.py
+  - http_exception_handler (4xx/5xx)       — main.py
+  - global_exception_handler (500)         — main.py
+  - starlette_exception_handler (500)      — main.py
+  - CORSExceptionMiddleware (500)          — main.py
+
+FRONTEND COMPATIBILITY:
+  Frontend (lib/api.ts:73) reads: error.detail || error.message || error.error
+  The unified format provides "detail" field — fully compatible.

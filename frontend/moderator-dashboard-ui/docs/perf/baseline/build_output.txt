@@ -1,0 +1,40 @@
+B2B Frontend Performance Optimization - BASELINE METRICS
+
+Date: 2025-02-07
+Branch: perf/refactor-2025-07
+Commit: [initial baseline]
+
+=== BUILD STATUS ===
+✓ npm ci - successful (281 packages, 1 high severity vulnerability)
+✗ npm run lint - FAILED (non-standard NODE_ENV warning)
+✗ npm run type-check - FAILED (46 TypeScript errors in 19 files)
+✓ npm run build - SUCCESS (15.4s compile, 44/44 pages)
+
+=== TYPE ERRORS SUMMARY ===
+Main issues:
+- Missing @types/node package (installed during build)
+- process.env usage without type definitions
+- NodeJS.Timeout not found
+- crypto module imports
+
+=== BUILD OUTPUT ===
+Route (app) - 44 total routes:
+- Static: 16 pages
+- Dynamic: 28 pages
+- API routes: 18
+- Middleware: 1
+
+=== BUNDLE SIZE (initial) ===
+Total compile time: 15.4s
+Static generation: 912.0ms
+Page optimization: 36.0ms
+
+=== VULNERABILITIES ===
+1 high severity vulnerability (npm audit fix recommended)
+
+=== NEXT.JS CONFIG ===
+Version: 16.1.4 (Turbopack)
+Experiments enabled:
+- ✓ optimizeCss
+- · optimizePackageImports
+- ✓ TypeScript validation SKIPPED

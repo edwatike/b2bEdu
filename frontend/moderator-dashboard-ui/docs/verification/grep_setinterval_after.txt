@@ -1,0 +1,1 @@
+0 matches found - setInterval fully removed from prod code 

@@ -1,0 +1,66 @@
+====================================================================================================
+TIMEOUT / LONG-RUNNING TASKS ANALYSIS
+Generated: 2026-02-07 17:55 UTC+3
+====================================================================================================
+
+ANALYSIS: Which endpoints can hang >30s?
+
+1. POST /parsing/start
+   STATUS: ✅ ALREADY BACKGROUND
+   Evidence: parsing.py:44 — uses BackgroundTasks.add_task()
+   Behavior: Returns immediately with {runId, keyword, status} (201).
+   Polling: Frontend polls GET /parsing/status/{run_id}
+
+2. POST /domain-parser/extract-batch
+   STATUS: ✅ ALREADY BACKGROUND
+   Evidence: domain_parser.py:216 — uses BackgroundTasks.add_task()
+   Behavior: Returns immediately with {runId, parserRunId} (200).
+   Polling: Frontend polls GET /domain-parser/status/{parserRunId}
+
+3. POST /api/mail/yandex/imap/folders
+   STATUS: ✅ HAS TIMEOUT (12s)
+   Evidence: mail.py:411 — asyncio.wait_for(asyncio.to_thread(_fetch_sync), timeout=12)
+   On timeout: returns 504 Gateway Timeout
+
+4. POST /api/mail/yandex/smtp/send
+   STATUS: ✅ HAS TIMEOUT (20s)
+   Evidence: mail.py:198 — asyncio.wait_for(asyncio.to_thread(_send_sync), timeout=20)
+   On timeout: returns 504 Gateway Timeout
+
+5. POST /api/mail/yandex/imap (fetch emails)
+   STATUS: ✅ HAS TIMEOUT (25s)
+   Evidence: mail.py:650 — asyncio.wait_for(asyncio.to_thread(_fetch_sync), timeout=25)
+   On timeout: returns 504 Gateway Timeout
+
+6. POST /api/mail/yandex/imap/{message_id} (single message)
+   STATUS: ✅ HAS TIMEOUT (18s)
+   Evidence: mail.py:781 — asyncio.wait_for(asyncio.to_thread(_fetch_sync), timeout=18)
+   On timeout: returns 504 Gateway Timeout
+
+7. POST /api/mail/yandex/imap/{message_id}/unspam
+   STATUS: ✅ HAS TIMEOUT (18s)
+   Evidence: mail.py:839 — asyncio.wait_for(asyncio.to_thread(_move_sync), timeout=18)
+   On timeout: returns 504 Gateway Timeout
+
+8. Domain Parser Auto Worker (background)
+   STATUS: ✅ BACKGROUND TASK
+   Evidence: main.py:697 — asyncio.create_task(_domain_parser_queue_worker())
+   Behavior: Runs in background, polls DB every 10s, processes domains in batches of 3
+   Concurrency: Semaphore-limited (DOMAIN_PARSER_AUTO_MAX_CONCURRENCY, default 1, max 5)
+
+SUMMARY:
+  ┌────────────────────────────────────┬──────────────────────┬─────────┐
+  │ Endpoint                           │ Strategy             │ Timeout │
+  ├────────────────────────────────────┼──────────────────────┼─────────┤
+  │ POST /parsing/start                │ BackgroundTasks      │ N/A     │
+  │ POST /domain-parser/extract-batch  │ BackgroundTasks      │ N/A     │
+  │ POST /api/mail/yandex/imap/folders │ asyncio.wait_for     │ 12s     │
+  │ POST /api/mail/yandex/smtp/send    │ asyncio.wait_for     │ 20s     │
+  │ POST /api/mail/yandex/imap         │ asyncio.wait_for     │ 25s     │
+  │ POST /api/mail/yandex/imap/{id}    │ asyncio.wait_for     │ 18s     │
+  │ POST /api/mail/yandex/imap/unspam  │ asyncio.wait_for     │ 18s     │
+  │ Domain Parser Auto Worker          │ asyncio.create_task  │ N/A     │
+  └────────────────────────────────────┴──────────────────────┴─────────┘
+
+CONCLUSION: No new timeout/background changes needed.
+All potentially long-running endpoints already have proper timeout or background job patterns.

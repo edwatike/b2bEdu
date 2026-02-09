@@ -1,0 +1,101 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+.venv
+
+# Node
+node_modules/
+.next/
+out/
+build/
+dist/
+
+# Environment variables
+.env
+.env.local
+.env*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Database
+*.db
+*.sqlite
+
+# Storage
+storage/
+*.tmp
+
+# Chrome debug profile (contains user data)
+temp/chrome_debug_profile/
+
+# Temporary files and experiments
+temp_start_all_output.txt
+
+# GitHub Actions
+.github/workflows/*.local.yml
+
+# Logs directory (created by Tabby scripts)
+logs/
+
+# Domain Parser temporary files
+results_*.json
+results_*.csv
+domains_list.txt
+
+# Test files in temp/
+temp/test_*.py
+temp/test_*.html
+temp/test_*.sql
+
+# Duplicate removal scripts (keep in repo)
+# remove_duplicates.py
+# remove_duplicates.sql
+
+# Virtual environments (all levels)
+venv/
+env/
+ENV/
+.venv
+backend/venv/
+parser_service/venv/
+
+# TEMP directory cleanup
+TEMP/
+temp/
+
+# Windsurf / MCP Hub artifacts
+windsurf_logs/
+tools/mcp-hub/data/screenshots/
+tools/mcp-hub/data/memory.json
+
+# Playwright artifacts
+frontend/moderator-dashboard-ui/playwright-report/
+frontend/moderator-dashboard-ui/test-results/
+
+# Local editor/automation artifacts
+.windsurf/
+
+# Large/binary exports (keep out of git)
+*.exe
+*.pdf
+*.png
+.venv_clean/

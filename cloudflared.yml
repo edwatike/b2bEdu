@@ -1,0 +1,13 @@
+tunnel: da3317bd-eb5d-4d79-9d21-4901d66e12c7
+credentials-file: C:\Users\admin\.cloudflared\da3317bd-eb5d-4d79-9d21-4901d66e12c7.json
+
+ingress:
+  - hostname: app.b2bedu.ru
+    service: http://localhost:3000
+  - hostname: api.b2bedu.ru
+    service: http://localhost:8000
+  - hostname: parser.b2bedu.ru
+    service: http://localhost:9000
+  - service: http_status:404
+
+loglevel: info

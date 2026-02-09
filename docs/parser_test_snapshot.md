@@ -1,0 +1,626 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - navigation [ref=e3]:
+      - generic [ref=e5]:
+        - link "Модератор" [ref=e7] [cursor=pointer]:
+          - /url: /
+          - img [ref=e1225]
+          - generic [ref=e17]: Модератор
+        - generic [ref=e18]:
+          - link "Дашборд" [ref=e20] [cursor=pointer]:
+            - /url: /moderator
+            - img [ref=e22]
+            - text: Дашборд
+          - link "Задачи" [ref=e28] [cursor=pointer]:
+            - /url: /moderator/tasks
+            - img [ref=e30]
+            - text: Задачи
+          - link "Запуски" [ref=e34] [cursor=pointer]:
+            - /url: /parsing-runs
+            - img [ref=e36]
+            - text: Запуски
+          - link "Поставщики" [ref=e39] [cursor=pointer]:
+            - /url: /moderator/suppliers
+            - img [ref=e41]
+            - text: Поставщики
+          - link "Пользователи" [ref=e47] [cursor=pointer]:
+            - /url: /moderator/users
+            - img [ref=e49]
+            - text: Пользователи
+          - link "Ключи" [ref=e55] [cursor=pointer]:
+            - /url: /keywords
+            - img [ref=e57]
+            - text: Ключи
+          - link "Черный список" [ref=e62] [cursor=pointer]:
+            - /url: /blacklist
+            - img [ref=e64]
+            - text: Черный список
+          - link "Настройки" [ref=e68] [cursor=pointer]:
+            - /url: /settings
+            - img [ref=e70]
+            - text: Настройки
+        - link "Кабинет" [ref=e100] [cursor=pointer]:
+          - /url: /cabinet
+          - img [ref=e102]
+          - generic [ref=e105]: Кабинет
+        - button "Выход" [ref=e73] [cursor=pointer]:
+          - img [ref=e75]
+          - generic [ref=e78]: Выход
+    - main [ref=e79]:
+      - generic [ref=e106]:
+        - generic [ref=e108]:
+          - generic [ref=e110]:
+            - heading "минеральная вата оптом купить" [level=3] [ref=e111]
+            - generic [ref=e112]:
+              - generic [ref=e113]:
+                - img [ref=e114]
+                - generic [ref=e117]: "Создан: 08.02.2026, 19:16:22"
+              - generic [ref=e118]:
+                - img [ref=e119]
+                - generic [ref=e122]: "Завершен: 08.02.2026, 19:16:50"
+              - generic [ref=e123]:
+                - img [ref=e124]
+                - generic [ref=e127]: "Глубина: 2"
+          - generic [ref=e129]: Завершен
+        - generic [ref=e131]:
+          - generic [ref=e132]:
+            - generic [ref=e133]: "32"
+            - generic [ref=e134]: результатов
+          - generic [ref=e136]:
+            - generic [ref=e137]: "Google: 14"
+            - generic [ref=e139]: "Yandex: 15"
+      - generic [ref=e141]:
+        - generic [ref=e142]:
+          - generic [ref=e143]:
+            - generic [ref=e144]:
+              - heading "Результаты парсинга" [level=3] [ref=e146]:
+                - img [ref=e147]
+                - text: Результаты парсинга
+              - generic [ref=e150]:
+                - button "Копировать (20)" [ref=e1192] [cursor=pointer]:
+                  - img [ref=e1193]
+                  - text: Копировать (20)
+                - button "Получить данные (20)" [ref=e1196] [cursor=pointer]:
+                  - img [ref=e1197]
+                  - text: Получить данные (20)
+            - generic [ref=e154]:
+              - generic [ref=e155]:
+                - generic [ref=e156]: Извлечение ИНН / Email
+                - generic [ref=e157]:
+                  - generic [ref=e158]:
+                    - generic [ref=e159]: 🏢 7
+                    - generic [ref=e160]: ⚠️ 20
+                    - generic [ref=e161]: / 27
+                  - button "⏸ Пауза" [ref=e162] [cursor=pointer]
+              - generic [ref=e167]:
+                - generic [ref=e1229]:
+                  - img [ref=e1231]
+                  - generic [ref=e1233]:
+                    - generic [ref=e1234]: Парсер работает
+                    - generic [ref=e1235]: 🔍 tn.ru
+                    - generic [ref=e1236]: 📊 1/20
+                - generic [ref=e1237]:
+                  - generic [ref=e1238]: "Обработанные домены:"
+                  - generic [ref=e1239]:
+                    - generic [ref=e1240]: ✅
+                    - generic [ref=e1241]: dirock.ru
+                    - generic [ref=e1242]: "ИНН: 7106081147"
+                    - generic [ref=e1243]: 📧 info@diferro.ru
+                    - generic [ref=e1244]: 28 стр.
+            - generic [ref=e172]:
+              - button "Выбрать все" [ref=e174] [cursor=pointer]
+              - button "Снять выбор" [ref=e176] [cursor=pointer]
+              - generic [ref=e1203]: "Выбрано: 20"
+            - generic [ref=e177]:
+              - generic [ref=e178]:
+                - img [ref=e179]
+                - textbox "Поиск по домену..." [ref=e182]
+              - combobox [ref=e183] [cursor=pointer]:
+                - generic: По количеству URL
+                - img [ref=e184]
+              - combobox [ref=e186] [cursor=pointer]:
+                - generic: Требуют модерации
+                - img [ref=e187]
+          - generic [ref=e190]:
+            - generic [ref=e191]:
+              - generic [ref=e192]:
+                - generic [ref=e193]:
+                  - img [ref=e194]
+                  - textbox "Поиск доменов..." [ref=e197]
+                - button "Фильтры" [ref=e198] [cursor=pointer]:
+                  - img [ref=e199]
+                  - text: Фильтры
+              - button [ref=e201] [cursor=pointer]:
+                - img [ref=e202]
+            - generic [ref=e1204]:
+              - generic [ref=e1205]:
+                - generic [ref=e1206]: "Выбрано: 20"
+                - button "В Blacklist" [ref=e1207] [cursor=pointer]:
+                  - img [ref=e1208]
+                  - text: В Blacklist
+                - button "Изменить тип" [ref=e1210] [cursor=pointer]:
+                  - text: Изменить тип
+                  - img [ref=e1211]
+                - button "Экспорт" [ref=e1213] [cursor=pointer]:
+                  - img [ref=e1214]
+                  - text: Экспорт
+              - button "Очистить" [ref=e1217] [cursor=pointer]
+            - generic [ref=e205]:
+              - generic [ref=e206]:
+                - checkbox [checked] [ref=e208] [cursor=pointer]:
+                  - generic:
+                    - img
+                - generic [ref=e209]: Домен
+                - generic [ref=e210]: URLs
+                - generic [ref=e211]: Статус
+                - generic [ref=e212]: Последнее обновление
+              - generic [ref=e213]:
+                - generic [ref=e328]:
+                  - generic [ref=e329]:
+                    - button [ref=e330] [cursor=pointer]:
+                      - img [ref=e331]
+                    - checkbox [checked] [ref=e333] [cursor=pointer]:
+                      - generic:
+                        - img
+                  - generic [ref=e335]:
+                    - generic [ref=e336] [cursor=pointer]: dirock.ru
+                    - generic [ref=e337]: G
+                  - generic [ref=e338]: "1"
+                  - button "⚠️ Треб. модерация" [ref=e341] [cursor=pointer]:
+                    - generic [ref=e342]: ⚠️
+                    - text: Треб. модерация
+                  - generic [ref=e344]:
+                    - img [ref=e345]
+                    - text: —
+                  - generic [ref=e349]:
+                    - button "Посмотреть детали" [ref=e350] [cursor=pointer]:
+                      - img [ref=e351]
+                    - button "Действия" [ref=e354] [cursor=pointer]:
+                      - img [ref=e355]
+                - generic [ref=e360]:
+                  - generic [ref=e361]:
+                    - button [ref=e362] [cursor=pointer]:
+                      - img [ref=e363]
+                    - checkbox [checked] [ref=e365] [cursor=pointer]:
+                      - generic:
+                        - img
+                  - generic [ref=e367]:
+                    - generic [ref=e368] [cursor=pointer]: tn.ru
+                    - generic [ref=e369]: G
+                  - generic [ref=e370]: "1"
+                  - button "⚠️ Треб. модерация" [ref=e373] [cursor=pointer]:
+                    - generic [ref=e374]: ⚠️
+                    - text: Треб. модерация
+                  - generic [ref=e376]:
+                    - img [ref=e377]
+                    - text: —
+                  - generic [ref=e381]:
+                    - button "Посмотреть детали" [ref=e382] [cursor=pointer]:
+                      - img [ref=e383]
+                    - button "Действия" [ref=e386] [cursor=pointer]:
+                      - img [ref=e387]
+                - generic [ref=e392]:
+                  - generic [ref=e393]:
+                    - button [ref=e394] [cursor=pointer]:
+                      - img [ref=e395]
+                    - checkbox [checked] [ref=e397] [cursor=pointer]:
+                      - generic:
+                        - img
+                  - generic [ref=e399]:
+                    - generic [ref=e400] [cursor=pointer]: ventcomp.ru
+                    - generic [ref=e401]: G
+                  - generic [ref=e402]: "1"
+                  - button "⚠️ Треб. модерация" [ref=e405] [cursor=pointer]:
+                    - generic [ref=e406]: ⚠️
+                    - text: Треб. модерация
+                  - generic [ref=e408]:
+                    - img [ref=e409]
+                    - text: —
+                  - generic [ref=e413]:
+                    - button "Посмотреть детали" [ref=e414] [cursor=pointer]:
+                      - img [ref=e415]
+                    - button "Действия" [ref=e418] [cursor=pointer]:
+                      - img [ref=e419]
+                - generic [ref=e424]:
+                  - generic [ref=e425]:
+                    - button [ref=e426] [cursor=pointer]:
+                      - img [ref=e427]
+                    - checkbox [checked] [ref=e429] [cursor=pointer]:
+                      - generic:
+                        - img
+                  - generic [ref=e431]:
+                    - generic [ref=e432] [cursor=pointer]: isover.ru
+                    - generic [ref=e433]: G
+                  - generic [ref=e434]: "1"
+                  - button "⚠️ Треб. модерация" [ref=e437] [cursor=pointer]:
+                    - generic [ref=e438]: ⚠️
+                    - text: Треб. модерация
+                  - generic [ref=e440]:
+                    - img [ref=e441]
+                    - text: —
+                  - generic [ref=e445]:
+                    - button "Посмотреть детали" [ref=e446] [cursor=pointer]:
+                      - img [ref=e447]
+                    - button "Действия" [ref=e450] [cursor=pointer]:
+                      - img [ref=e451]
+                - generic [ref=e456]:
+                  - generic [ref=e457]:
+                    - button [ref=e458] [cursor=pointer]:
+                      - img [ref=e459]
+                    - checkbox [checked] [ref=e461] [cursor=pointer]:
+                      - generic:
+                        - img
+                  - generic [ref=e463]:
+                    - generic [ref=e464] [cursor=pointer]: tdvasya.ru
+                    - generic [ref=e465]: G
+                    - generic [ref=e466]: "Y"
+                  - generic [ref=e467]: "1"
+                  - button "⚠️ Треб. модерация" [ref=e470] [cursor=pointer]:
+                    - generic [ref=e471]: ⚠️
+                    - text: Треб. модерация
+                  - generic [ref=e473]:
+                    - img [ref=e474]
+                    - text: —
+                  - generic [ref=e478]:
+                    - button "Посмотреть детали" [ref=e479] [cursor=pointer]:
+                      - img [ref=e480]
+                    - button "Действия" [ref=e483] [cursor=pointer]:
+                      - img [ref=e484]
+                - generic [ref=e489]:
+                  - generic [ref=e490]:
+                    - button [ref=e491] [cursor=pointer]:
+                      - img [ref=e492]
+                    - checkbox [checked] [ref=e494] [cursor=pointer]:
+                      - generic:
+                        - img
+                  - generic [ref=e496]:
+                    - generic [ref=e497] [cursor=pointer]: brozex.ru
+                    - generic [ref=e498]: "Y"
+                  - generic [ref=e499]: "1"
+                  - button "⚠️ Треб. модерация" [ref=e502] [cursor=pointer]:
+                    - generic [ref=e503]: ⚠️
+                    - text: Треб. модерация
+                  - generic [ref=e505]:
+                    - img [ref=e506]
+                    - text: —
+                  - generic [ref=e510]:
+                    - button "Посмотреть детали" [ref=e511] [cursor=pointer]:
+                      - img [ref=e512]
+                    - button "Действия" [ref=e515] [cursor=pointer]:
+                      - img [ref=e516]
+                - generic [ref=e521]:
+                  - generic [ref=e522]:
+                    - button [ref=e523] [cursor=pointer]:
+                      - img [ref=e524]
+                    - checkbox [checked] [ref=e526] [cursor=pointer]:
+                      - generic:
+                        - img
+                  - generic [ref=e528]:
+                    - generic [ref=e529] [cursor=pointer]: tstn.ru
+                    - generic [ref=e530]: "Y"
+                  - generic [ref=e531]: "1"
+                  - button "⚠️ Треб. модерация" [ref=e534] [cursor=pointer]:
+                    - generic [ref=e535]: ⚠️
+                    - text: Треб. модерация
+                  - generic [ref=e537]:
+                    - img [ref=e538]
+                    - text: —
+                  - generic [ref=e542]:
+                    - button "Посмотреть детали" [ref=e543] [cursor=pointer]:
+                      - img [ref=e544]
+                    - button "Действия" [ref=e547] [cursor=pointer]:
+                      - img [ref=e548]
+                - generic [ref=e553]:
+                  - generic [ref=e554]:
+                    - button [ref=e555] [cursor=pointer]:
+                      - img [ref=e556]
+                    - checkbox [checked] [ref=e558] [cursor=pointer]:
+                      - generic:
+                        - img
+                  - generic [ref=e560]:
+                    - generic [ref=e561] [cursor=pointer]: utepliteli-optom.ru
+                    - generic [ref=e562]: "Y"
+                  - generic [ref=e563]: "1"
+                  - button "⚠️ Треб. модерация" [ref=e566] [cursor=pointer]:
+                    - generic [ref=e567]: ⚠️
+                    - text: Треб. модерация
+                  - generic [ref=e569]:
+                    - img [ref=e570]
+                    - text: —
+                  - generic [ref=e574]:
+                    - button "Посмотреть детали" [ref=e575] [cursor=pointer]:
+                      - img [ref=e576]
+                    - button "Действия" [ref=e579] [cursor=pointer]:
+                      - img [ref=e580]
+                - generic [ref=e585]:
+                  - generic [ref=e586]:
+                    - button [ref=e587] [cursor=pointer]:
+                      - img [ref=e588]
+                    - checkbox [checked] [ref=e590] [cursor=pointer]:
+                      - generic:
+                        - img
+                  - generic [ref=e592]:
+                    - generic [ref=e593] [cursor=pointer]: st-par.ru
+                    - generic [ref=e594]: G
+                    - generic [ref=e595]: "Y"
+                  - generic [ref=e596]: "1"
+                  - button "⚠️ Треб. модерация" [ref=e599] [cursor=pointer]:
+                    - generic [ref=e600]: ⚠️
+                    - text: Треб. модерация
+                  - generic [ref=e602]:
+                    - img [ref=e603]
+                    - text: —
+                  - generic [ref=e607]:
+                    - button "Посмотреть детали" [ref=e608] [cursor=pointer]:
+                      - img [ref=e609]
+                    - button "Действия" [ref=e612] [cursor=pointer]:
+                      - img [ref=e613]
+                - generic [ref=e618]:
+                  - generic [ref=e619]:
+                    - button [ref=e620] [cursor=pointer]:
+                      - img [ref=e621]
+                    - checkbox [checked] [ref=e623] [cursor=pointer]:
+                      - generic:
+                        - img
+                  - generic [ref=e625]:
+                    - generic [ref=e626] [cursor=pointer]: tophouse.ru
+                    - generic [ref=e627]: "Y"
+                  - generic [ref=e628]: "1"
+                  - button "⚠️ Треб. модерация" [ref=e631] [cursor=pointer]:
+                    - generic [ref=e632]: ⚠️
+                    - text: Треб. модерация
+                  - generic [ref=e634]:
+                    - img [ref=e635]
+                    - text: —
+                  - generic [ref=e639]:
+                    - button "Посмотреть детали" [ref=e640] [cursor=pointer]:
+                      - img [ref=e641]
+                    - button "Действия" [ref=e644] [cursor=pointer]:
+                      - img [ref=e645]
+                - generic [ref=e650]:
+                  - generic [ref=e651]:
+                    - button [ref=e652] [cursor=pointer]:
+                      - img [ref=e653]
+                    - checkbox [checked] [ref=e655] [cursor=pointer]:
+                      - generic:
+                        - img
+                  - generic [ref=e657]:
+                    - generic [ref=e658] [cursor=pointer]: baurex.ru
+                    - generic [ref=e659]: G
+                  - generic [ref=e660]: "1"
+                  - button "⚠️ Треб. модерация" [ref=e663] [cursor=pointer]:
+                    - generic [ref=e664]: ⚠️
+                    - text: Треб. модерация
+                  - generic [ref=e666]:
+                    - img [ref=e667]
+                    - text: —
+                  - generic [ref=e671]:
+                    - button "Посмотреть детали" [ref=e672] [cursor=pointer]:
+                      - img [ref=e673]
+                    - button "Действия" [ref=e676] [cursor=pointer]:
+                      - img [ref=e677]
+                - generic [ref=e682]:
+                  - generic [ref=e683]:
+                    - button [ref=e684] [cursor=pointer]:
+                      - img [ref=e685]
+                    - checkbox [checked] [ref=e687] [cursor=pointer]:
+                      - generic:
+                        - img
+                  - generic [ref=e689]:
+                    - generic [ref=e690] [cursor=pointer]: stroyshans.ru
+                    - generic [ref=e691]: G
+                  - generic [ref=e692]: "1"
+                  - button "⚠️ Треб. модерация" [ref=e695] [cursor=pointer]:
+                    - generic [ref=e696]: ⚠️
+                    - text: Треб. модерация
+                  - generic [ref=e698]:
+                    - img [ref=e699]
+                    - text: —
+                  - generic [ref=e703]:
+                    - button "Посмотреть детали" [ref=e704] [cursor=pointer]:
+                      - img [ref=e705]
+                    - button "Действия" [ref=e708] [cursor=pointer]:
+                      - img [ref=e709]
+                - generic [ref=e714]:
+                  - generic [ref=e715]:
+                    - button [ref=e716] [cursor=pointer]:
+                      - img [ref=e717]
+                    - checkbox [checked] [ref=e719] [cursor=pointer]:
+                      - generic:
+                        - img
+                  - generic [ref=e721]:
+                    - generic [ref=e722] [cursor=pointer]: spectehnoprom.ru
+                    - generic [ref=e723]: G
+                  - generic [ref=e724]: "1"
+                  - button "⚠️ Треб. модерация" [ref=e727] [cursor=pointer]:
+                    - generic [ref=e728]: ⚠️
+                    - text: Треб. модерация
+                  - generic [ref=e730]:
+                    - img [ref=e731]
+                    - text: —
+                  - generic [ref=e735]:
+                    - button "Посмотреть детали" [ref=e736] [cursor=pointer]:
+                      - img [ref=e737]
+                    - button "Действия" [ref=e740] [cursor=pointer]:
+                      - img [ref=e741]
+                - generic [ref=e746]:
+                  - generic [ref=e747]:
+                    - button [ref=e748] [cursor=pointer]:
+                      - img [ref=e749]
+                    - checkbox [checked] [ref=e751] [cursor=pointer]:
+                      - generic:
+                        - img
+                  - generic [ref=e753]:
+                    - generic [ref=e754] [cursor=pointer]: teplocom-s.ru
+                    - generic [ref=e755]: G
+                  - generic [ref=e756]: "1"
+                  - button "⚠️ Треб. модерация" [ref=e759] [cursor=pointer]:
+                    - generic [ref=e760]: ⚠️
+                    - text: Треб. модерация
+                  - generic [ref=e762]:
+                    - img [ref=e763]
+                    - text: —
+                  - generic [ref=e767]:
+                    - button "Посмотреть детали" [ref=e768] [cursor=pointer]:
+                      - img [ref=e769]
+                    - button "Действия" [ref=e772] [cursor=pointer]:
+                      - img [ref=e773]
+                - generic [ref=e778]:
+                  - generic [ref=e779]:
+                    - button [ref=e780] [cursor=pointer]:
+                      - img [ref=e781]
+                    - checkbox [checked] [ref=e783] [cursor=pointer]:
+                      - generic:
+                        - img
+                  - generic [ref=e785]:
+                    - generic [ref=e786] [cursor=pointer]: arm-plast.ru
+                    - generic [ref=e787]: G
+                  - generic [ref=e788]: "1"
+                  - button "⚠️ Треб. модерация" [ref=e791] [cursor=pointer]:
+                    - generic [ref=e792]: ⚠️
+                    - text: Треб. модерация
+                  - generic [ref=e794]:
+                    - img [ref=e795]
+                    - text: —
+                  - generic [ref=e799]:
+                    - button "Посмотреть детали" [ref=e800] [cursor=pointer]:
+                      - img [ref=e801]
+                    - button "Действия" [ref=e804] [cursor=pointer]:
+                      - img [ref=e805]
+                - generic [ref=e847]:
+                  - generic [ref=e848]:
+                    - button [ref=e849] [cursor=pointer]:
+                      - img [ref=e850]
+                    - checkbox [checked] [ref=e852] [cursor=pointer]:
+                      - generic:
+                        - img
+                  - generic [ref=e854]:
+                    - generic [ref=e855] [cursor=pointer]: www-minvata.ru
+                    - generic [ref=e856]: "Y"
+                  - generic [ref=e857]: "1"
+                  - button "⚠️ Треб. модерация" [ref=e860] [cursor=pointer]:
+                    - generic [ref=e861]: ⚠️
+                    - text: Треб. модерация
+                  - generic [ref=e863]:
+                    - img [ref=e864]
+                    - text: —
+                  - generic [ref=e868]:
+                    - button "Посмотреть детали" [ref=e869] [cursor=pointer]:
+                      - img [ref=e870]
+                    - button "Действия" [ref=e873] [cursor=pointer]:
+                      - img [ref=e874]
+                - generic [ref=e879]:
+                  - generic [ref=e880]:
+                    - button [ref=e881] [cursor=pointer]:
+                      - img [ref=e882]
+                    - checkbox [checked] [ref=e884] [cursor=pointer]:
+                      - generic:
+                        - img
+                  - generic [ref=e886]:
+                    - generic [ref=e887] [cursor=pointer]: stpart.ru
+                    - generic [ref=e888]: "Y"
+                  - generic [ref=e889]: "1"
+                  - button "⚠️ Треб. модерация" [ref=e892] [cursor=pointer]:
+                    - generic [ref=e893]: ⚠️
+                    - text: Треб. модерация
+                  - generic [ref=e895]:
+                    - img [ref=e896]
+                    - text: —
+                  - generic [ref=e900]:
+                    - button "Посмотреть детали" [ref=e901] [cursor=pointer]:
+                      - img [ref=e902]
+                    - button "Действия" [ref=e905] [cursor=pointer]:
+                      - img [ref=e906]
+                - generic [ref=e948]:
+                  - generic [ref=e949]:
+                    - button [ref=e950] [cursor=pointer]:
+                      - img [ref=e951]
+                    - checkbox [checked] [ref=e953] [cursor=pointer]:
+                      - generic:
+                        - img
+                  - generic [ref=e955]:
+                    - generic [ref=e956] [cursor=pointer]: tnsystem.ru
+                    - generic [ref=e957]: "Y"
+                  - generic [ref=e958]: "1"
+                  - button "⚠️ Треб. модерация" [ref=e961] [cursor=pointer]:
+                    - generic [ref=e962]: ⚠️
+                    - text: Треб. модерация
+                  - generic [ref=e964]:
+                    - img [ref=e965]
+                    - text: —
+                  - generic [ref=e969]:
+                    - button "Посмотреть детали" [ref=e970] [cursor=pointer]:
+                      - img [ref=e971]
+                    - button "Действия" [ref=e974] [cursor=pointer]:
+                      - img [ref=e975]
+                - generic [ref=e1054]:
+                  - generic [ref=e1055]:
+                    - button [ref=e1056] [cursor=pointer]:
+                      - img [ref=e1057]
+                    - checkbox [checked] [ref=e1059] [cursor=pointer]:
+                      - generic:
+                        - img
+                  - generic [ref=e1061]:
+                    - generic [ref=e1062] [cursor=pointer]: shop4sezona.ru
+                    - generic [ref=e1063]: "Y"
+                  - generic [ref=e1064]: "1"
+                  - button "⚠️ Треб. модерация" [ref=e1067] [cursor=pointer]:
+                    - generic [ref=e1068]: ⚠️
+                    - text: Треб. модерация
+                  - generic [ref=e1070]:
+                    - img [ref=e1071]
+                    - text: —
+                  - generic [ref=e1075]:
+                    - button "Посмотреть детали" [ref=e1076] [cursor=pointer]:
+                      - img [ref=e1077]
+                    - button "Действия" [ref=e1080] [cursor=pointer]:
+                      - img [ref=e1081]
+                - generic [ref=e1086]:
+                  - generic [ref=e1087]:
+                    - button [ref=e1088] [cursor=pointer]:
+                      - img [ref=e1089]
+                    - checkbox [checked] [ref=e1091] [cursor=pointer]:
+                      - generic:
+                        - img
+                  - generic [ref=e1093]:
+                    - generic [ref=e1094] [cursor=pointer]: minvata.ru
+                    - generic [ref=e1095]: "Y"
+                  - generic [ref=e1096]: "1"
+                  - button "⚠️ Треб. модерация" [ref=e1099] [cursor=pointer]:
+                    - generic [ref=e1100]: ⚠️
+                    - text: Треб. модерация
+                  - generic [ref=e1102]:
+                    - img [ref=e1103]
+                    - text: —
+                  - generic [ref=e1107]:
+                    - button "Посмотреть детали" [ref=e1108] [cursor=pointer]:
+                      - img [ref=e1109]
+                    - button "Действия" [ref=e1112] [cursor=pointer]:
+                      - img [ref=e1113]
+            - generic [ref=e1117]:
+              - generic [ref=e1118]: Показано 20 из 20
+              - generic [ref=e1119]: "Плотность: comfortable"
+        - generic [ref=e1121]:
+          - generic [ref=e1123]:
+            - heading "Google 19 ссылок 2 стр." [level=3] [ref=e1125]:
+              - button "Google 19 ссылок 2 стр." [ref=e1126] [cursor=pointer]:
+                - generic [ref=e1127]:
+                  - generic [ref=e1129]: Google
+                  - generic [ref=e1130]: 19 ссылок
+                  - generic [ref=e1131]: 2 стр.
+                - img [ref=e1132]
+            - heading "Яндекс 18 ссылок 2 стр." [level=3] [ref=e1135]:
+              - button "Яндекс 18 ссылок 2 стр." [ref=e1136] [cursor=pointer]:
+                - generic [ref=e1137]:
+                  - generic [ref=e1139]: Яндекс
+                  - generic [ref=e1140]: 18 ссылок
+                  - generic [ref=e1141]: 2 стр.
+                - img [ref=e1142]
+          - 'heading "Лог извлечения ИНН: 1" [level=3] [ref=e1247]':
+            - 'button "Лог извлечения ИНН: 1" [ref=e1248] [cursor=pointer]':
+              - generic [ref=e1249]:
+                - generic [ref=e1250]: Лог извлечения
+                - generic [ref=e1252]: "ИНН: 1"
+              - img [ref=e1253]
+  - region "Notifications alt+T"
+  - alert [ref=e86]

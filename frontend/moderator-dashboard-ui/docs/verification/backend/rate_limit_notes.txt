@@ -1,0 +1,51 @@
+====================================================================================================
+RATE LIMITING IMPLEMENTATION NOTES
+Generated: 2026-02-07 17:55 UTC+3
+====================================================================================================
+
+TOOL: slowapi 0.1.9 (per-endpoint decorators) + custom PathRateLimitMiddleware (path-prefix based)
+STORAGE: in-memory (swap to redis:// in production via rate_limit.py:storage_uri)
+CONFIG: app/utils/rate_limit.py (single source of truth for all limits)
+
+APPROACH:
+  1. slowapi @limiter.limit() — used on endpoints where adding `request: Request`
+     parameter is safe (auth.py, parsing.py, domain_parser.py)
+  2. PathRateLimitMiddleware — used for mail.py where `request` is already used as
+     body parameter name in closures (renaming would be high-risk refactor)
+
+RATE LIMITS APPLIED:
+  ┌──────────────────────────────────────┬───────────┬──────────────────────────────┐
+  │ Endpoint(s)                          │ Limit     │ Method                       │
+  ├──────────────────────────────────────┼───────────┼──────────────────────────────┤
+  │ POST /api/auth/yandex-oauth          │ 10/min    │ slowapi @limiter.limit()     │
+  │ GET  /api/auth/status                │ 10/min    │ slowapi @limiter.limit()     │
+  │ POST /api/auth/logout                │ 10/min    │ slowapi @limiter.limit()     │
+  │ POST /parsing/start                  │ 5/min     │ slowapi @limiter.limit()     │
+  │ POST /domain-parser/extract-batch    │ 3/min     │ slowapi @limiter.limit()     │
+  │ /api/mail/* (all 6 endpoints)        │ 10/min    │ PathRateLimitMiddleware      │
+  └──────────────────────────────────────┴───────────┴──────────────────────────────┘
+
+KEY FUNCTION: get_remote_address (from slowapi.util) — extracts client IP from request
+
+429 RESPONSE FORMAT:
+  slowapi: default handler returns plain text "Rate limit exceeded"
+  PathRateLimitMiddleware: returns JSON:
+    {
+      "error": "rate_limit_exceeded",
+      "detail": "Rate limit exceeded: 10 requests per 60s",
+      "retry_after": 60
+    }
+    + Retry-After header
+
+FILES MODIFIED:
+  - app/utils/rate_limit.py          — NEW: limiter instance + PathRateLimitMiddleware
+  - app/main.py                      — registered limiter + PathRateLimitMiddleware
+  - app/transport/routers/auth.py    — @limiter.limit(AUTH_LIMIT) on 3 endpoints
+  - app/transport/routers/parsing.py — @limiter.limit(PARSING_START_LIMIT) on /start
+  - app/transport/routers/domain_parser.py — @limiter.limit(DOMAIN_PARSER_LIMIT) on /extract-batch
+  - requirements.txt                 — added slowapi==0.1.9
+
+PRODUCTION NOTES:
+  - Switch storage_uri to "redis://..." for multi-process deployments
+  - Adjust limits in rate_limit.py constants as needed
+  - PathRateLimitMiddleware uses monotonic clock, no persistence across restarts

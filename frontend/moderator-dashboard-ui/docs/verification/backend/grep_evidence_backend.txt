@@ -1,0 +1,75 @@
+====================================================================================================
+BACKEND AUTH GREP EVIDENCE
+Generated: 2026-02-07 17:08 UTC+3
+Method: grep_search on d:\b2b\backend\app\transport\routers\*.py
+====================================================================================================
+
+1. FILES WITH get_current_user (Depends):
+   - moderator_suppliers.py  — ALL endpoints
+   - moderator_users.py      — ALL endpoints
+   - keywords.py             — ALL endpoints
+   - blacklist.py            — ALL endpoints
+   - domains_queue.py        — ALL endpoints
+   - cabinet.py              — ALL endpoints
+   - auth.py                 — /me only
+
+2. FILES WITHOUT get_current_user (0 occurrences):
+   - parsing_runs.py         — 0 occurrences <<<SECURITY GAP>>>
+   - parsing.py              — 0 occurrences <<<SECURITY GAP>>>
+   - checko.py               — 0 occurrences <<<SECURITY GAP>>>
+   - domain_parser.py        — 0 occurrences <<<SECURITY GAP>>>
+   - learning.py             — 0 occurrences <<<SECURITY GAP>>>
+   - attachments.py          — 0 occurrences <<<SECURITY GAP>>>
+   - mail.py                 — 0 occurrences <<<SECURITY GAP>>>
+   - health.py               — 0 occurrences (acceptable)
+
+3. _require_moderator IMPLEMENTATIONS (5 copies, 2 INCONSISTENT):
+
+   a) moderator_suppliers.py:146 — STRICT
+      def _require_moderator(current_user: dict):
+          if not can_access_moderator_zone(current_user):
+              raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
+
+   b) keywords.py:20 — STRICT (same as above)
+
+   c) blacklist.py:21 — STRICT (same as above)
+
+   d) moderator_users.py:48 — DEV BYPASS <<<INCONSISTENCY>>>
+      def _require_moderator(current_user: dict):
+          # Dev-only relaxation to allow local testing without strict email-based moderator checks
+          if str(getattr(settings, "ENV", "")).lower() == "development":
+              return   # <<< BYPASSES ALL AUTH IN DEV MODE
+
+   e) domains_queue.py:40 — DEV BYPASS <<<INCONSISTENCY>>>
+      def _require_moderator(current_user: dict):
+          # Dev-only relaxation to allow local testing without strict email-based moderator checks
+          if str(getattr(settings, "ENV", "")).lower() == "development":
+              return   # <<< BYPASSES ALL AUTH IN DEV MODE
+
+4. SECURITY FINDING: _require_debug() pattern
+   Files: moderator_suppliers.py:150, blacklist.py:25, mail.py:23
+   Pattern: if ENV != "development" → 404
+   Purpose: Debug-only endpoints hidden in production
+   Risk: LOW (endpoints return 404 in production)
+
+5. DB CONSTRAINTS (from main.py:102-153):
+   - UNIQUE INDEX ux_suppliers_inn_unique ON moderator_suppliers(inn) WHERE inn IS NOT NULL AND allow_duplicate_inn = FALSE
+   - UNIQUE CONSTRAINT uq_supplier_domains_supplier_domain ON supplier_domains(supplier_id, domain)
+   - UNIQUE CONSTRAINT uq_supplier_emails_supplier_email ON supplier_emails(supplier_id, email)
+
+6. ROUTER PREFIXES (from main.py:1027-1072):
+   health.router           → (no prefix)
+   moderator_suppliers     → /moderator
+   moderator_users         → /moderator
+   keywords                → /keywords
+   blacklist               → /moderator
+   parsing_runs            → /parsing
+   parsing                 → /parsing
+   domains_queue           → /domains
+   attachments             → /attachments
+   checko                  → /moderator
+   domain_parser           → /domain-parser
+   learning                → /learning
+   auth                    → /api
+   cabinet                 → /cabinet
+   mail                    → /api

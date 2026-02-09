@@ -1,0 +1,2 @@
+app\cabinet\messages\page.tsx:19:import { fetchAllMailData } from "@/lib/optimized-api"
+app\moderator\page.tsx:3:export { default } from "./page-optimized"

@@ -1,0 +1,80 @@
+
+> moderator-dashboard-ui@1.0.0 build
+> next build
+
+тЦ▓ Next.js 16.1.4 (Turbopack)
+- Environments: .env.local
+- Experiments (use with caution):
+  тЬУ optimizeCss
+  ┬╖ optimizePackageImports
+
+  Creating an optimized production build ...
+тЬУ Compiled successfully in 9.3s
+  Running TypeScript ...
+  Collecting page data using 15 workers ...
+  Generating static pages using 15 workers (0/44) ...
+  Generating static pages using 15 workers (11/44) 
+  Generating static pages using 15 workers (22/44) 
+  Generating static pages using 15 workers (33/44) 
+тЬУ Generating static pages using 15 workers (44/44) in 959.3ms
+  Finalizing page optimization ...
+
+Route (app)
+тФМ тЧЛ /
+тФЬ тЧЛ /_not-found
+тФЬ ╞Т /api/attachments/[id]
+тФЬ ╞Т /api/auth/login
+тФЬ ╞Т /api/auth/logout
+тФЬ ╞Т /api/auth/me
+тФЬ ╞Т /api/auth/otp/request
+тФЬ ╞Т /api/auth/otp/verify
+тФЬ ╞Т /api/auth/status
+тФЬ ╞Т /api/proxy/[...path]
+тФЬ ╞Т /api/yandex/callback
+тФЬ ╞Т /api/yandex/check-cookies
+тФЬ ╞Т /api/yandex/debug
+тФЬ ╞Т /api/yandex/debug-cookies
+тФЬ ╞Т /api/yandex/disconnect
+тФЬ ╞Т /api/yandex/folders
+тФЬ ╞Т /api/yandex/login
+тФЬ ╞Т /api/yandex/mail
+тФЬ ╞Т /api/yandex/mail/[id]
+тФЬ ╞Т /api/yandex/mail/[id]/unspam
+тФЬ ╞Т /api/yandex/mail/debug
+тФЬ ╞Т /api/yandex/status
+тФЬ тЧЛ /blacklist
+тФЬ тЧЛ /cabinet
+тФЬ тЧЛ /cabinet/login
+тФЬ тЧЛ /cabinet/messages
+тФЬ тЧЛ /cabinet/overview
+тФЬ тЧЛ /cabinet/requests
+тФЬ ╞Т /cabinet/requests/[id]
+тФЬ тЧЛ /cabinet/requests/all
+тФЬ тЧЛ /cabinet/requests/drafts
+тФЬ тЧЛ /cabinet/results
+тФЬ тЧЛ /cabinet/settings
+тФЬ тЧЛ /domains
+тФЬ тЧЛ /keywords
+тФЬ тЧЛ /login
+тФЬ тЧЛ /manual-parsing
+тФЬ тЧЛ /moderator
+тФЬ тЧЛ /moderator/suppliers
+тФЬ тЧЛ /moderator/tasks
+тФЬ тЧЛ /moderator/users
+тФЬ тЧЛ /parsing-runs
+тФЬ ╞Т /parsing-runs/[runId]
+тФЬ тЧЛ /robots.txt
+тФЬ тЧЛ /settings
+тФЬ тЧЛ /sitemap.xml
+тФЬ тЧЛ /suppliers
+тФЬ ╞Т /suppliers/[id]
+тФЬ ╞Т /suppliers/[id]/edit
+тФЬ тЧЛ /suppliers/new
+тФФ тЧЛ /users
+
+
+╞Т Proxy (Middleware)
+
+тЧЛ  (Static)   prerendered as static content
+╞Т  (Dynamic)  server-rendered on demand
+

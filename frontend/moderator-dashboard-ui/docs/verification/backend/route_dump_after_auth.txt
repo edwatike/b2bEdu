@@ -1,0 +1,156 @@
+====================================================================================================
+BACKEND ROUTE DUMP — AFTER AUTH HARDENING
+Generated: 2026-02-07 17:28 UTC+3
+Method: Static analysis of main.py include_router + router files (grep + read_file)
+====================================================================================================
+
+PREFIX MAPPING (from app/main.py):
+  health.router             → /              (no prefix)
+  moderator_suppliers.router→ /moderator
+  moderator_users.router    → /moderator
+  keywords.router           → /keywords
+  blacklist.router          → /moderator
+  parsing_runs.router       → /parsing
+  parsing.router            → /parsing
+  domains_queue.router      → /domains
+  attachments.router        → /attachments
+  checko.router             → /moderator
+  domain_parser.router      → /domain-parser
+  learning.router           → /learning
+  auth.router               → /api           (router prefix="/auth" → /api/auth)
+  cabinet.router            → /cabinet
+  mail.router               → /api
+
+====================================================================================================
+ENDPOINT-BY-ENDPOINT AUTH ANALYSIS
+====================================================================================================
+
+Legend:
+  [AUTH]  = Depends(get_current_user) present
+  [MOD]   = require_moderator (from authz.py) called
+  [PUBLIC]= Intentionally public (no auth required)
+  [DEBUG] = _require_debug() — only accessible in ENV=development
+
+--- health.py ---
+  GET  /health                                    [PUBLIC] — health check, intentionally public
+
+--- auth.py (prefix: /api/auth) ---
+  POST /api/auth/yandex-oauth                     [PUBLIC] — login endpoint
+  GET  /api/auth/status                           [PUBLIC] — checks cookie/header, returns {authenticated: false} if no token
+  GET  /api/auth/me                               [AUTH]   — returns current user
+  POST /api/auth/logout                           [PUBLIC] — stateless logout (client deletes token)
+
+--- moderator_suppliers.py (prefix: /moderator) ---
+  GET    /moderator/suppliers                     [AUTH][MOD]
+  POST   /moderator/suppliers                     [AUTH][MOD]
+  GET    /moderator/suppliers/{supplier_id}        [AUTH][MOD]
+  PUT    /moderator/suppliers/{supplier_id}        [AUTH][MOD]
+  DELETE /moderator/suppliers/{supplier_id}        [AUTH][MOD]
+  GET    /moderator/suppliers/{supplier_id}/keywords [AUTH][MOD]
+  POST   /moderator/suppliers/enrich-all-checko    [AUTH][MOD]
+  GET    /moderator/suppliers/enrich-all-checko/status [AUTH][MOD]
+  GET    /moderator/suppliers/debug                [AUTH][MOD][DEBUG]
+  POST   /moderator/suppliers/debug/enrich-single  [AUTH][MOD][DEBUG]
+
+--- moderator_users.py (prefix: /moderator) ---
+  GET    /moderator/tasks                         [AUTH][MOD]
+  GET    /moderator/users                         [AUTH][MOD]
+  PUT    /moderator/users/{user_id}/cabinet-access [AUTH][MOD]
+  POST   /moderator/users                         [AUTH][MOD]
+  GET    /moderator/dashboard-stats               [AUTH][MOD]
+
+--- keywords.py (prefix: /keywords) ---
+  GET    /keywords                                [AUTH][MOD]
+  POST   /keywords                                [AUTH][MOD]
+  DELETE /keywords/{keyword_id}                   [AUTH][MOD]
+
+--- blacklist.py (prefix: /moderator) ---
+  GET    /moderator/blacklist-debug               [AUTH][MOD][DEBUG]
+  GET    /moderator/blacklist                     [AUTH][MOD]
+  POST   /moderator/blacklist                     [AUTH][MOD]
+  DELETE /moderator/blacklist/{entry_id}          [AUTH][MOD]
+
+--- parsing_runs.py (prefix: /parsing) ---
+  GET    /parsing/runs                            [AUTH][MOD]
+  GET    /parsing/runs/{run_id}/logs              [AUTH][MOD]
+  PUT    /parsing/runs/{run_id}/logs              [AUTH][MOD]
+  GET    /parsing/runs/{run_id}                   [AUTH][MOD]
+  DELETE /parsing/runs/bulk                       [AUTH][MOD]
+  DELETE /parsing/runs/{run_id}                   [AUTH][MOD]
+
+--- parsing.py (prefix: /parsing) ---
+  POST   /parsing/start                           [AUTH][MOD]
+  PUT    /parsing/status/{run_id}                 [AUTH][MOD]
+  GET    /parsing/status/{run_id}                 [AUTH][MOD]
+
+--- domains_queue.py (prefix: /domains) ---
+  GET    /domains/queue                           [AUTH][MOD]
+  DELETE /domains/queue/{entry_id}                [AUTH][MOD]
+  GET    /domains/pending                         [AUTH][MOD]
+  DELETE /domains/pending                         [AUTH][MOD]
+  POST   /domains/enrich                          [AUTH][MOD]
+
+--- attachments.py (prefix: /attachments) ---
+  GET    /attachments                             [AUTH][MOD]
+  POST   /attachments/upload                      [AUTH][MOD]
+  GET    /attachments/{attachment_id}             [AUTH][MOD]
+
+--- checko.py (prefix: /moderator) ---
+  GET    /moderator/checko/health                 [AUTH][MOD]
+  GET    /moderator/checko/{inn}                  [AUTH][MOD]
+
+--- domain_parser.py (prefix: /domain-parser) ---
+  GET    /domain-parser/moderation-domains        [AUTH][MOD]
+  POST   /domain-parser/extract-batch             [AUTH][MOD]
+  GET    /domain-parser/status/{parserRunId}      [AUTH][MOD]
+
+--- learning.py (prefix: /learning) ---
+  POST   /learning/learn-manual-inn               [AUTH][MOD]
+  GET    /learning/statistics                     [AUTH][MOD]
+  GET    /learning/learned-summary                [AUTH][MOD]
+
+--- cabinet.py (prefix: /cabinet) ---
+  GET    /cabinet/requests                        [AUTH]
+  POST   /cabinet/requests                        [AUTH]
+  PUT    /cabinet/requests/{request_id}           [AUTH]
+  DELETE /cabinet/requests/bulk                   [AUTH]
+  POST   /cabinet/requests/{request_id}/submit    [AUTH]
+  POST   /cabinet/requests/{request_id}/upload-file [AUTH]
+  GET    /cabinet/requests/{request_id}           [AUTH]
+  GET    /cabinet/requests/{request_id}/suppliers  [AUTH]
+  GET    /cabinet/requests/{request_id}/suppliers/{supplier_id} [AUTH]
+  POST   /cabinet/requests/{request_id}/suppliers/{supplier_id}/send-email [AUTH]
+  POST   /cabinet/requests/{request_id}/send-email-bulk [AUTH]
+  POST   /cabinet/requests/{request_id}/suppliers/{supplier_id}/reply [AUTH]
+  GET    /cabinet/settings                        [AUTH]
+  PUT    /cabinet/settings                        [AUTH]
+  GET    /cabinet/groq/status                     [AUTH]
+
+--- mail.py (prefix: /api) ---
+  POST   /api/mail/yandex/imap/folders            [AUTH][MOD]
+  POST   /api/mail/yandex/smtp/send               [AUTH][MOD]
+  POST   /api/mail/yandex/imap                    [AUTH][MOD]
+  POST   /api/mail/yandex/imap/{message_id}       [AUTH][MOD]
+  POST   /api/mail/yandex/imap/{message_id}/unspam [AUTH][MOD]
+  GET    /api/mail/yandex/test                    [AUTH][MOD][DEBUG]
+
+====================================================================================================
+SUMMARY
+====================================================================================================
+
+TOTAL ENDPOINTS:  ~62
+  [AUTH][MOD]:    ~42  (moderator-protected)
+  [AUTH]:         ~16  (user-authenticated, cabinet)
+  [PUBLIC]:        4   (/health, /api/auth/yandex-oauth, /api/auth/status, /api/auth/logout)
+
+SECURITY GAPS:     0   <<<NO SECURITY GAPS>>>
+
+CHANGES FROM PREVIOUS DUMP:
+  BEFORE: 26 endpoints without Depends(get_current_user) — <<<SECURITY GAP>>>
+  AFTER:   0 endpoints without auth (except intentionally public)
+
+  BEFORE: 5 local copies of _require_moderator, 2 with dev-bypass
+  AFTER:  1 unified require_moderator in app/utils/authz.py, 0 dev-bypass
+
+  BEFORE: 7 router files without any auth
+  AFTER:  0 router files without auth

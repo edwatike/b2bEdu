@@ -1,0 +1,14 @@
+tunnel: a172616c-c11b-4833-bdc1-3baacada6f16
+credentials-file: C:\Users\admin\.cloudflared\a172616c-c11b-4833-bdc1-3baacada6f16.json
+
+protocol: http2
+edge-ip-version: "4"
+retries: 10
+grace-period: 60s
+
+ingress:
+  - hostname: b2bedu.ru
+    service: http://127.0.0.1:3000
+  - hostname: www.b2bedu.ru
+    service: http://127.0.0.1:3000
+  - service: http_status:404

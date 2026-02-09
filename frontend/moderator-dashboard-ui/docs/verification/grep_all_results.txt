@@ -1,0 +1,30 @@
+=== DYNAMIC IMPORTS ===
+components\dynamic\ChartSection.tsx:6:const ChartSectionImpl = dynamic(() => import("../supplier-card/ChartSection"), {
+components\dynamic\SupplierCard.tsx:7:const SupplierCardImpl = dynamic(() => import("../supplier-card").then(mod => ({ default: mod.SupplierCard })),
+
+=== REACT QUERY USAGE ===
+hooks\queries\parsing.ts: 7 matches
+hooks\queries\suppliers.ts: 7 matches  
+hooks\queries\keywords.ts: 4 matches
+hooks\queries\blacklist.ts: 3 matches
+
+=== VIRTUALIZATION ===
+components\supplier\SuppliersTableVirtualized.tsx: 2 matches (useVirtualizer)
+
+=== POLLING setInterval (OLD CODE) ===
+app\moderator\page.tsx: 2 matches
+app\parsing-runs\[runId]\page.tsx: 2 matches
+app\cabinet\requests\[id]\page.tsx: 1 match
+app\keywords\page.tsx: 1 match
+
+=== REACT QUERY refetchInterval ===
+hooks\queries\parsing.ts: 5 matches
+
+=== UI UNIFICATION ===
+components\ui\PageShell.tsx: 3 matches
+
+=== BUILD CONFIG ===
+next.config.mjs:
+- Line 25: ignoreBuildErrors: false
+- Line 28: unoptimized: false
+- Line 3: bundleAnalyzer imported

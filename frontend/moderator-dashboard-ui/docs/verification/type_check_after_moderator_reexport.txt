@@ -1,0 +1,4 @@
+
+> moderator-dashboard-ui@1.0.0 type-check
+> node ./node_modules/typescript/lib/tsc.js --noEmit
+

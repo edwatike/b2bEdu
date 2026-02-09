@@ -1,0 +1,106 @@
+====================================================================================================
+CURL SMOKE TESTS — Expected Behavior After Auth Hardening + Rate Limiting
+Generated: 2026-02-07 17:55 UTC+3
+====================================================================================================
+
+NOTE: These are expected behaviors based on static code analysis.
+      Runtime verification requires a running backend with DB.
+
+BASE_URL=http://127.0.0.1:8000
+
+─── PUBLIC ENDPOINTS (should return 200 without token) ───────────────────
+
+# 1. Health check
+curl -s $BASE_URL/health
+  → 200 {"status": "ok"}
+
+# 2. Auth status (no token)
+curl -s $BASE_URL/api/auth/status
+  → 200 {"authenticated": false, "user": null}
+
+# 3. Root
+curl -s $BASE_URL/
+  → 200 {"name": "B2B Platform API", ...}
+
+─── PROTECTED ENDPOINTS (should return 401/403 without token) ────────────
+
+# 4. Parsing runs — no token
+curl -s $BASE_URL/parsing/runs
+  → 403 {"error": "unauthorized", "detail": "Not authenticated", ...}
+
+# 5. Parsing start — no token
+curl -s -X POST $BASE_URL/parsing/start -H "Content-Type: application/json" -d '{"keyword":"test","depth":10}'
+  → 403 {"error": "unauthorized", "detail": "Not authenticated", ...}
+
+# 6. Domain parser — no token
+curl -s $BASE_URL/domain-parser/moderation-domains
+  → 403 {"error": "unauthorized", "detail": "Not authenticated", ...}
+
+# 7. Mail — no token
+curl -s -X POST $BASE_URL/api/mail/yandex/imap/folders -H "Content-Type: application/json" -d '{}'
+  → 403 {"error": "unauthorized", "detail": "Not authenticated", ...}
+
+# 8. Attachments — no token
+curl -s $BASE_URL/attachments
+  → 403 {"error": "unauthorized", "detail": "Not authenticated", ...}
+
+# 9. Checko — no token
+curl -s $BASE_URL/moderator/checko/health
+  → 403 {"error": "unauthorized", "detail": "Not authenticated", ...}
+
+# 10. Learning — no token
+curl -s $BASE_URL/learning/statistics
+  → 403 {"error": "unauthorized", "detail": "Not authenticated", ...}
+
+# 11. Suppliers — no token
+curl -s $BASE_URL/moderator/suppliers
+  → 403 {"error": "unauthorized", "detail": "Not authenticated", ...}
+
+─── WITH USER TOKEN (role=user, should get 403 on moderator endpoints) ───
+
+# 12. Parsing runs — user token
+curl -s $BASE_URL/parsing/runs -H "Authorization: Bearer <USER_TOKEN>"
+  → 403 {"error": "forbidden", "detail": "Forbidden: moderator or admin role required", ...}
+
+# 13. Cabinet — user token (should work)
+curl -s $BASE_URL/cabinet/requests -H "Authorization: Bearer <USER_TOKEN>"
+  → 200 [...]
+
+─── WITH MODERATOR TOKEN (should work on all moderator endpoints) ────────
+
+# 14. Parsing runs — moderator token
+curl -s $BASE_URL/parsing/runs -H "Authorization: Bearer <MOD_TOKEN>"
+  → 200 {"runs": [...], "total": ...}
+
+# 15. Suppliers — moderator token
+curl -s $BASE_URL/moderator/suppliers -H "Authorization: Bearer <MOD_TOKEN>"
+  → 200 [...]
+
+─── RATE LIMITING (should return 429 after exceeding limit) ──────────────
+
+# 16. Auth status — 11th request within 1 minute
+for i in $(seq 1 11); do curl -s -o /dev/null -w "%{http_code}\n" $BASE_URL/api/auth/status; done
+  → First 10: 200
+  → 11th: 429
+
+# 17. Parsing start — 6th request within 1 minute
+for i in $(seq 1 6); do curl -s -o /dev/null -w "%{http_code}\n" -X POST $BASE_URL/parsing/start ...; done
+  → First 5: 201 (or 401 without token)
+  → 6th: 429
+
+# 18. Mail — 11th request within 1 minute
+for i in $(seq 1 11); do curl -s -o /dev/null -w "%{http_code}\n" -X POST $BASE_URL/api/mail/yandex/imap/folders ...; done
+  → First 10: varies
+  → 11th: 429
+
+─── UNIFIED ERROR FORMAT VERIFICATION ───────────────────────────────────
+
+All error responses should contain these fields:
+  - "error": string (machine-readable code)
+  - "detail": string (human-readable message)
+  - "status": integer (HTTP status code)
+  - "path": string (request path)
+  - "timestamp": string (ISO 8601)
+
+Exception: slowapi 429 responses use default handler (plain text).
+PathRateLimitMiddleware 429 responses use JSON with "error", "detail", "retry_after".

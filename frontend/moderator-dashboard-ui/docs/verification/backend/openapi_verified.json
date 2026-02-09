@@ -1,0 +1,7481 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "B2B Platform API",
+    "description": "API for B2B Platform - supplier moderation and parsing system",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/": {
+      "get": {
+        "summary": "Root",
+        "description": "Root endpoint with API information.",
+        "operationId": "root__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/debug/routes": {
+      "get": {
+        "summary": "Debug Routes",
+        "description": "Debug endpoint to check route registration.",
+        "operationId": "debug_routes_debug_routes_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/debug/all-routes": {
+      "get": {
+        "summary": "Debug All Routes",
+        "description": "Debug endpoint to check all registered routes.",
+        "operationId": "debug_all_routes_debug_all_routes_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "summary": "Health Check",
+        "description": "Health check endpoint.",
+        "operationId": "health_check_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/moderator/suppliers/checko/enrich-all": {
+      "post": {
+        "tags": [
+          "Suppliers"
+        ],
+        "summary": "Enrich All Suppliers Checko",
+        "operationId": "enrich_all_suppliers_checko_moderator_suppliers_checko_enrich_all_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnrichAllCheckoRequestDTO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/moderator/suppliers/checko/enrich-all/status": {
+      "get": {
+        "tags": [
+          "Suppliers"
+        ],
+        "summary": "Enrich All Suppliers Checko Status",
+        "operationId": "enrich_all_suppliers_checko_status_moderator_suppliers_checko_enrich_all_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/moderator/suppliers-empty": {
+      "get": {
+        "tags": [
+          "Suppliers"
+        ],
+        "summary": "Suppliers Empty",
+        "description": "Absolute minimum endpoint - no parameters, no dependencies.",
+        "operationId": "suppliers_empty_moderator_suppliers_empty_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/moderator/suppliers-debug": {
+      "get": {
+        "tags": [
+          "Suppliers"
+        ],
+        "summary": "Debug Suppliers",
+        "description": "Debug endpoint without dependencies.",
+        "operationId": "debug_suppliers_moderator_suppliers_debug_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/moderator/suppliers-minimal": {
+      "get": {
+        "tags": [
+          "Suppliers"
+        ],
+        "summary": "Minimal Suppliers",
+        "description": "Minimal endpoint without any parameters.",
+        "operationId": "minimal_suppliers_moderator_suppliers_minimal_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/moderator/suppliers-simple": {
+      "get": {
+        "tags": [
+          "Suppliers"
+        ],
+        "summary": "Simple Suppliers",
+        "description": "Simple endpoint - absolute minimum.",
+        "operationId": "simple_suppliers_moderator_suppliers_simple_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/moderator/test": {
+      "get": {
+        "tags": [
+          "Suppliers"
+        ],
+        "summary": "Test Endpoint",
+        "description": "Test endpoint to verify router works.",
+        "operationId": "test_endpoint_moderator_test_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/moderator/suppliers-test": {
+      "get": {
+        "tags": [
+          "Suppliers"
+        ],
+        "summary": "Test Suppliers",
+        "description": "Test endpoint with DB dependency.",
+        "operationId": "test_suppliers_moderator_suppliers_test_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/moderator/suppliers-new": {
+      "get": {
+        "tags": [
+          "Suppliers"
+        ],
+        "summary": "List Suppliers New",
+        "description": "List suppliers - new version for testing.",
+        "operationId": "list_suppliers_new_moderator_suppliers_new_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000,
+              "minimum": 1,
+              "default": 200,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Type"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/moderator/suppliers": {
+      "get": {
+        "tags": [
+          "Suppliers"
+        ],
+        "summary": "List Suppliers",
+        "description": "List suppliers with pagination.",
+        "operationId": "list_suppliers_moderator_suppliers_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000,
+              "minimum": 1,
+              "default": 100,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Type"
+            }
+          },
+          {
+            "name": "recentDays",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Recentdays"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModeratorSuppliersListResponseDTO"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Suppliers"
+        ],
+        "summary": "Create Supplier",
+        "description": "Create a new supplier.",
+        "operationId": "create_supplier_moderator_suppliers_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateModeratorSupplierRequestDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModeratorSupplierDTO"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/moderator/suppliers/{supplier_id}": {
+      "get": {
+        "tags": [
+          "Suppliers"
+        ],
+        "summary": "Get Supplier",
+        "description": "Get supplier by ID.",
+        "operationId": "get_supplier_moderator_suppliers__supplier_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "supplier_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Supplier Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModeratorSupplierDTO"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Suppliers"
+        ],
+        "summary": "Update Supplier",
+        "description": "Update supplier.",
+        "operationId": "update_supplier_moderator_suppliers__supplier_id__put",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "supplier_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Supplier Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateModeratorSupplierRequestDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModeratorSupplierDTO"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Suppliers"
+        ],
+        "summary": "Delete Supplier",
+        "description": "Delete supplier.",
+        "operationId": "delete_supplier_moderator_suppliers__supplier_id__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "supplier_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Supplier Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/moderator/suppliers/{supplier_id}/attach-domain": {
+      "post": {
+        "tags": [
+          "Suppliers"
+        ],
+        "summary": "Attach Domain",
+        "description": "Attach a domain (and optional email) to an existing supplier.",
+        "operationId": "attach_domain_moderator_suppliers__supplier_id__attach_domain_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "supplier_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Supplier Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AttachDomainRequestDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModeratorSupplierDTO"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/moderator/suppliers/{supplier_id}/keywords": {
+      "get": {
+        "tags": [
+          "Suppliers"
+        ],
+        "summary": "Get Supplier Keywords Endpoint",
+        "description": "Get supplier keywords.",
+        "operationId": "get_supplier_keywords_endpoint_moderator_suppliers__supplier_id__keywords_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "supplier_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Supplier Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupplierKeywordsResponseDTO"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/moderator/tasks": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "List Moderator Tasks",
+        "operationId": "list_moderator_tasks_moderator_tasks_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/moderator/dashboard-stats": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Get Moderator Dashboard Stats",
+        "operationId": "get_moderator_dashboard_stats_moderator_dashboard_stats_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModeratorDashboardStatsDTO"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/moderator/users": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "List Users",
+        "operationId": "list_users_moderator_users_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/UserAccessDTO"
+                  },
+                  "type": "array",
+                  "title": "Response List Users Moderator Users Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Create User",
+        "description": "Create user with email (for Yandex OAuth access).",
+        "operationId": "create_user_moderator_users_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateUserRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserAccessDTO"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/moderator/users/{user_id}/cabinet-access": {
+      "patch": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Update User Cabinet Access",
+        "operationId": "update_user_cabinet_access_moderator_users__user_id__cabinet_access_patch",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "User Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCabinetAccessRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserAccessDTO"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/moderator/users/{user_id}": {
+      "delete": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Delete User",
+        "operationId": "delete_user_moderator_users__user_id__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "User Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/keywords": {
+      "get": {
+        "tags": [
+          "Keywords"
+        ],
+        "summary": "List Keywords Endpoint",
+        "description": "List all keywords.",
+        "operationId": "list_keywords_endpoint_keywords_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KeywordsListResponseDTO"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Keywords"
+        ],
+        "summary": "Create Keyword Endpoint",
+        "description": "Create a new keyword.",
+        "operationId": "create_keyword_endpoint_keywords_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateKeywordRequestDTO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KeywordDTO"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/keywords/{keyword_id}": {
+      "delete": {
+        "tags": [
+          "Keywords"
+        ],
+        "summary": "Delete Keyword Endpoint",
+        "description": "Delete keyword.",
+        "operationId": "delete_keyword_endpoint_keywords__keyword_id__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "keyword_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Keyword Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/moderator/blacklist-debug": {
+      "get": {
+        "tags": [
+          "Blacklist",
+          "Debug"
+        ],
+        "summary": "Debug Blacklist Endpoint",
+        "description": "Debug endpoint to check blacklist data directly from database.",
+        "operationId": "debug_blacklist_endpoint_moderator_blacklist_debug_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/moderator/blacklist": {
+      "get": {
+        "tags": [
+          "Blacklist"
+        ],
+        "summary": "List Blacklist Endpoint",
+        "description": "List blacklist entries with pagination.",
+        "operationId": "list_blacklist_endpoint_moderator_blacklist_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000,
+              "minimum": 1,
+              "default": 100,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BlacklistResponseDTO"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Blacklist"
+        ],
+        "summary": "Add To Blacklist Endpoint",
+        "description": "Add domain to blacklist.",
+        "operationId": "add_to_blacklist_endpoint_moderator_blacklist_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddToBlacklistRequestDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BlacklistEntryDTO"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/moderator/blacklist/{domain}": {
+      "delete": {
+        "tags": [
+          "Blacklist"
+        ],
+        "summary": "Remove From Blacklist Endpoint",
+        "description": "Remove domain from blacklist.",
+        "operationId": "remove_from_blacklist_endpoint_moderator_blacklist__domain__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "domain",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Domain"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/parsing/runs": {
+      "get": {
+        "tags": [
+          "Parsing Runs"
+        ],
+        "summary": "List Parsing Runs Endpoint",
+        "description": "List parsing runs with pagination, filtering, and sorting.",
+        "operationId": "list_parsing_runs_endpoint_parsing_runs_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000,
+              "minimum": 1,
+              "default": 100,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "name": "keyword",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Keyword"
+            }
+          },
+          {
+            "name": "request_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Request Id"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": "created_at",
+              "title": "Sort"
+            }
+          },
+          {
+            "name": "order",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": "desc",
+              "title": "Order"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParsingRunsListResponseDTO"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/parsing/runs/{run_id}/logs": {
+      "get": {
+        "tags": [
+          "Parsing Runs"
+        ],
+        "summary": "Get Parsing Logs",
+        "description": "Get parsing logs for a specific run ID.",
+        "operationId": "get_parsing_logs_parsing_runs__run_id__logs_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Run Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Parsing Runs"
+        ],
+        "summary": "Update Parsing Logs Endpoint",
+        "description": "Update parsing logs for a specific run ID (incremental updates during parsing).",
+        "operationId": "update_parsing_logs_endpoint_parsing_runs__run_id__logs_put",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Run Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "default": {},
+                "title": "Request Data"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/parsing/runs/{run_id}": {
+      "get": {
+        "tags": [
+          "Parsing Runs"
+        ],
+        "summary": "Get Parsing Run Endpoint",
+        "description": "Get parsing run by ID.",
+        "operationId": "get_parsing_run_endpoint_parsing_runs__run_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Run Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParsingRunDTO"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Parsing Runs"
+        ],
+        "summary": "Delete Parsing Run Endpoint",
+        "description": "Delete parsing run by ID.",
+        "operationId": "delete_parsing_run_endpoint_parsing_runs__run_id__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Run Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/parsing/runs/bulk": {
+      "delete": {
+        "tags": [
+          "Parsing Runs"
+        ],
+        "summary": "Bulk Delete Parsing Runs Endpoint",
+        "description": "Bulk delete parsing runs.",
+        "operationId": "bulk_delete_parsing_runs_endpoint_parsing_runs_bulk_delete",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/parsing/start": {
+      "post": {
+        "tags": [
+          "Parsing"
+        ],
+        "summary": "Start Parsing Endpoint",
+        "description": "Start parsing for a keyword.",
+        "operationId": "start_parsing_endpoint_parsing_start_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartParsingRequestDTO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/parsing/status/{run_id}": {
+      "put": {
+        "tags": [
+          "Parsing"
+        ],
+        "summary": "Update Parsing Status Endpoint",
+        "description": "Update parsing run status (for CAPTCHA and progress updates).",
+        "operationId": "update_parsing_status_endpoint_parsing_status__run_id__put",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Run Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "default": {},
+                "title": "Request Data"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Parsing"
+        ],
+        "summary": "Get Parsing Status Endpoint",
+        "description": "Get parsing status by run ID.",
+        "operationId": "get_parsing_status_endpoint_parsing_status__run_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Run Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParsingStatusResponseDTO"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/domains/queue": {
+      "get": {
+        "tags": [
+          "Domains Queue"
+        ],
+        "summary": "List Domains Queue Endpoint",
+        "description": "List domains queue entries with pagination.",
+        "operationId": "list_domains_queue_endpoint_domains_queue_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000,
+              "minimum": 1,
+              "default": 100,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "name": "keyword",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Keyword"
+            }
+          },
+          {
+            "name": "parsingRunId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Parsingrunid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DomainsQueueResponseDTO"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/domains/queue/{domain}": {
+      "delete": {
+        "tags": [
+          "Domains Queue"
+        ],
+        "summary": "Remove From Domains Queue Endpoint",
+        "description": "Remove domain from queue.",
+        "operationId": "remove_from_domains_queue_endpoint_domains_queue__domain__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "domain",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Domain"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/domains/pending": {
+      "get": {
+        "tags": [
+          "Domains Queue"
+        ],
+        "summary": "List Pending Domains Endpoint",
+        "description": "List unique pending domains (not in blacklist and not in suppliers).",
+        "operationId": "list_pending_domains_endpoint_domains_pending_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 2000,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Search"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PendingDomainsResponseDTO"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/domains/pending/enrich": {
+      "post": {
+        "tags": [
+          "Domains Queue"
+        ],
+        "summary": "Enrich Pending Domain",
+        "description": "Run domain parser for a single pending domain and upsert supplier/Checko data.",
+        "operationId": "enrich_pending_domain_domains_pending_enrich_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnrichDomainRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnrichDomainResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/domains/pending/clear": {
+      "post": {
+        "tags": [
+          "Domains Queue"
+        ],
+        "summary": "Clear Pending Domains",
+        "description": "Delete pending domains from domains_queue (they can reappear on next parsing runs).",
+        "operationId": "clear_pending_domains_domains_pending_clear_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClearPendingDomainsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/attachments": {
+      "get": {
+        "tags": [
+          "Attachments"
+        ],
+        "summary": "List Attachments",
+        "description": "List attachments (placeholder).",
+        "operationId": "list_attachments_attachments_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/attachments/upload": {
+      "post": {
+        "tags": [
+          "Attachments"
+        ],
+        "summary": "Upload Attachment",
+        "operationId": "upload_attachment_attachments_upload_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_attachment_attachments_upload_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttachmentDTO"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/attachments/{attachment_id}": {
+      "get": {
+        "tags": [
+          "Attachments"
+        ],
+        "summary": "Download Attachment",
+        "operationId": "download_attachment_attachments__attachment_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "attachment_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Attachment Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/moderator/checko/health": {
+      "get": {
+        "tags": [
+          "Checko"
+        ],
+        "summary": "Get Checko Health Endpoint",
+        "description": "Expose lightweight Checko integration status for UI prechecks.",
+        "operationId": "get_checko_health_endpoint_moderator_checko_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/moderator/checko/{inn}": {
+      "get": {
+        "tags": [
+          "Checko"
+        ],
+        "summary": "Get Checko Data Endpoint",
+        "operationId": "get_checko_data_endpoint_moderator_checko__inn__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "inn",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Inn"
+            }
+          },
+          {
+            "name": "force_refresh",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Force refresh from Checko API even if cache exists",
+              "default": false,
+              "title": "Force Refresh"
+            },
+            "description": "Force refresh from Checko API even if cache exists"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckoDataResponseDTO"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/domain-parser/moderation-domains": {
+      "get": {
+        "tags": [
+          "Domain Parser"
+        ],
+        "summary": "List Moderation Domains",
+        "description": "List globally blocked domains that require moderation.",
+        "operationId": "list_moderation_domains_domain_parser_moderation_domains_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 5000,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/domain-parser/extract-batch": {
+      "post": {
+        "tags": [
+          "Domain Parser"
+        ],
+        "summary": "Start Domain Parser Batch",
+        "description": "Start batch domain parsing for INN and email extraction.",
+        "operationId": "start_domain_parser_batch_domain_parser_extract_batch_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DomainParserRequestDTO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DomainParserBatchResponseDTO"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/domain-parser/status/{parserRunId}": {
+      "get": {
+        "tags": [
+          "Domain Parser"
+        ],
+        "summary": "Get Domain Parser Status",
+        "description": "Get status of domain parser run.",
+        "operationId": "get_domain_parser_status_domain_parser_status__parserRunId__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "parserRunId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Parserrunid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DomainParserStatusResponseDTO"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/learning/learn-manual-inn": {
+      "post": {
+        "tags": [
+          "Learning"
+        ],
+        "summary": "Learn Manual Inn",
+        "description": "Ручное обучение Domain Parser по ссылке, где найден ИНН.",
+        "operationId": "learn_manual_inn_learning_learn_manual_inn_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LearnManualInnRequestDTO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LearnManualInnResponseDTO"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/learning/statistics": {
+      "get": {
+        "tags": [
+          "Learning"
+        ],
+        "summary": "Get Learning Statistics",
+        "description": "Получить статистику обучения Domain Parser.",
+        "operationId": "get_learning_statistics_learning_statistics_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LearningStatisticsDTO"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/learning/learned-summary": {
+      "get": {
+        "tags": [
+          "Learning"
+        ],
+        "summary": "Get Learned Summary",
+        "description": "Получить краткую сводку выученных паттернов.",
+        "operationId": "get_learned_summary_learning_learned_summary_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/me": {
+      "get": {
+        "tags": [
+          "Authentication",
+          "authentication"
+        ],
+        "summary": "Me",
+        "description": "Return current user plus computed permissions.\n\nBackend is the source of truth for role/permissions.",
+        "operationId": "me_api_auth_me_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/auth/logout": {
+      "post": {
+        "tags": [
+          "Authentication",
+          "authentication"
+        ],
+        "summary": "Logout",
+        "description": "Выход пользователя (на стороне клиента нужно удалить токен)",
+        "operationId": "logout_api_auth_logout_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/status": {
+      "get": {
+        "tags": [
+          "Authentication",
+          "authentication"
+        ],
+        "summary": "Auth Status",
+        "description": "Проверка статуса аутентификации",
+        "operationId": "auth_status_api_auth_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/yandex-oauth": {
+      "post": {
+        "tags": [
+          "Authentication",
+          "authentication"
+        ],
+        "summary": "Yandex Oauth Login",
+        "description": "Регистрация или авторизация пользователя через Яндекс OAuth",
+        "operationId": "yandex_oauth_login_api_auth_yandex_oauth_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Payload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Token"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cabinet/requests/{request_id}/suppliers": {
+      "get": {
+        "tags": [
+          "Cabinet"
+        ],
+        "summary": "List Request Suppliers",
+        "operationId": "list_request_suppliers_cabinet_requests__request_id__suppliers_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Request Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RequestSupplierItemDTO"
+                  },
+                  "title": "Response List Request Suppliers Cabinet Requests  Request Id  Suppliers Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cabinet/requests/{request_id}": {
+      "get": {
+        "tags": [
+          "Cabinet"
+        ],
+        "summary": "Get User Request",
+        "operationId": "get_user_request_cabinet_requests__request_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Request Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CabinetParsingRequestDTO"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Cabinet"
+        ],
+        "summary": "Update User Request",
+        "operationId": "update_user_request_cabinet_requests__request_id__put",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Request Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CabinetParsingRequestUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CabinetParsingRequestDTO"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cabinet/requests/{request_id}/suppliers/send-bulk": {
+      "post": {
+        "tags": [
+          "Cabinet"
+        ],
+        "summary": "Send Request Email To Suppliers Bulk",
+        "operationId": "send_request_email_to_suppliers_bulk_cabinet_requests__request_id__suppliers_send_bulk_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Request Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendRequestEmailBulkPayload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SendRequestEmailBulkResponseDTO"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cabinet/requests/{request_id}/suppliers/{supplier_id}/messages": {
+      "get": {
+        "tags": [
+          "Cabinet"
+        ],
+        "summary": "Get Request Supplier Messages",
+        "operationId": "get_request_supplier_messages_cabinet_requests__request_id__suppliers__supplier_id__messages_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Request Id"
+            }
+          },
+          {
+            "name": "supplier_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Supplier Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RequestSupplierMessageDTO"
+                  },
+                  "title": "Response Get Request Supplier Messages Cabinet Requests  Request Id  Suppliers  Supplier Id  Messages Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cabinet/requests/{request_id}/suppliers/{supplier_id}/send": {
+      "post": {
+        "tags": [
+          "Cabinet"
+        ],
+        "summary": "Send Request Email To Supplier",
+        "operationId": "send_request_email_to_supplier_cabinet_requests__request_id__suppliers__supplier_id__send_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Request Id"
+            }
+          },
+          {
+            "name": "supplier_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Supplier Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendRequestEmailPayload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestSupplierItemDTO"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cabinet/requests/{request_id}/suppliers/{supplier_id}/simulate-reply": {
+      "post": {
+        "tags": [
+          "Cabinet"
+        ],
+        "summary": "Simulate Supplier Reply",
+        "operationId": "simulate_supplier_reply_cabinet_requests__request_id__suppliers__supplier_id__simulate_reply_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Request Id"
+            }
+          },
+          {
+            "name": "supplier_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Supplier Id"
+            }
+          },
+          {
+            "name": "body",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "Спасибо, отправим КП сегодня.",
+              "title": "Body"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestSupplierItemDTO"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cabinet/messages": {
+      "get": {
+        "tags": [
+          "Cabinet"
+        ],
+        "summary": "Get User Messages",
+        "description": "Get user email messages history.",
+        "operationId": "get_user_messages_cabinet_messages_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/EmailMessageDTO"
+                  },
+                  "type": "array",
+                  "title": "Response Get User Messages Cabinet Messages Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cabinet/messages/compose": {
+      "post": {
+        "tags": [
+          "Cabinet"
+        ],
+        "summary": "Compose Email",
+        "description": "Compose and send a new email.",
+        "operationId": "compose_email_cabinet_messages_compose_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmailComposeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailMessageDTO"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cabinet/settings": {
+      "get": {
+        "tags": [
+          "Cabinet"
+        ],
+        "summary": "Get User Settings",
+        "description": "Get user cabinet settings.",
+        "operationId": "get_user_settings_cabinet_settings_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserSettingsDTO"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "Cabinet"
+        ],
+        "summary": "Update User Settings",
+        "description": "Update user cabinet settings.",
+        "operationId": "update_user_settings_cabinet_settings_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserSettingsDTO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserSettingsDTO"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/cabinet/settings/change-password": {
+      "post": {
+        "tags": [
+          "Cabinet"
+        ],
+        "summary": "Change Password",
+        "description": "Change user password.",
+        "operationId": "change_password_cabinet_settings_change_password_post",
+        "parameters": [
+          {
+            "name": "old_password",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Old Password"
+            }
+          },
+          {
+            "name": "new_password",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "New Password"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cabinet/stats": {
+      "get": {
+        "tags": [
+          "Cabinet"
+        ],
+        "summary": "Get Cabinet Stats",
+        "description": "Get cabinet statistics for overview page.",
+        "operationId": "get_cabinet_stats_cabinet_stats_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cabinet/groq/status": {
+      "get": {
+        "tags": [
+          "Cabinet"
+        ],
+        "summary": "Get Groq Status",
+        "operationId": "get_groq_status_cabinet_groq_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/cabinet/requests": {
+      "get": {
+        "tags": [
+          "Cabinet"
+        ],
+        "summary": "List User Requests",
+        "operationId": "list_user_requests_cabinet_requests_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 50,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "submitted",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Submitted"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CabinetParsingRequestDTO"
+                  },
+                  "title": "Response List User Requests Cabinet Requests Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Cabinet"
+        ],
+        "summary": "Create User Request",
+        "operationId": "create_user_request_cabinet_requests_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CabinetParsingRequestCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CabinetParsingRequestDTO"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cabinet/requests/{request_id}/positions/upload": {
+      "post": {
+        "tags": [
+          "Cabinet"
+        ],
+        "summary": "Upload Request Positions With Engine Proof",
+        "operationId": "upload_request_positions_with_engine_proof_cabinet_requests__request_id__positions_upload_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Request Id"
+            }
+          },
+          {
+            "name": "engine",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "description": "auto | structured | ocr | docling",
+              "default": "auto",
+              "title": "Engine"
+            },
+            "description": "auto | structured | ocr | docling"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_request_positions_with_engine_proof_cabinet_requests__request_id__positions_upload_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CabinetParsingRequestDTO"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cabinet/requests/bulk-delete": {
+      "post": {
+        "tags": [
+          "Cabinet"
+        ],
+        "summary": "Bulk Delete User Requests",
+        "operationId": "bulk_delete_user_requests_cabinet_requests_bulk_delete_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CabinetParsingRequestBulkDelete"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CabinetParsingRequestBulkDeleteResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/cabinet/requests/{request_id}/submit": {
+      "post": {
+        "tags": [
+          "Cabinet"
+        ],
+        "summary": "Submit User Request",
+        "operationId": "submit_user_request_cabinet_requests__request_id__submit_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Request Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CabinetParsingRequestDTO"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mail/yandex/imap/folders": {
+      "post": {
+        "tags": [
+          "Mail"
+        ],
+        "summary": "Fetch Yandex Folders Status",
+        "description": "Return folder counters and mailbox mapping using IMAP LIST + STATUS.",
+        "operationId": "fetch_yandex_folders_status_api_mail_yandex_imap_folders_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IMAPFoldersRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/mail/yandex/smtp/send": {
+      "post": {
+        "tags": [
+          "Mail"
+        ],
+        "summary": "Send Yandex Email Smtp",
+        "description": "Send email via Yandex SMTP using OAuth2 (XOAUTH2).",
+        "operationId": "send_yandex_email_smtp_api_mail_yandex_smtp_send_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SMTPRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/mail/yandex/imap": {
+      "post": {
+        "tags": [
+          "Mail"
+        ],
+        "summary": "Fetch Yandex Emails Imap",
+        "description": "Fetch emails from Yandex using IMAP with OAuth2 token.",
+        "operationId": "fetch_yandex_emails_imap_api_mail_yandex_imap_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IMAPRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/mail/yandex/imap/{message_id}": {
+      "post": {
+        "tags": [
+          "Mail"
+        ],
+        "summary": "Fetch Yandex Email Imap Message",
+        "operationId": "fetch_yandex_email_imap_message_api_mail_yandex_imap__message_id__post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "message_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Message Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IMAPMessageRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mail/yandex/imap/{message_id}/unspam": {
+      "post": {
+        "tags": [
+          "Mail"
+        ],
+        "summary": "Unspam Yandex Email Imap Message",
+        "operationId": "unspam_yandex_email_imap_message_api_mail_yandex_imap__message_id__unspam_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "message_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Message Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IMAPMoveRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mail/yandex/test": {
+      "get": {
+        "tags": [
+          "Mail"
+        ],
+        "summary": "Test Imap Connection",
+        "description": "Test IMAP connection to Yandex.",
+        "operationId": "test_imap_connection_api_mail_yandex_test_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AddToBlacklistRequestDTO": {
+        "properties": {
+          "domain": {
+            "type": "string",
+            "title": "Domain"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "addedBy": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Addedby"
+          },
+          "parsingRunId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parsingrunid"
+          }
+        },
+        "type": "object",
+        "required": [
+          "domain"
+        ],
+        "title": "AddToBlacklistRequestDTO",
+        "description": "Request DTO for adding to blacklist."
+      },
+      "AttachDomainRequestDTO": {
+        "properties": {
+          "domain": {
+            "type": "string",
+            "title": "Domain"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          }
+        },
+        "type": "object",
+        "required": [
+          "domain"
+        ],
+        "title": "AttachDomainRequestDTO"
+      },
+      "AttachmentDTO": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "filename": {
+            "type": "string",
+            "title": "Filename"
+          },
+          "content_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content Type"
+          },
+          "size": {
+            "type": "integer",
+            "title": "Size"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "filename",
+          "size"
+        ],
+        "title": "AttachmentDTO"
+      },
+      "BlacklistEntryDTO": {
+        "properties": {
+          "domain": {
+            "type": "string",
+            "title": "Domain"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "added_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Added By"
+          },
+          "added_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Added At"
+          },
+          "parsing_run_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parsing Run Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "domain"
+        ],
+        "title": "BlacklistEntryDTO",
+        "description": "Blacklist entry DTO."
+      },
+      "BlacklistResponseDTO": {
+        "properties": {
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/BlacklistEntryDTO"
+            },
+            "type": "array",
+            "title": "Entries"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          }
+        },
+        "type": "object",
+        "required": [
+          "entries",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "BlacklistResponseDTO",
+        "description": "Response DTO for blacklist."
+      },
+      "Body_upload_attachment_attachments_upload_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "format": "binary",
+            "title": "File"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_upload_attachment_attachments_upload_post"
+      },
+      "Body_upload_request_positions_with_engine_proof_cabinet_requests__request_id__positions_upload_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "format": "binary",
+            "title": "File"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_upload_request_positions_with_engine_proof_cabinet_requests__request_id__positions_upload_post"
+      },
+      "CabinetParsingRequestBulkDelete": {
+        "properties": {
+          "ids": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Ids"
+          }
+        },
+        "type": "object",
+        "required": [
+          "ids"
+        ],
+        "title": "CabinetParsingRequestBulkDelete"
+      },
+      "CabinetParsingRequestBulkDeleteResult": {
+        "properties": {
+          "requested": {
+            "type": "integer",
+            "title": "Requested"
+          },
+          "deleted": {
+            "type": "integer",
+            "title": "Deleted"
+          },
+          "skipped_submitted": {
+            "type": "integer",
+            "title": "Skipped Submitted"
+          },
+          "not_found": {
+            "type": "integer",
+            "title": "Not Found"
+          }
+        },
+        "type": "object",
+        "required": [
+          "requested",
+          "deleted",
+          "skipped_submitted",
+          "not_found"
+        ],
+        "title": "CabinetParsingRequestBulkDeleteResult"
+      },
+      "CabinetParsingRequestCreate": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "keys": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Keys",
+            "default": []
+          },
+          "depth": {
+            "type": "integer",
+            "title": "Depth",
+            "default": 25
+          },
+          "source": {
+            "type": "string",
+            "title": "Source",
+            "default": "google"
+          },
+          "comment": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Comment"
+          }
+        },
+        "type": "object",
+        "required": [
+          "title"
+        ],
+        "title": "CabinetParsingRequestCreate"
+      },
+      "CabinetParsingRequestDTO": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "raw_keys_json": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Raw Keys Json"
+          },
+          "depth": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Depth"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source"
+          },
+          "comment": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Comment"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          },
+          "submitted_to_moderator": {
+            "type": "boolean",
+            "title": "Submitted To Moderator",
+            "default": false
+          },
+          "submitted_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Submitted At"
+          },
+          "request_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Request Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id"
+        ],
+        "title": "CabinetParsingRequestDTO"
+      },
+      "CabinetParsingRequestUpdate": {
+        "properties": {
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "keys": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Keys"
+          },
+          "depth": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Depth"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source"
+          },
+          "comment": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Comment"
+          }
+        },
+        "type": "object",
+        "title": "CabinetParsingRequestUpdate"
+      },
+      "CheckoDataResponseDTO": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "ogrn": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ogrn"
+          },
+          "kpp": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Kpp"
+          },
+          "okpo": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Okpo"
+          },
+          "companyStatus": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Companystatus"
+          },
+          "registrationDate": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Registrationdate"
+          },
+          "legalAddress": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Legaladdress"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
+          },
+          "website": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Website"
+          },
+          "vk": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vk"
+          },
+          "telegram": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Telegram"
+          },
+          "authorizedCapital": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Authorizedcapital"
+          },
+          "revenue": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revenue"
+          },
+          "profit": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profit"
+          },
+          "financeYear": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Financeyear"
+          },
+          "legalCasesCount": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Legalcasescount"
+          },
+          "legalCasesSum": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Legalcasessum"
+          },
+          "legalCasesAsPlaintiff": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Legalcasesasplaintiff"
+          },
+          "legalCasesAsDefendant": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Legalcasesasdefendant"
+          },
+          "checkoData": {
+            "type": "string",
+            "title": "Checkodata"
+          }
+        },
+        "type": "object",
+        "required": [
+          "checkoData"
+        ],
+        "title": "CheckoDataResponseDTO",
+        "description": "Response DTO for Checko data."
+      },
+      "ClearPendingDomainsRequest": {
+        "properties": {
+          "domains": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Domains"
+          }
+        },
+        "type": "object",
+        "title": "ClearPendingDomainsRequest"
+      },
+      "CreateKeywordRequestDTO": {
+        "properties": {
+          "keyword": {
+            "type": "string",
+            "title": "Keyword"
+          }
+        },
+        "type": "object",
+        "required": [
+          "keyword"
+        ],
+        "title": "CreateKeywordRequestDTO",
+        "description": "Request DTO for creating keyword."
+      },
+      "CreateModeratorSupplierRequestDTO": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "inn": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Inn"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "domain": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Domain"
+          },
+          "address": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Address"
+          },
+          "type": {
+            "type": "string",
+            "title": "Type",
+            "default": "supplier"
+          },
+          "allowDuplicateInn": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Allowduplicateinn"
+          },
+          "dataStatus": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Datastatus"
+          },
+          "domains": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Domains"
+          },
+          "emails": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Emails"
+          },
+          "ogrn": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ogrn"
+          },
+          "kpp": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Kpp"
+          },
+          "okpo": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Okpo"
+          },
+          "companyStatus": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Companystatus"
+          },
+          "registrationDate": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Registrationdate"
+          },
+          "legalAddress": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Legaladdress"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
+          },
+          "website": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Website"
+          },
+          "vk": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vk"
+          },
+          "telegram": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Telegram"
+          },
+          "authorizedCapital": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Authorizedcapital"
+          },
+          "revenue": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revenue"
+          },
+          "profit": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profit"
+          },
+          "financeYear": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Financeyear"
+          },
+          "legalCasesCount": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Legalcasescount"
+          },
+          "legalCasesSum": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Legalcasessum"
+          },
+          "legalCasesAsPlaintiff": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Legalcasesasplaintiff"
+          },
+          "legalCasesAsDefendant": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Legalcasesasdefendant"
+          },
+          "checkoData": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Checkodata"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "CreateModeratorSupplierRequestDTO",
+        "description": "Request DTO for creating supplier."
+      },
+      "CreateUserRequest": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "organization_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Organization Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "email"
+        ],
+        "title": "CreateUserRequest"
+      },
+      "DomainParserBatchResponseDTO": {
+        "properties": {
+          "runId": {
+            "type": "string",
+            "title": "Runid",
+            "description": "Parsing run ID"
+          },
+          "parserRunId": {
+            "type": "string",
+            "title": "Parserrunid",
+            "description": "Unique parser run ID"
+          }
+        },
+        "type": "object",
+        "required": [
+          "runId",
+          "parserRunId"
+        ],
+        "title": "DomainParserBatchResponseDTO",
+        "description": "Response for batch domain parsing."
+      },
+      "DomainParserQueueAheadRunDTO": {
+        "properties": {
+          "runId": {
+            "type": "string",
+            "title": "Runid"
+          },
+          "remainingDomains": {
+            "type": "integer",
+            "title": "Remainingdomains"
+          }
+        },
+        "type": "object",
+        "required": [
+          "runId",
+          "remainingDomains"
+        ],
+        "title": "DomainParserQueueAheadRunDTO"
+      },
+      "DomainParserRequestDTO": {
+        "properties": {
+          "runId": {
+            "type": "string",
+            "title": "Runid",
+            "description": "Parsing run ID"
+          },
+          "domains": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Domains",
+            "description": "List of domains to parse"
+          }
+        },
+        "type": "object",
+        "required": [
+          "runId",
+          "domains"
+        ],
+        "title": "DomainParserRequestDTO",
+        "description": "Request to parse domains for INN and email."
+      },
+      "DomainParserResultDTO": {
+        "properties": {
+          "domain": {
+            "type": "string",
+            "title": "Domain",
+            "description": "Domain name"
+          },
+          "inn": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Inn",
+            "description": "Extracted INN"
+          },
+          "emails": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Emails",
+            "description": "Extracted emails"
+          },
+          "sourceUrls": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Sourceurls",
+            "description": "URLs where data was found"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error",
+            "description": "Error message if parsing failed"
+          },
+          "conflictInn": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Conflictinn",
+            "description": "True if INN conflicts with existing supplier"
+          },
+          "conflictSupplierId": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Conflictsupplierid",
+            "description": "Existing supplier ID on INN conflict"
+          },
+          "supplierCreated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Suppliercreated",
+            "description": "Supplier was created automatically"
+          },
+          "supplierUpdated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Supplierupdated",
+            "description": "Supplier was updated automatically"
+          },
+          "dataStatus": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Datastatus",
+            "description": "Supplier data status if created/updated"
+          }
+        },
+        "type": "object",
+        "required": [
+          "domain"
+        ],
+        "title": "DomainParserResultDTO",
+        "description": "Result of parsing a single domain."
+      },
+      "DomainParserStatusResponseDTO": {
+        "properties": {
+          "runId": {
+            "type": "string",
+            "title": "Runid",
+            "description": "Parsing run ID"
+          },
+          "parserRunId": {
+            "type": "string",
+            "title": "Parserrunid",
+            "description": "Parser run ID"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "Status: running, completed, failed"
+          },
+          "processed": {
+            "type": "integer",
+            "title": "Processed",
+            "description": "Number of domains processed",
+            "default": 0
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total",
+            "description": "Total domains to process",
+            "default": 0
+          },
+          "currentDomain": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currentdomain",
+            "description": "Current domain being processed"
+          },
+          "currentSourceUrls": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Currentsourceurls",
+            "description": "Source URLs currently being checked"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/DomainParserResultDTO"
+            },
+            "type": "array",
+            "title": "Results",
+            "description": "Parsing results"
+          }
+        },
+        "type": "object",
+        "required": [
+          "runId",
+          "parserRunId",
+          "status"
+        ],
+        "title": "DomainParserStatusResponseDTO",
+        "description": "Status response for domain parser."
+      },
+      "DomainQueueEntryDTO": {
+        "properties": {
+          "domain": {
+            "type": "string",
+            "title": "Domain"
+          },
+          "keyword": {
+            "type": "string",
+            "title": "Keyword"
+          },
+          "url": {
+            "type": "string",
+            "title": "Url"
+          },
+          "parsing_run_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parsing Run Id"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source",
+            "description": "Source of the URL: google, yandex, or both"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "domain",
+          "keyword",
+          "url",
+          "status",
+          "created_at"
+        ],
+        "title": "DomainQueueEntryDTO",
+        "description": "Domain queue entry DTO."
+      },
+      "DomainsQueueResponseDTO": {
+        "properties": {
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/DomainQueueEntryDTO"
+            },
+            "type": "array",
+            "title": "Entries"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          }
+        },
+        "type": "object",
+        "required": [
+          "entries",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "DomainsQueueResponseDTO",
+        "description": "Response DTO for domains queue."
+      },
+      "EmailComposeRequest": {
+        "properties": {
+          "to_email": {
+            "type": "string",
+            "title": "To Email"
+          },
+          "subject": {
+            "type": "string",
+            "title": "Subject"
+          },
+          "body": {
+            "type": "string",
+            "title": "Body"
+          },
+          "attachments": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Attachments",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "to_email",
+          "subject",
+          "body"
+        ],
+        "title": "EmailComposeRequest"
+      },
+      "EmailMessageDTO": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "subject": {
+            "type": "string",
+            "title": "Subject"
+          },
+          "from_email": {
+            "type": "string",
+            "title": "From Email"
+          },
+          "to_email": {
+            "type": "string",
+            "title": "To Email"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "date": {
+            "type": "string",
+            "title": "Date"
+          },
+          "attachments_count": {
+            "type": "integer",
+            "title": "Attachments Count",
+            "default": 0
+          },
+          "body": {
+            "type": "string",
+            "title": "Body",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "subject",
+          "from_email",
+          "to_email",
+          "status",
+          "date"
+        ],
+        "title": "EmailMessageDTO"
+      },
+      "EnrichAllCheckoRequestDTO": {
+        "properties": {
+          "force_refresh": {
+            "type": "boolean",
+            "title": "Force Refresh",
+            "default": true
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "title": "EnrichAllCheckoRequestDTO"
+      },
+      "EnrichDomainRequest": {
+        "properties": {
+          "domain": {
+            "type": "string",
+            "title": "Domain"
+          }
+        },
+        "type": "object",
+        "required": [
+          "domain"
+        ],
+        "title": "EnrichDomainRequest"
+      },
+      "EnrichDomainResponse": {
+        "properties": {
+          "domain": {
+            "type": "string",
+            "title": "Domain"
+          },
+          "inn": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Inn"
+          },
+          "emails": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Emails",
+            "default": []
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          }
+        },
+        "type": "object",
+        "required": [
+          "domain",
+          "status"
+        ],
+        "title": "EnrichDomainResponse"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "HealthResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "default": "ok"
+          }
+        },
+        "type": "object",
+        "title": "HealthResponse",
+        "description": "Health check response."
+      },
+      "IMAPFoldersRequest": {
+        "properties": {
+          "access_token": {
+            "type": "string",
+            "title": "Access Token"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
+          }
+        },
+        "type": "object",
+        "required": [
+          "access_token",
+          "email"
+        ],
+        "title": "IMAPFoldersRequest"
+      },
+      "IMAPMessageRequest": {
+        "properties": {
+          "access_token": {
+            "type": "string",
+            "title": "Access Token"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "folder": {
+            "type": "string",
+            "title": "Folder",
+            "default": "INBOX"
+          }
+        },
+        "type": "object",
+        "required": [
+          "access_token",
+          "email"
+        ],
+        "title": "IMAPMessageRequest"
+      },
+      "IMAPMoveRequest": {
+        "properties": {
+          "access_token": {
+            "type": "string",
+            "title": "Access Token"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "source_folder": {
+            "type": "string",
+            "title": "Source Folder",
+            "default": "SPAM"
+          },
+          "target_folder": {
+            "type": "string",
+            "title": "Target Folder",
+            "default": "INBOX"
+          }
+        },
+        "type": "object",
+        "required": [
+          "access_token",
+          "email"
+        ],
+        "title": "IMAPMoveRequest"
+      },
+      "IMAPRequest": {
+        "properties": {
+          "access_token": {
+            "type": "string",
+            "title": "Access Token"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit",
+            "default": 20
+          },
+          "folder": {
+            "type": "string",
+            "title": "Folder",
+            "default": "INBOX"
+          }
+        },
+        "type": "object",
+        "required": [
+          "access_token",
+          "email"
+        ],
+        "title": "IMAPRequest",
+        "description": "IMAP request model."
+      },
+      "KeywordDTO": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "keyword": {
+            "type": "string",
+            "title": "Keyword"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "keyword",
+          "created_at"
+        ],
+        "title": "KeywordDTO",
+        "description": "Keyword DTO."
+      },
+      "KeywordsListResponseDTO": {
+        "properties": {
+          "keywords": {
+            "items": {
+              "$ref": "#/components/schemas/KeywordDTO"
+            },
+            "type": "array",
+            "title": "Keywords"
+          }
+        },
+        "type": "object",
+        "required": [
+          "keywords"
+        ],
+        "title": "KeywordsListResponseDTO",
+        "description": "Response DTO for keywords list."
+      },
+      "LearnManualInnRequestDTO": {
+        "properties": {
+          "runId": {
+            "type": "string",
+            "title": "Runid",
+            "description": "ID parsing run"
+          },
+          "domain": {
+            "type": "string",
+            "title": "Domain",
+            "description": "Домен для обучения"
+          },
+          "inn": {
+            "type": "string",
+            "title": "Inn",
+            "description": "ИНН, найденный вручную"
+          },
+          "sourceUrl": {
+            "type": "string",
+            "title": "Sourceurl",
+            "description": "URL страницы, где найден ИНН"
+          },
+          "learningSessionId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Learningsessionid",
+            "description": "ID сессии обучения"
+          }
+        },
+        "type": "object",
+        "required": [
+          "runId",
+          "domain",
+          "inn",
+          "sourceUrl"
+        ],
+        "title": "LearnManualInnRequestDTO",
+        "description": "Запрос на ручное обучение по ссылке с ИНН."
+      },
+      "LearnManualInnResponseDTO": {
+        "properties": {
+          "runId": {
+            "type": "string",
+            "title": "Runid",
+            "description": "ID parsing run"
+          },
+          "learningSessionId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Learningsessionid",
+            "description": "ID сессии обучения"
+          },
+          "learnedItems": {
+            "items": {
+              "$ref": "#/components/schemas/LearnedItemDTO"
+            },
+            "type": "array",
+            "title": "Learneditems",
+            "description": "Выученные элементы"
+          },
+          "statistics": {
+            "$ref": "#/components/schemas/LearningStatisticsDTO",
+            "description": "Статистика обучения"
+          }
+        },
+        "type": "object",
+        "required": [
+          "runId",
+          "statistics"
+        ],
+        "title": "LearnManualInnResponseDTO",
+        "description": "Ответ на ручное обучение по ИНН."
+      },
+      "LearnedItemDTO": {
+        "properties": {
+          "domain": {
+            "type": "string",
+            "title": "Domain",
+            "description": "Домен, на котором обучились"
+          },
+          "type": {
+            "type": "string",
+            "title": "Type",
+            "description": "Тип данных: 'inn' или 'email'"
+          },
+          "value": {
+            "type": "string",
+            "title": "Value",
+            "description": "Найденное значение (ИНН или Email)"
+          },
+          "sourceUrls": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Sourceurls",
+            "description": "URL источников, где найдены данные"
+          },
+          "urlPatterns": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Urlpatterns",
+            "description": "Выученные URL паттерны"
+          },
+          "learning": {
+            "type": "string",
+            "title": "Learning",
+            "description": "Описание того, чему научились"
+          }
+        },
+        "type": "object",
+        "required": [
+          "domain",
+          "type",
+          "value",
+          "learning"
+        ],
+        "title": "LearnedItemDTO",
+        "description": "Информация о выученном элементе."
+      },
+      "LearningStatisticsDTO": {
+        "properties": {
+          "totalLearned": {
+            "type": "integer",
+            "title": "Totallearned",
+            "description": "Всего выучено паттернов",
+            "default": 0
+          },
+          "successRateBefore": {
+            "type": "number",
+            "title": "Successratebefore",
+            "description": "Процент успеха до обучения",
+            "default": 0.0
+          },
+          "successRateAfter": {
+            "type": "number",
+            "title": "Successrateafter",
+            "description": "Процент успеха после обучения",
+            "default": 0.0
+          }
+        },
+        "type": "object",
+        "title": "LearningStatisticsDTO",
+        "description": "Статистика обучения."
+      },
+      "ModeratorDashboardStatsDTO": {
+        "properties": {
+          "domains_in_queue": {
+            "type": "integer",
+            "title": "Domains In Queue"
+          },
+          "enrichment_domains_in_queue": {
+            "type": "integer",
+            "title": "Enrichment Domains In Queue"
+          },
+          "new_suppliers": {
+            "type": "integer",
+            "title": "New Suppliers"
+          },
+          "new_suppliers_week": {
+            "type": "integer",
+            "title": "New Suppliers Week"
+          },
+          "active_runs": {
+            "type": "integer",
+            "title": "Active Runs"
+          },
+          "blacklist_count": {
+            "type": "integer",
+            "title": "Blacklist Count"
+          },
+          "open_tasks": {
+            "type": "integer",
+            "title": "Open Tasks"
+          }
+        },
+        "type": "object",
+        "required": [
+          "domains_in_queue",
+          "enrichment_domains_in_queue",
+          "new_suppliers",
+          "new_suppliers_week",
+          "active_runs",
+          "blacklist_count",
+          "open_tasks"
+        ],
+        "title": "ModeratorDashboardStatsDTO"
+      },
+      "ModeratorSupplierDTO": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "inn": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Inn"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "domain": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Domain"
+          },
+          "address": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Address"
+          },
+          "type": {
+            "type": "string",
+            "title": "Type",
+            "default": "supplier"
+          },
+          "allowDuplicateInn": {
+            "type": "boolean",
+            "title": "Allowduplicateinn",
+            "default": false
+          },
+          "dataStatus": {
+            "type": "string",
+            "title": "Datastatus",
+            "default": "complete"
+          },
+          "domains": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Domains"
+          },
+          "emails": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Emails"
+          },
+          "ogrn": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ogrn"
+          },
+          "kpp": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Kpp"
+          },
+          "okpo": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Okpo"
+          },
+          "companyStatus": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Companystatus"
+          },
+          "registrationDate": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Registrationdate"
+          },
+          "legalAddress": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Legaladdress"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
+          },
+          "website": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Website"
+          },
+          "vk": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vk"
+          },
+          "telegram": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Telegram"
+          },
+          "authorizedCapital": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Authorizedcapital"
+          },
+          "revenue": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revenue"
+          },
+          "profit": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profit"
+          },
+          "financeYear": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Financeyear"
+          },
+          "legalCasesCount": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Legalcasescount"
+          },
+          "legalCasesSum": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Legalcasessum"
+          },
+          "legalCasesAsPlaintiff": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Legalcasesasplaintiff"
+          },
+          "legalCasesAsDefendant": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Legalcasesasdefendant"
+          },
+          "checkoData": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Checkodata"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "ModeratorSupplierDTO",
+        "description": "Supplier DTO.",
+        "example": {
+          "financeYear": 2021,
+          "id": 1,
+          "legalAddress": "г. Санкт-Петербург",
+          "legalCasesCount": 1657,
+          "name": "Supplier Name",
+          "registrationDate": "2003-11-04"
+        }
+      },
+      "ModeratorSuppliersListResponseDTO": {
+        "properties": {
+          "suppliers": {
+            "items": {
+              "$ref": "#/components/schemas/ModeratorSupplierDTO"
+            },
+            "type": "array",
+            "title": "Suppliers"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          }
+        },
+        "type": "object",
+        "required": [
+          "suppliers",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "ModeratorSuppliersListResponseDTO",
+        "description": "Response DTO for suppliers list."
+      },
+      "ParsingRunDTO": {
+        "properties": {
+          "run_id": {
+            "type": "string",
+            "title": "Run Id"
+          },
+          "keyword": {
+            "type": "string",
+            "title": "Keyword"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "error_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Message"
+          },
+          "resultsCount": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resultscount"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          },
+          "depth": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Depth"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source",
+            "description": "Source for parsing: 'google', 'yandex', or 'both'"
+          },
+          "process_log": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Process Log",
+            "description": "Detailed parsing process information"
+          },
+          "domainParserQueueTotalDomains": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Domainparserqueuetotaldomains"
+          },
+          "domainParserQueueAheadDomains": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Domainparserqueueaheaddomains"
+          },
+          "domainParserQueueAheadRuns": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Domainparserqueueaheadruns"
+          },
+          "domainParserQueueRunDomains": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Domainparserqueuerundomains"
+          },
+          "domainParserQueueActiveRunId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Domainparserqueueactiverunid"
+          },
+          "domainParserQueueAheadList": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/DomainParserQueueAheadRunDTO"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Domainparserqueueaheadlist"
+          }
+        },
+        "type": "object",
+        "required": [
+          "run_id",
+          "keyword",
+          "status",
+          "created_at"
+        ],
+        "title": "ParsingRunDTO",
+        "description": "Parsing run DTO.",
+        "example": {
+          "createdAt": "2025-12-26T14:00:00Z",
+          "keyword": "test keyword",
+          "runId": "123e4567-e89b-12d3-a456-426614174000",
+          "startedAt": "2025-12-26T14:00:00Z",
+          "status": "running"
+        }
+      },
+      "ParsingRunsListResponseDTO": {
+        "properties": {
+          "runs": {
+            "items": {
+              "$ref": "#/components/schemas/ParsingRunDTO"
+            },
+            "type": "array",
+            "title": "Runs"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          }
+        },
+        "type": "object",
+        "required": [
+          "runs",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "ParsingRunsListResponseDTO",
+        "description": "Response DTO for parsing runs list."
+      },
+      "ParsingStatusResponseDTO": {
+        "properties": {
+          "run_id": {
+            "type": "string",
+            "title": "Run Id"
+          },
+          "keyword": {
+            "type": "string",
+            "title": "Keyword"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "error_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Message"
+          },
+          "resultsCount": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resultscount"
+          }
+        },
+        "type": "object",
+        "required": [
+          "run_id",
+          "keyword",
+          "status"
+        ],
+        "title": "ParsingStatusResponseDTO",
+        "description": "Response DTO for parsing status."
+      },
+      "PendingDomainDTO": {
+        "properties": {
+          "domain": {
+            "type": "string",
+            "title": "Domain"
+          },
+          "occurrences": {
+            "type": "integer",
+            "title": "Occurrences"
+          },
+          "last_seen_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Seen At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "domain",
+          "occurrences"
+        ],
+        "title": "PendingDomainDTO",
+        "description": "Pending domain DTO (not in blacklist and not a supplier)."
+      },
+      "PendingDomainsResponseDTO": {
+        "properties": {
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/PendingDomainDTO"
+            },
+            "type": "array",
+            "title": "Entries"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          }
+        },
+        "type": "object",
+        "required": [
+          "entries",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "PendingDomainsResponseDTO",
+        "description": "Response DTO for pending domains list."
+      },
+      "RequestSupplierItemDTO": {
+        "properties": {
+          "supplier_id": {
+            "type": "integer",
+            "title": "Supplier Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "emails": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Emails"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
+          },
+          "domain": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Domain"
+          },
+          "source_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Url"
+          },
+          "source_urls": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Urls"
+          },
+          "keyword_urls": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Keyword Urls"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "last_error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Error"
+          }
+        },
+        "type": "object",
+        "required": [
+          "supplier_id",
+          "name",
+          "status"
+        ],
+        "title": "RequestSupplierItemDTO"
+      },
+      "RequestSupplierMessageDTO": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "direction": {
+            "type": "string",
+            "title": "Direction"
+          },
+          "subject": {
+            "type": "string",
+            "title": "Subject"
+          },
+          "body": {
+            "type": "string",
+            "title": "Body"
+          },
+          "date": {
+            "type": "string",
+            "title": "Date"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "direction",
+          "subject",
+          "body",
+          "date"
+        ],
+        "title": "RequestSupplierMessageDTO"
+      },
+      "SMTPRequest": {
+        "properties": {
+          "access_token": {
+            "type": "string",
+            "title": "Access Token"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "to_email": {
+            "type": "string",
+            "title": "To Email"
+          },
+          "subject": {
+            "type": "string",
+            "title": "Subject"
+          },
+          "body": {
+            "type": "string",
+            "title": "Body"
+          }
+        },
+        "type": "object",
+        "required": [
+          "access_token",
+          "email",
+          "to_email",
+          "subject",
+          "body"
+        ],
+        "title": "SMTPRequest"
+      },
+      "SendRequestEmailBulkPayload": {
+        "properties": {
+          "supplier_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Supplier Ids"
+          },
+          "subject": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subject"
+          },
+          "body": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Body"
+          }
+        },
+        "type": "object",
+        "required": [
+          "supplier_ids"
+        ],
+        "title": "SendRequestEmailBulkPayload"
+      },
+      "SendRequestEmailBulkResponseDTO": {
+        "properties": {
+          "total_suppliers": {
+            "type": "integer",
+            "title": "Total Suppliers"
+          },
+          "total_emails": {
+            "type": "integer",
+            "title": "Total Emails"
+          },
+          "batches_sent": {
+            "type": "integer",
+            "title": "Batches Sent"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/SendRequestEmailBulkResultItemDTO"
+            },
+            "type": "array",
+            "title": "Results"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total_suppliers",
+          "total_emails",
+          "batches_sent",
+          "results"
+        ],
+        "title": "SendRequestEmailBulkResponseDTO"
+      },
+      "SendRequestEmailBulkResultItemDTO": {
+        "properties": {
+          "supplier_id": {
+            "type": "integer",
+            "title": "Supplier Id"
+          },
+          "ok": {
+            "type": "boolean",
+            "title": "Ok"
+          },
+          "emails": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Emails",
+            "default": []
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          }
+        },
+        "type": "object",
+        "required": [
+          "supplier_id",
+          "ok"
+        ],
+        "title": "SendRequestEmailBulkResultItemDTO"
+      },
+      "SendRequestEmailPayload": {
+        "properties": {
+          "subject": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subject"
+          },
+          "body": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Body"
+          }
+        },
+        "type": "object",
+        "title": "SendRequestEmailPayload"
+      },
+      "StartParsingRequestDTO": {
+        "properties": {
+          "keyword": {
+            "type": "string",
+            "title": "Keyword"
+          },
+          "depth": {
+            "type": "integer",
+            "title": "Depth",
+            "description": "Number of search result pages to parse (depth)",
+            "default": 50
+          },
+          "source": {
+            "type": "string",
+            "title": "Source",
+            "description": "Source for parsing: 'google', 'yandex', or 'both'",
+            "default": "google"
+          }
+        },
+        "type": "object",
+        "required": [
+          "keyword"
+        ],
+        "title": "StartParsingRequestDTO",
+        "description": "Request DTO for starting parsing."
+      },
+      "SupplierKeywordsResponseDTO": {
+        "properties": {
+          "keywords": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Keywords"
+          }
+        },
+        "type": "object",
+        "required": [
+          "keywords"
+        ],
+        "title": "SupplierKeywordsResponseDTO",
+        "description": "Response DTO for supplier keywords."
+      },
+      "Token": {
+        "properties": {
+          "access_token": {
+            "type": "string",
+            "title": "Access Token"
+          },
+          "token_type": {
+            "type": "string",
+            "title": "Token Type"
+          },
+          "user": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "User"
+          }
+        },
+        "type": "object",
+        "required": [
+          "access_token",
+          "token_type",
+          "user"
+        ],
+        "title": "Token"
+      },
+      "UpdateCabinetAccessRequest": {
+        "properties": {
+          "cabinet_access_enabled": {
+            "type": "boolean",
+            "title": "Cabinet Access Enabled"
+          }
+        },
+        "type": "object",
+        "required": [
+          "cabinet_access_enabled"
+        ],
+        "title": "UpdateCabinetAccessRequest"
+      },
+      "UpdateModeratorSupplierRequestDTO": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "inn": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Inn"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "domain": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Domain"
+          },
+          "address": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Address"
+          },
+          "type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Type"
+          },
+          "allowDuplicateInn": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Allowduplicateinn"
+          },
+          "dataStatus": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Datastatus"
+          },
+          "domains": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Domains"
+          },
+          "emails": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Emails"
+          },
+          "ogrn": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ogrn"
+          },
+          "kpp": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Kpp"
+          },
+          "okpo": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Okpo"
+          },
+          "companyStatus": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Companystatus"
+          },
+          "registrationDate": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Registrationdate"
+          },
+          "legalAddress": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Legaladdress"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
+          },
+          "website": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Website"
+          },
+          "vk": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vk"
+          },
+          "telegram": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Telegram"
+          },
+          "authorizedCapital": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Authorizedcapital"
+          },
+          "revenue": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revenue"
+          },
+          "profit": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profit"
+          },
+          "financeYear": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Financeyear"
+          },
+          "legalCasesCount": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Legalcasescount"
+          },
+          "legalCasesSum": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Legalcasessum"
+          },
+          "legalCasesAsPlaintiff": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Legalcasesasplaintiff"
+          },
+          "legalCasesAsDefendant": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Legalcasesasdefendant"
+          },
+          "checkoData": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Checkodata"
+          }
+        },
+        "type": "object",
+        "title": "UpdateModeratorSupplierRequestDTO",
+        "description": "Request DTO for updating supplier."
+      },
+      "UserAccessDTO": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "username": {
+            "type": "string",
+            "title": "Username"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "role": {
+            "type": "string",
+            "title": "Role"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active"
+          },
+          "cabinet_access_enabled": {
+            "type": "boolean",
+            "title": "Cabinet Access Enabled"
+          },
+          "organization_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Organization Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "username",
+          "role",
+          "is_active",
+          "cabinet_access_enabled"
+        ],
+        "title": "UserAccessDTO"
+      },
+      "UserSettingsDTO": {
+        "properties": {
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "app_password": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "App Password"
+          },
+          "two_fa_enabled": {
+            "type": "boolean",
+            "title": "Two Fa Enabled",
+            "default": true
+          },
+          "organization_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Organization Name"
+          },
+          "organization_verified": {
+            "type": "boolean",
+            "title": "Organization Verified",
+            "default": false
+          },
+          "openai_api_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Openai Api Key"
+          },
+          "openai_api_key_configured": {
+            "type": "boolean",
+            "title": "Openai Api Key Configured",
+            "default": false
+          },
+          "groq_api_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Groq Api Key"
+          },
+          "groq_api_key_configured": {
+            "type": "boolean",
+            "title": "Groq Api Key Configured",
+            "default": false
+          }
+        },
+        "type": "object",
+        "title": "UserSettingsDTO"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    },
+    "securitySchemes": {
+      "HTTPBearer": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    }
+  }
+}

@@ -1,0 +1,75 @@
+====================================================================================================
+BACKEND AUTH GREP EVIDENCE — AFTER HARDENING
+Generated: 2026-02-07 17:28 UTC+3
+Method: grep_search on d:\b2b\backend\app\transport\routers\*.py
+====================================================================================================
+
+1. FILES WITH get_current_user (Depends) — ALL 14 router files:
+   - auth.py                 — /me endpoint
+   - moderator_suppliers.py  — ALL endpoints
+   - moderator_users.py      — ALL endpoints
+   - keywords.py             — ALL endpoints
+   - blacklist.py            — ALL endpoints
+   - domains_queue.py        — ALL endpoints
+   - cabinet.py              — ALL endpoints
+   - parsing_runs.py         — ALL endpoints  (FIXED: was 0)
+   - parsing.py              — ALL endpoints  (FIXED: was 0)
+   - domain_parser.py        — ALL endpoints  (FIXED: was 0)
+   - learning.py             — ALL endpoints  (FIXED: was 0)
+   - mail.py                 — ALL endpoints  (FIXED: was 0)
+   - attachments.py          — ALL endpoints  (FIXED: was 0)
+   - checko.py               — ALL endpoints  (FIXED: was 0)
+
+2. FILES WITHOUT get_current_user:
+   - health.py               — intentionally public (/health)
+   - (no other files)
+
+3. _require_moderator UNIFICATION:
+   BEFORE:
+     - 5 local copies of _require_moderator in router files
+     - 2 copies with dev-bypass (moderator_users.py, domains_queue.py)
+     - 3 strict copies (keywords.py, blacklist.py, moderator_suppliers.py)
+   AFTER:
+     - 1 unified require_moderator in app/utils/authz.py (NO dev-bypass)
+     - 0 local def _require_moderator in any router file
+     - All 5 routers import from authz.py via: from app.utils.authz import require_moderator as _require_moderator
+     - 7 newly protected routers import directly: from app.utils.authz import require_moderator
+
+4. DEV-BYPASS STATUS:
+   BEFORE:
+     - moderator_users.py: if ENV == "development": return (BYPASS)
+     - domains_queue.py:   if ENV == "development": return (BYPASS)
+   AFTER:
+     - moderator_users.py: uses authz.require_moderator — NO bypass
+     - domains_queue.py:   uses authz.require_moderator — NO bypass
+   REMAINING "development" REFERENCES (safe — _require_debug only):
+     - blacklist.py:            _require_debug() for /blacklist-debug endpoint
+     - mail.py:                 _require_debug() for /mail/yandex/test endpoint
+     - moderator_suppliers.py:  _require_debug() for /suppliers/debug endpoints
+
+5. NEWLY CREATED FILES:
+   - app/utils/authz.py — Single source of truth for require_moderator
+
+6. MODIFIED FILES (code changes):
+   - app/transport/routers/parsing_runs.py    — added get_current_user + require_moderator to 6 endpoints
+   - app/transport/routers/parsing.py         — added get_current_user + require_moderator to 3 endpoints
+   - app/transport/routers/domain_parser.py   — added get_current_user + require_moderator to 3 endpoints
+   - app/transport/routers/learning.py        — added get_current_user + require_moderator to 3 endpoints
+   - app/transport/routers/mail.py            — added get_current_user + require_moderator to 6 endpoints
+   - app/transport/routers/attachments.py     — added get_current_user + require_moderator to 3 endpoints
+   - app/transport/routers/checko.py          — added get_current_user + require_moderator to 2 endpoints
+   - app/transport/routers/moderator_users.py — removed dev-bypass _require_moderator, replaced with authz import
+   - app/transport/routers/domains_queue.py   — removed dev-bypass _require_moderator, replaced with authz import
+   - app/transport/routers/keywords.py        — removed local _require_moderator, replaced with authz import
+   - app/transport/routers/blacklist.py       — removed local _require_moderator, replaced with authz import
+   - app/transport/routers/moderator_suppliers.py — removed local _require_moderator, replaced with authz import
+
+7. SECURITY GAP COUNT:
+   BEFORE: 26 public endpoints (7 router files × various endpoints)
+   AFTER:  0 unintended public endpoints
+
+   Intentionally public (4 total):
+     GET  /health                    — health check
+     POST /api/auth/yandex-oauth     — login
+     GET  /api/auth/status           — auth status check (returns false if no token)
+     POST /api/auth/logout           — stateless logout

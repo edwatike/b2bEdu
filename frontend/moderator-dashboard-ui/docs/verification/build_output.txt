@@ -1,0 +1,12 @@
+BUILD OUTPUT - FAILED
+
+Error: Cannot find package '@next/bundle-analyzer' imported from next.config.mjs
+
+TypeScript Errors Summary:
+- Missing @types/node (20+ errors)
+- Component type errors (15+ errors) 
+- Import/export errors (10+ errors)
+- Total: 46+ errors preventing build
+
+Lint Error:
+Invalid project directory provided, no such directory: D:\b2b\frontend\moderator-dashboard-ui\lint

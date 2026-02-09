@@ -1,0 +1,135 @@
+====================================================================================================
+ROUTE DUMP - FastAPI backend (STATIC ANALYSIS)
+Generated: 2026-02-07 17:05 UTC+3
+Method: grep @router.* + main.py include_router prefixes
+Source: d:\b2b\backend\app\transport\routers\*.py + d:\b2b\backend\app\main.py:1027-1072
+====================================================================================================
+
+METHOD     | FULL_PATH                                                    | FILE                           | AUTH: get_current_user | AUTH: _require_moderator
+---------- | ------------------------------------------------------------ | ------------------------------ | ---------------------- | ------------------------
+GET        | /health                                                      | health.py                      | NO                     | NO
+---------- | ------------------------------------------------------------ | ------------------------------ | ---------------------- | ------------------------
+GET        | /moderator/suppliers                                         | moderator_suppliers.py         | YES                    | YES
+GET        | /moderator/suppliers/{supplier_id}                            | moderator_suppliers.py         | YES                    | YES
+POST       | /moderator/suppliers                                         | moderator_suppliers.py         | YES                    | YES
+PUT        | /moderator/suppliers/{supplier_id}                            | moderator_suppliers.py         | YES                    | YES
+DELETE     | /moderator/suppliers/{supplier_id}                            | moderator_suppliers.py         | YES                    | YES
+POST       | /moderator/suppliers/{supplier_id}/attach-domain              | moderator_suppliers.py         | YES                    | YES
+GET        | /moderator/suppliers/{supplier_id}/keywords                   | moderator_suppliers.py         | YES                    | YES
+POST       | /moderator/suppliers/checko/enrich-all                        | moderator_suppliers.py         | YES                    | YES
+GET        | /moderator/suppliers/checko/enrich-all/status                 | moderator_suppliers.py         | YES                    | YES
+GET        | /moderator/suppliers-empty                                    | moderator_suppliers.py         | YES                    | YES (debug)
+GET        | /moderator/suppliers-debug                                    | moderator_suppliers.py         | YES                    | YES (debug)
+GET        | /moderator/suppliers-minimal                                  | moderator_suppliers.py         | YES                    | YES (debug)
+GET        | /moderator/suppliers-simple                                   | moderator_suppliers.py         | YES                    | YES (debug)
+GET        | /moderator/test                                               | moderator_suppliers.py         | YES                    | YES (debug)
+GET        | /moderator/suppliers-test                                     | moderator_suppliers.py         | YES                    | YES (debug)
+GET        | /moderator/suppliers-new                                      | moderator_suppliers.py         | YES                    | YES (debug)
+---------- | ------------------------------------------------------------ | ------------------------------ | ---------------------- | ------------------------
+GET        | /moderator/tasks                                              | moderator_users.py             | YES                    | YES
+GET        | /moderator/dashboard-stats                                    | moderator_users.py             | YES                    | YES
+GET        | /moderator/users                                              | moderator_users.py             | YES                    | YES
+PATCH      | /moderator/users/{user_id}/cabinet-access                     | moderator_users.py             | YES                    | YES
+POST       | /moderator/users                                              | moderator_users.py             | YES                    | YES
+DELETE     | /moderator/users/{user_id}                                    | moderator_users.py             | YES                    | YES
+---------- | ------------------------------------------------------------ | ------------------------------ | ---------------------- | ------------------------
+GET        | /keywords/                                                    | keywords.py                    | YES                    | YES
+POST       | /keywords/                                                    | keywords.py                    | YES                    | YES
+DELETE     | /keywords/{keyword_id}                                        | keywords.py                    | YES                    | YES
+---------- | ------------------------------------------------------------ | ------------------------------ | ---------------------- | ------------------------
+GET        | /moderator/blacklist-debug                                    | blacklist.py                   | YES                    | YES
+GET        | /moderator/blacklist                                          | blacklist.py                   | YES                    | YES
+POST       | /moderator/blacklist                                          | blacklist.py                   | YES                    | YES
+DELETE     | /moderator/blacklist/{domain}                                 | blacklist.py                   | YES                    | YES
+---------- | ------------------------------------------------------------ | ------------------------------ | ---------------------- | ------------------------
+GET        | /parsing/runs                                                 | parsing_runs.py                | NO <<<SECURITY GAP>>>  | NO
+GET        | /parsing/runs/{run_id}/logs                                   | parsing_runs.py                | NO <<<SECURITY GAP>>>  | NO
+PUT        | /parsing/runs/{run_id}/logs                                   | parsing_runs.py                | NO <<<SECURITY GAP>>>  | NO
+GET        | /parsing/runs/{run_id}                                        | parsing_runs.py                | NO <<<SECURITY GAP>>>  | NO
+DELETE     | /parsing/runs/bulk                                            | parsing_runs.py                | NO <<<SECURITY GAP>>>  | NO
+DELETE     | /parsing/runs/{run_id}                                        | parsing_runs.py                | NO <<<SECURITY GAP>>>  | NO
+---------- | ------------------------------------------------------------ | ------------------------------ | ---------------------- | ------------------------
+POST       | /parsing/start                                                | parsing.py                     | NO <<<SECURITY GAP>>>  | NO
+PUT        | /parsing/status/{run_id}                                      | parsing.py                     | NO <<<SECURITY GAP>>>  | NO
+GET        | /parsing/status/{run_id}                                      | parsing.py                     | NO <<<SECURITY GAP>>>  | NO
+---------- | ------------------------------------------------------------ | ------------------------------ | ---------------------- | ------------------------
+GET        | /domains/queue                                                | domains_queue.py               | YES                    | NO (reads only)
+DELETE     | /domains/queue/{domain}                                       | domains_queue.py               | YES                    | YES
+GET        | /domains/pending                                              | domains_queue.py               | YES                    | NO (reads only)
+POST       | /domains/pending/enrich                                       | domains_queue.py               | YES                    | YES
+DELETE     | /domains/pending/clear                                        | domains_queue.py               | YES                    | NO (body check)
+---------- | ------------------------------------------------------------ | ------------------------------ | ---------------------- | ------------------------
+GET        | /attachments                                                  | attachments.py                 | NO <<<SECURITY GAP>>>  | NO
+POST       | /attachments/upload                                           | attachments.py                 | NO <<<SECURITY GAP>>>  | NO
+GET        | /attachments/{attachment_id}                                   | attachments.py                 | NO <<<SECURITY GAP>>>  | NO
+---------- | ------------------------------------------------------------ | ------------------------------ | ---------------------- | ------------------------
+GET        | /moderator/checko/health                                      | checko.py                      | NO <<<SECURITY GAP>>>  | NO
+GET        | /moderator/checko/{inn}                                       | checko.py                      | NO <<<SECURITY GAP>>>  | NO
+---------- | ------------------------------------------------------------ | ------------------------------ | ---------------------- | ------------------------
+GET        | /domain-parser/moderation-domains                             | domain_parser.py               | NO <<<SECURITY GAP>>>  | NO
+POST       | /domain-parser/extract-batch                                  | domain_parser.py               | NO <<<SECURITY GAP>>>  | NO
+GET        | /domain-parser/status/{parserRunId}                           | domain_parser.py               | NO <<<SECURITY GAP>>>  | NO
+---------- | ------------------------------------------------------------ | ------------------------------ | ---------------------- | ------------------------
+POST       | /learning/learn-manual-inn                                    | learning.py                    | NO <<<SECURITY GAP>>>  | NO
+GET        | /learning/statistics                                          | learning.py                    | NO <<<SECURITY GAP>>>  | NO
+GET        | /learning/learned-summary                                     | learning.py                    | NO <<<SECURITY GAP>>>  | NO
+---------- | ------------------------------------------------------------ | ------------------------------ | ---------------------- | ------------------------
+GET        | /api/auth/me                                                  | auth.py                        | YES                    | NO (auth endpoint)
+POST       | /api/auth/login                                               | auth.py                        | NO (login endpoint)    | NO
+POST       | /api/auth/logout                                              | auth.py                        | NO (logout endpoint)   | NO
+GET        | /api/auth/status                                              | auth.py                        | NO (status endpoint)   | NO
+POST       | /api/auth/otp/request                                         | auth.py                        | NO (OTP endpoint)      | NO
+POST       | /api/auth/otp/verify                                          | auth.py                        | NO (OTP endpoint)      | NO
+---------- | ------------------------------------------------------------ | ------------------------------ | ---------------------- | ------------------------
+[cabinet.py routes - all have get_current_user]
+GET        | /cabinet/settings                                             | cabinet.py                     | YES                    | NO (user-level)
+PUT        | /cabinet/settings                                             | cabinet.py                     | YES                    | NO (user-level)
+GET        | /cabinet/groq/status                                          | cabinet.py                     | YES                    | NO (user-level)
+GET        | /cabinet/requests                                             | cabinet.py                     | YES                    | NO (user-level)
+POST       | /cabinet/requests                                             | cabinet.py                     | YES                    | NO (user-level)
+PUT        | /cabinet/requests/{request_id}                                | cabinet.py                     | YES                    | NO (user-level)
+DELETE     | /cabinet/requests/bulk                                        | cabinet.py                     | YES                    | NO (user-level)
+POST       | /cabinet/requests/{request_id}/submit                         | cabinet.py                     | YES                    | NO (user-level)
+POST       | /cabinet/requests/{request_id}/upload-file                    | cabinet.py                     | YES                    | NO (user-level)
+GET        | /cabinet/requests/{request_id}                                | cabinet.py                     | YES                    | NO (user-level)
+GET        | /cabinet/requests/{request_id}/suppliers                      | cabinet.py                     | YES                    | NO (user-level)
+POST       | /cabinet/requests/{request_id}/suppliers/{supplier_id}/email  | cabinet.py                     | YES                    | NO (user-level)
+POST       | /cabinet/requests/{request_id}/email-bulk                     | cabinet.py                     | YES                    | NO (user-level)
+GET        | /cabinet/requests/{request_id}/suppliers/{supplier_id}/messages | cabinet.py                   | YES                    | NO (user-level)
+---------- | ------------------------------------------------------------ | ------------------------------ | ---------------------- | ------------------------
+[mail.py routes - NO get_current_user]
+POST       | /api/mail/yandex/imap/folders                                 | mail.py                        | NO <<<SECURITY GAP>>>  | NO
+POST       | /api/mail/yandex/smtp/send                                    | mail.py                        | NO <<<SECURITY GAP>>>  | NO
+POST       | /api/mail/yandex/imap/messages                                | mail.py                        | NO <<<SECURITY GAP>>>  | NO
+GET        | /api/mail/yandex/imap/message/{uid}                           | mail.py                        | NO <<<SECURITY GAP>>>  | NO
+POST       | /api/mail/yandex/imap/move-to-spam                            | mail.py                        | NO <<<SECURITY GAP>>>  | NO
+POST       | /api/mail/yandex/imap/unspam                                  | mail.py                        | NO <<<SECURITY GAP>>>  | NO
+
+====================================================================================================
+SUMMARY
+====================================================================================================
+
+PROTECTED (get_current_user + _require_moderator):
+  /moderator/suppliers/*     - ALL endpoints
+  /moderator/users/*         - ALL endpoints  
+  /moderator/blacklist*      - ALL endpoints
+  /keywords/*                - ALL endpoints
+  /domains/*                 - ALL endpoints (get_current_user; write = _require_moderator)
+
+PROTECTED (get_current_user only, no moderator check):
+  /cabinet/*                 - ALL endpoints (user-level auth)
+  /api/auth/me               - 1 endpoint
+
+PUBLIC (NO AUTH) - SECURITY GAPS:
+  /parsing/*                 - 9 endpoints (runs CRUD + start + status + logs) <<<P0 CRITICAL>>>
+  /domain-parser/*           - 3 endpoints (extract-batch, status, moderation-domains) <<<P0 CRITICAL>>>
+  /learning/*                - 3 endpoints (learn-manual-inn, statistics, summary) <<<P0 CRITICAL>>>
+  /moderator/checko/*        - 2 endpoints (health, {inn} lookup) <<<P1 HIGH>>>
+  /attachments/*             - 3 endpoints (list, upload, download) <<<P1 HIGH>>>
+  /api/mail/yandex/*         - 6 endpoints (IMAP/SMTP operations) <<<P0 CRITICAL>>>
+  /health                    - 1 endpoint (acceptable)
+  /api/auth/*                - 5 endpoints (login/logout/otp - acceptable)
+
+TOTAL PUBLIC SECURITY GAPS: 26 endpoints without authentication
+  P0 CRITICAL: 21 endpoints (parsing, domain-parser, learning, mail)
+  P1 HIGH: 5 endpoints (checko, attachments)

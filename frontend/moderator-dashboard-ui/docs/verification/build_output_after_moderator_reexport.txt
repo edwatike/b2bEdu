@@ -1,0 +1,80 @@
+
+> moderator-dashboard-ui@1.0.0 build
+> next build
+
+▲ Next.js 16.1.4 (Turbopack)
+- Environments: .env.local
+- Experiments (use with caution):
+  ✓ optimizeCss
+  · optimizePackageImports
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 9.4s
+  Running TypeScript ...
+  Collecting page data using 15 workers ...
+  Generating static pages using 15 workers (0/44) ...
+  Generating static pages using 15 workers (11/44) 
+  Generating static pages using 15 workers (22/44) 
+  Generating static pages using 15 workers (33/44) 
+✓ Generating static pages using 15 workers (44/44) in 836.0ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ƒ /api/attachments/[id]
+├ ƒ /api/auth/login
+├ ƒ /api/auth/logout
+├ ƒ /api/auth/me
+├ ƒ /api/auth/otp/request
+├ ƒ /api/auth/otp/verify
+├ ƒ /api/auth/status
+├ ƒ /api/proxy/[...path]
+├ ƒ /api/yandex/callback
+├ ƒ /api/yandex/check-cookies
+├ ƒ /api/yandex/debug
+├ ƒ /api/yandex/debug-cookies
+├ ƒ /api/yandex/disconnect
+├ ƒ /api/yandex/folders
+├ ƒ /api/yandex/login
+├ ƒ /api/yandex/mail
+├ ƒ /api/yandex/mail/[id]
+├ ƒ /api/yandex/mail/[id]/unspam
+├ ƒ /api/yandex/mail/debug
+├ ƒ /api/yandex/status
+├ ○ /blacklist
+├ ○ /cabinet
+├ ○ /cabinet/login
+├ ○ /cabinet/messages
+├ ○ /cabinet/overview
+├ ○ /cabinet/requests
+├ ƒ /cabinet/requests/[id]
+├ ○ /cabinet/requests/all
+├ ○ /cabinet/requests/drafts
+├ ○ /cabinet/results
+├ ○ /cabinet/settings
+├ ○ /domains
+├ ○ /keywords
+├ ○ /login
+├ ○ /manual-parsing
+├ ○ /moderator
+├ ○ /moderator/suppliers
+├ ○ /moderator/tasks
+├ ○ /moderator/users
+├ ○ /parsing-runs
+├ ƒ /parsing-runs/[runId]
+├ ○ /robots.txt
+├ ○ /settings
+├ ○ /sitemap.xml
+├ ○ /suppliers
+├ ƒ /suppliers/[id]
+├ ƒ /suppliers/[id]/edit
+├ ○ /suppliers/new
+└ ○ /users
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

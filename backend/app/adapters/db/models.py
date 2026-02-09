@@ -1,0 +1,459 @@
+"""SQLAlchemy database models."""
+from datetime import datetime, date
+from typing import Optional
+from sqlalchemy import (
+    String, Integer, BigInteger, Text, Date, JSON,
+    ForeignKey, UniqueConstraint, Index, LargeBinary, Boolean
+)
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from sqlalchemy.sql import func
+
+
+class Base(DeclarativeBase):
+    """Base class for all models."""
+    pass
+
+
+class ModeratorSupplierModel(Base):
+    """Model for moderator suppliers table."""
+    __tablename__ = "moderator_suppliers"
+    
+    # Primary key
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    
+    # Basic fields
+    name: Mapped[str] = mapped_column(String(500), nullable=False)
+    inn: Mapped[Optional[str]] = mapped_column(String(12), nullable=True)
+    email: Mapped[Optional[str]] = mapped_column(String(320), nullable=True)
+    domain: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    address: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    type: Mapped[str] = mapped_column(String(32), nullable=False, default="candidate")
+    allow_duplicate_inn: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    data_status: Mapped[str] = mapped_column(String(32), nullable=False, default="requires_moderation")
+    
+    # Checko requisites
+    ogrn: Mapped[Optional[str]] = mapped_column(String(15), nullable=True)
+    kpp: Mapped[Optional[str]] = mapped_column(String(9), nullable=True)
+    okpo: Mapped[Optional[str]] = mapped_column(String(10), nullable=True)
+    company_status: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    registration_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    legal_address: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    
+    # Checko contacts
+    phone: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    website: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    vk: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    telegram: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    
+    # Financial data
+    authorized_capital: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
+    revenue: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
+    profit: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
+    finance_year: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    
+    # Legal cases
+    legal_cases_count: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    legal_cases_sum: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
+    legal_cases_as_plaintiff: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    legal_cases_as_defendant: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    
+    # Full Checko data (compressed JSON, gzip)
+    checko_data: Mapped[Optional[bytes]] = mapped_column(LargeBinary, nullable=True)
+    
+    # Metadata
+    created_at: Mapped[datetime] = mapped_column(
+        server_default=func.now(),
+        nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False
+    )
+    
+    # Relationships
+    keywords: Mapped[list["SupplierKeywordModel"]] = relationship(
+        "SupplierKeywordModel",
+        back_populates="supplier",
+        cascade="all, delete-orphan"
+    )
+    domains: Mapped[list["SupplierDomainModel"]] = relationship(
+        "SupplierDomainModel",
+        back_populates="supplier",
+        cascade="all, delete-orphan"
+    )
+    emails: Mapped[list["SupplierEmailModel"]] = relationship(
+        "SupplierEmailModel",
+        back_populates="supplier",
+        cascade="all, delete-orphan"
+    )
+    
+    # Indexes
+    __table_args__ = (
+        Index("idx_suppliers_inn", "inn"),
+        Index("idx_suppliers_domain", "domain"),
+        Index("idx_suppliers_type", "type"),
+    )
+
+
+class SupplierDomainModel(Base):
+    """Domains associated with a supplier."""
+    __tablename__ = "supplier_domains"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    supplier_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("moderator_suppliers.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    domain: Mapped[str] = mapped_column(String(255), nullable=False)
+    is_primary: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    created_at: Mapped[datetime] = mapped_column(
+        server_default=func.now(),
+        nullable=False
+    )
+
+    supplier: Mapped["ModeratorSupplierModel"] = relationship(
+        "ModeratorSupplierModel",
+        back_populates="domains"
+    )
+
+    __table_args__ = (
+        UniqueConstraint("supplier_id", "domain", name="uq_supplier_domains_supplier_domain"),
+        Index("idx_supplier_domains_domain", "domain"),
+    )
+
+
+class SupplierEmailModel(Base):
+    """Emails associated with a supplier."""
+    __tablename__ = "supplier_emails"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    supplier_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("moderator_suppliers.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    email: Mapped[str] = mapped_column(String(320), nullable=False)
+    is_primary: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    created_at: Mapped[datetime] = mapped_column(
+        server_default=func.now(),
+        nullable=False
+    )
+
+    supplier: Mapped["ModeratorSupplierModel"] = relationship(
+        "ModeratorSupplierModel",
+        back_populates="emails"
+    )
+
+    __table_args__ = (
+        UniqueConstraint("supplier_id", "email", name="uq_supplier_emails_supplier_email"),
+        Index("idx_supplier_emails_email", "email"),
+    )
+
+
+class KeywordModel(Base):
+    """Model for keywords table."""
+    __tablename__ = "keywords"
+    
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    keyword: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
+    created_at: Mapped[datetime] = mapped_column(
+        server_default=func.now(),
+        nullable=False
+    )
+    
+    # Relationships
+    suppliers: Mapped[list["SupplierKeywordModel"]] = relationship(
+        "SupplierKeywordModel",
+        back_populates="keyword"
+    )
+    
+    # Indexes
+    __table_args__ = (
+        Index("idx_keywords_keyword", "keyword"),
+    )
+
+
+class SupplierKeywordModel(Base):
+    """Model for supplier_keywords junction table."""
+    __tablename__ = "supplier_keywords"
+    
+    supplier_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("moderator_suppliers.id", ondelete="CASCADE"),
+        primary_key=True
+    )
+    keyword_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("keywords.id", ondelete="CASCADE"),
+        primary_key=True
+    )
+    url_count: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    parsing_run_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    first_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        server_default=func.now(),
+        nullable=False
+    )
+    
+    # Relationships
+    supplier: Mapped["ModeratorSupplierModel"] = relationship(
+        "ModeratorSupplierModel",
+        back_populates="keywords"
+    )
+    keyword: Mapped["KeywordModel"] = relationship(
+        "KeywordModel",
+        back_populates="suppliers"
+    )
+
+
+class BlacklistModel(Base):
+    """Model for blacklist table."""
+    __tablename__ = "blacklist"
+    
+    domain: Mapped[str] = mapped_column(String(255), primary_key=True)
+    reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    added_by: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    added_at: Mapped[datetime] = mapped_column(
+        server_default=func.now(),
+        nullable=False
+    )
+    parsing_run_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    
+    # Indexes
+    __table_args__ = (
+        Index("idx_blacklist_domain", "domain"),
+    )
+
+
+class DomainModerationModel(Base):
+    """Domains that require manual moderation and must be skipped by auto enrichment globally."""
+    __tablename__ = "domain_moderation"
+
+    domain: Mapped[str] = mapped_column(String(255), primary_key=True)
+    status: Mapped[str] = mapped_column(String(32), nullable=False, default="requires_moderation")
+    reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        server_default=func.now(),
+        nullable=False
+    )
+
+    __table_args__ = (
+        Index("idx_domain_moderation_domain", "domain"),
+        Index("idx_domain_moderation_status", "status"),
+    )
+
+
+class ParsingRequestModel(Base):
+    """Model for parsing_requests table."""
+    __tablename__ = "parsing_requests"
+    
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    created_at: Mapped[datetime] = mapped_column(
+        server_default=func.now(),
+        nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False
+    )
+    created_by: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    raw_keys_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    depth: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    source: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
+    comment: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    title: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+
+
+class ParsingRunModel(Base):
+    """Model for parsing_runs table."""
+    __tablename__ = "parsing_runs"
+    
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    run_id: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
+    request_id: Mapped[int] = mapped_column(Integer, ForeignKey("parsing_requests.id", ondelete="CASCADE"), nullable=False)
+    parser_task_id: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
+    status: Mapped[str] = mapped_column(String(32), nullable=False)
+    depth: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    source: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        server_default=func.now(),
+        nullable=False
+    )
+    started_at: Mapped[Optional[datetime]] = mapped_column(nullable=True)
+    finished_at: Mapped[Optional[datetime]] = mapped_column(nullable=True)
+    error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    results_count: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    process_log: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)  # JSON object with parsing process details
+    
+    # Relationship
+    request: Mapped[Optional["ParsingRequestModel"]] = relationship("ParsingRequestModel", lazy="select")
+    
+    # Indexes
+    __table_args__ = (
+        Index("idx_parsing_runs_status", "status"),
+        Index("idx_parsing_runs_run_id", "run_id"),
+    )
+
+
+class DomainQueueModel(Base):
+    """Model for domains_queue table."""
+    __tablename__ = "domains_queue"
+    
+    # Primary key changed from domain to id to allow same domain for different keywords
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    domain: Mapped[str] = mapped_column(String(255), nullable=False)
+    keyword: Mapped[str] = mapped_column(String(255), nullable=False)
+    url: Mapped[str] = mapped_column(Text, nullable=False)
+    parsing_run_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    source: Mapped[Optional[str]] = mapped_column(String(32), nullable=True, default="google")  # google, yandex, or both
+    status: Mapped[str] = mapped_column(
+        String(50),
+        nullable=False,
+        default="pending"
+    )  # pending, processing, completed, failed
+    created_at: Mapped[datetime] = mapped_column(
+        server_default=func.now(),
+        nullable=False
+    )
+    
+    # Indexes and unique constraint
+    # IMPORTANT: Same domain can appear for different keywords and parsing runs
+    # Unique constraint ensures no duplicates for (domain, keyword, parsing_run_id)
+    __table_args__ = (
+        Index("idx_domains_queue_status", "status"),
+        Index("idx_domains_queue_keyword", "keyword"),
+        Index("idx_domains_queue_parsing_run_id", "parsing_run_id"),
+        Index("idx_domains_queue_domain_keyword", "domain", "keyword"),
+        UniqueConstraint("domain", "keyword", "parsing_run_id", name="uq_domains_queue_domain_keyword_run"),
+    )
+
+
+class RecognitionCacheModel(Base):
+    """Cache for GROQ recognition results to avoid repeated API calls."""
+    __tablename__ = "recognition_cache"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+
+    # Cache key: SHA256 hash of text + model name
+    text_hash: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    model: Mapped[str] = mapped_column(String(100), nullable=False)
+
+    # Cached result
+    result_json: Mapped[str] = mapped_column(Text, nullable=False)  # JSON array of names
+    usage_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # JSON object with token usage
+
+    # Statistics
+    hit_count: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        server_default=func.now(),
+        nullable=False
+    )
+    last_accessed_at: Mapped[datetime] = mapped_column(
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False
+    )
+
+    # Indexes
+    __table_args__ = (
+        Index("idx_recognition_cache_hash_model", "text_hash", "model", unique=True),
+        Index("idx_recognition_cache_created_at", "created_at"),
+        Index("idx_recognition_cache_last_accessed", "last_accessed_at"),
+    )
+
+
+class RunDomainModel(Base):
+    """Per-run domain status tracking for 'Текущая задача' UI block."""
+    __tablename__ = "run_domains"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    run_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    domain: Mapped[str] = mapped_column(String(255), nullable=False)
+    status: Mapped[str] = mapped_column(String(32), nullable=False, default="pending")
+    reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    attempted_urls: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    inn_source_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    email_source_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    # Parser results storage
+    parsed_inn: Mapped[Optional[str]] = mapped_column(String(12), nullable=True)
+    parsed_emails: Mapped[Optional[list]] = mapped_column(JSON, nullable=True)
+    extraction_log: Mapped[Optional[list]] = mapped_column(JSON, nullable=True)
+    parser_error: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    # Learning tracking - previous values before re-parse
+    previous_inn: Mapped[Optional[str]] = mapped_column(String(12), nullable=True)
+    previous_emails: Mapped[Optional[list]] = mapped_column(JSON, nullable=True)
+    learned: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    supplier_id: Mapped[Optional[int]] = mapped_column(
+        Integer,
+        ForeignKey("moderator_suppliers.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    checko_ok: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    global_requires_moderation: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    created_at: Mapped[datetime] = mapped_column(
+        server_default=func.now(),
+        nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False
+    )
+
+    __table_args__ = (
+        UniqueConstraint("run_id", "domain", name="uq_run_domains_run_domain"),
+        Index("idx_run_domains_run_id", "run_id"),
+        Index("idx_run_domains_status", "status"),
+        Index("idx_run_domains_domain", "domain"),
+        Index("idx_run_domains_supplier_id", "supplier_id"),
+    )
+
+
+class ModeratorTaskModel(Base):
+    """Model for moderator_tasks table (user parsing requests awaiting moderation)."""
+    __tablename__ = "moderator_tasks"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    request_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    created_by: Mapped[int] = mapped_column(Integer, nullable=False)
+    title: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    status: Mapped[str] = mapped_column(String(32), nullable=False, default="new")
+    source: Mapped[str] = mapped_column(String(16), nullable=False, default="google")
+    depth: Mapped[int] = mapped_column(Integer, nullable=False, default=30)
+    created_at: Mapped[datetime] = mapped_column(
+        server_default=func.now(),
+        nullable=False
+    )
+
+    __table_args__ = (
+        Index("idx_moderator_tasks_status", "status"),
+        Index("idx_moderator_tasks_created_at", "created_at"),
+    )
+
+
+class AuditLogModel(Base):
+    """Model for audit_log table."""
+    __tablename__ = "audit_log"
+    
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    table_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    operation: Mapped[str] = mapped_column(String(10), nullable=False)  # INSERT, UPDATE, DELETE
+    record_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    old_data: Mapped[Optional[dict]] = mapped_column(Text, nullable=True)  # JSONB as Text for now
+    new_data: Mapped[Optional[dict]] = mapped_column(Text, nullable=True)  # JSONB as Text for now
+    changed_by: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    changed_at: Mapped[datetime] = mapped_column(
+        server_default=func.now(),
+        nullable=False
+    )
+    
+    # Indexes
+    __table_args__ = (
+        Index("idx_audit_log_table_name", "table_name"),
+        Index("idx_audit_log_operation", "operation"),
+        Index("idx_audit_log_record_id", "record_id"),
+        Index("idx_audit_log_changed_at", "changed_at"),
+    )
