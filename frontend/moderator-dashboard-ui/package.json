@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "build": "next build --webpack",
-    "clean": "rm -rf .next || powershell -NoProfile -Command \"$ErrorActionPreference='SilentlyContinue'; Remove-Item -LiteralPath .next -Recurse -Force -Confirm:$false\"",
+    "clean": "powershell -NoProfile -Command \"$ErrorActionPreference='SilentlyContinue'; Remove-Item -LiteralPath .next -Recurse -Force -Confirm:$false\"",
     "dev": "set NODE_ENV=development&& next dev --webpack",
     "dev:webpack": "set NODE_ENV=development&& next dev --webpack",
     "dev:safe": "set NODE_ENV=development&& set NODE_OPTIONS=--max-old-space-size=2048&& next dev --webpack",
