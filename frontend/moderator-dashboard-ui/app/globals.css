@@ -184,3 +184,215 @@
 .bg-gradient-blue {
   background: linear-gradient(to bottom right, rgb(239 246 255), rgb(219 234 254));
 }
+
+.uv-search {
+  position: relative;
+}
+
+.uv-search .uv-poda {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.uv-search .uv-main {
+  position: relative;
+}
+
+.uv-search .uv-grid {
+  height: 800px;
+  width: 800px;
+  background-image: linear-gradient(to right, #0f0f10 1px, transparent 1px),
+    linear-gradient(to bottom, #0f0f10 1px, transparent 1px);
+  background-size: 1rem 1rem;
+  background-position: center center;
+  position: absolute;
+  z-index: -1;
+  filter: blur(1px);
+}
+
+.uv-search .uv-white,
+.uv-search .uv-border,
+.uv-search .uv-darkBorderBg,
+.uv-search .uv-glow {
+  height: 100%;
+  width: 100%;
+  position: absolute;
+  overflow: hidden;
+  z-index: -1;
+  border-radius: 12px;
+  filter: blur(3px);
+}
+
+.uv-search .uv-input {
+  background-color: #010201;
+  border: none;
+  width: 301px;
+  height: 56px;
+  border-radius: 10px;
+  color: white;
+  padding-inline: 59px;
+  font-size: 18px;
+}
+
+.uv-search .uv-input::placeholder {
+  color: #c0b9c0;
+}
+
+.uv-search .uv-input:focus {
+  outline: none;
+}
+
+.uv-search .uv-main:focus-within > .uv-input-mask {
+  display: none;
+}
+
+.uv-search .uv-input-mask {
+  pointer-events: none;
+  width: 100px;
+  height: 20px;
+  position: absolute;
+  background: linear-gradient(90deg, transparent, black);
+  top: 18px;
+  left: 70px;
+}
+
+.uv-search .uv-pink-mask {
+  pointer-events: none;
+  width: 30px;
+  height: 20px;
+  position: absolute;
+  background: #cf30aa;
+  top: 10px;
+  left: 5px;
+  filter: blur(20px);
+  opacity: 0.8;
+  transition: all 2s;
+}
+
+.uv-search .uv-main:hover > .uv-pink-mask {
+  opacity: 0;
+}
+
+.uv-search .uv-filterBorder {
+  height: 42px;
+  width: 40px;
+  position: absolute;
+  overflow: hidden;
+  top: 7px;
+  right: 7px;
+  border-radius: 10px;
+}
+
+.uv-search .uv-filterBorder::before {
+  content: "";
+  text-align: center;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(90deg);
+  position: absolute;
+  width: 600px;
+  height: 600px;
+  background-repeat: no-repeat;
+  background-position: 0 0;
+  filter: brightness(1.35);
+  background-image: conic-gradient(
+    rgba(0, 0, 0, 0),
+    #3d3a4f,
+    rgba(0, 0, 0, 0) 50%,
+    rgba(0, 0, 0, 0) 50%,
+    #3d3a4f,
+    rgba(0, 0, 0, 0) 100%
+  );
+  animation: uv-rotate 4s linear infinite;
+}
+
+.uv-search .uv-filter-icon {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  max-height: 40px;
+  max-width: 38px;
+  height: 100%;
+  width: 100%;
+  isolation: isolate;
+  overflow: hidden;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #161329, black, #1d1b4b);
+  border: 1px solid transparent;
+}
+
+.uv-search .uv-search-icon {
+  position: absolute;
+  left: 20px;
+  top: 15px;
+}
+
+@keyframes uv-rotate {
+  100% {
+    transform: translate(-50%, -50%) rotate(450deg);
+  }
+}
+
+.uv-cb {
+  display: inline-flex;
+  position: relative;
+  cursor: pointer;
+  user-select: none;
+}
+
+.uv-cb input {
+  position: absolute;
+  opacity: 0;
+  cursor: pointer;
+  height: 0;
+  width: 0;
+}
+
+.uv-cb .uv-cb-checkmark {
+  position: relative;
+  top: 0;
+  left: 0;
+  height: 1.3em;
+  width: 1.3em;
+  background: black;
+  border-radius: 50px;
+  transition: all 0.7s;
+  --spread: 20px;
+}
+
+.uv-cb input:checked ~ .uv-cb-checkmark {
+  background: black;
+  box-shadow:
+    -10px -10px var(--spread) 0px #5b51d8,
+    0 -10px var(--spread) 0px #833ab4,
+    10px -10px var(--spread) 0px #e1306c,
+    10px 0 var(--spread) 0px #fd1d1d,
+    10px 10px var(--spread) 0px #f77737,
+    0 10px var(--spread) 0px #fcaf45,
+    -10px 10px var(--spread) 0px #ffdc80;
+}
+
+.uv-cb .uv-cb-checkmark:after {
+  content: "";
+  position: absolute;
+  display: none;
+}
+
+.uv-cb input:checked ~ .uv-cb-checkmark:after {
+  display: block;
+}
+
+.uv-cb .uv-cb-checkmark:after {
+  left: 0.45em;
+  top: 0.25em;
+  width: 0.25em;
+  height: 0.5em;
+  border: solid #f0f0f0;
+  border-width: 0 0.15em 0.15em 0;
+  transform: rotate(45deg);
+}

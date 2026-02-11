@@ -22,7 +22,7 @@ import {
   ChevronRight,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { UiverseSearchInput } from "@/components/ui/uiverse-search-input"
 import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -293,16 +293,15 @@ export function SuppliersTable({ suppliers, onRefresh }: SuppliersTableProps) {
       {/* Filters */}
       <Card className="p-4 bg-white/80 backdrop-blur-sm border-neutral-200 shadow-sm">
         <div className="flex flex-col lg:flex-row gap-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-neutral-400" />
-            <Input
+          <div className="flex-1">
+            <UiverseSearchInput
               id="suppliers-search"
               name="suppliers-search"
               autoComplete="off"
               placeholder="Поиск по названию, ИНН, email, домену..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
+              containerClassName="w-full"
             />
           </div>
 

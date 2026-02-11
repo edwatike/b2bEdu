@@ -4,6 +4,8 @@ import time
 import threading
 import subprocess
 import argparse
+import json
+import urllib.request
 from dataclasses import dataclass
 from typing import Optional
 
@@ -81,8 +83,24 @@ FRONTEND_PORT = 3000
 CDP_PORT = 7000
 FRONTEND_URL = f"http://localhost:{FRONTEND_PORT}"
 
+MODE2_FRONTEND_URL = (os.environ.get("B2B_MODE2_FRONTEND_URL") or "https://v0-front-two-taupe.vercel.app").strip()
+
+NGROK_API_URL = "http://127.0.0.1:4040/api/tunnels"
+
 PRODUCTION_DOMAIN = "b2bedu.ru"
 PRODUCTION_URL = f"https://{PRODUCTION_DOMAIN}"
+
+# ── OAuth credentials per launch mode ──────────────────────────────────
+OAUTH_LOCAL = {
+    "YANDEX_CLIENT_ID": "78b3e3ec886f4a7f9a1e522e8faf423c",
+    "YANDEX_CLIENT_SECRET": "654c229b062a4d5fadf250ed1dec4e84",
+    "YANDEX_REDIRECT_URI": "http://localhost:3000/api/yandex/callback",
+}
+OAUTH_PRODUCTION = {
+    "YANDEX_CLIENT_ID": "f13aa94092e74191ab90ac908df3c42b",
+    "YANDEX_CLIENT_SECRET": "170746997c17407bb388dd7872d2666a",
+    "YANDEX_REDIRECT_URI": "https://v0-front-two-taupe.vercel.app/api/yandex/callback",
+}
 
 _LAUNCH_MODE: str = "local"  # "local" or "production"
 
@@ -725,6 +743,61 @@ def _find_chrome_exe() -> Optional[str]:
     return None
 
 
+def _find_ngrok_exe() -> Optional[str]:
+    override = (os.environ.get("NGROK_EXE") or "").strip().strip('"')
+    if override:
+        override = os.path.abspath(override)
+        if os.path.exists(override):
+            return override
+
+    candidates = [
+        _abs("ngrok.exe"),
+        os.path.join(_repo_root(), "ngrok.exe"),
+    ]
+    for c in candidates:
+        if c and os.path.exists(c):
+            return c
+    return None
+
+
+def _ngrok_public_url(timeout_sec: int = 20) -> Optional[str]:
+    deadline = time.time() + max(1, int(timeout_sec))
+    while time.time() < deadline:
+        try:
+            resp = urllib.request.urlopen(NGROK_API_URL, timeout=2)
+            raw = resp.read().decode("utf-8", errors="replace")
+            data = json.loads(raw)
+            tunnels = data.get("tunnels") if isinstance(data, dict) else None
+            if isinstance(tunnels, list):
+                for t in tunnels:
+                    if not isinstance(t, dict):
+                        continue
+                    public_url = t.get("public_url")
+                    if isinstance(public_url, str) and public_url.startswith("https://"):
+                        return public_url
+        except Exception:
+            pass
+        time.sleep(1)
+    return None
+
+
+def _start_ngrok_backend_tunnel(on_line=None) -> Optional[ManagedProcess]:
+    exe = _find_ngrok_exe()
+    if not exe:
+        _log_system("ngrok.exe not found. Set NGROK_EXE or place ngrok.exe in repo root.", level="error")
+        return None
+
+    args = [exe, "http", str(BACKEND_PORT), "--log", "stdout"]
+    mp = _start_process(
+        name="NGROK",
+        args=args,
+        cwd=_repo_root(),
+        env={**os.environ},
+        on_line=on_line,
+    )
+    return mp
+
+
 def _find_comet_exe() -> Optional[str]:
     override = (os.environ.get("COMET_EXE") or "").strip().strip('"')
     if override:
@@ -913,7 +986,7 @@ def _start_chrome_cdp(
     # If Chrome is already running with the real profile, it will ignore remote-debugging-port.
     # To guarantee CDP availability, optionally close Chrome before launch.
     kill_running_chrome = (os.environ.get("B2B_CDP_KILL_CHROME") or "").strip().lower()
-    if kill_running_chrome in {"0", "false", "no"}:
+    if kill_running_chrome in {"", "0", "false", "no"}:
         kill_running_chrome = "0"
     else:
         kill_running_chrome = "1"
@@ -972,7 +1045,7 @@ def _start_chrome_cdp(
 
 
 def _ask_launch_mode() -> str:
-    """Ask user to choose between local and production (b2bedu.ru) mode."""
+    """Ask user to choose between local and production (Vercel + ngrok) mode."""
     global _LAUNCH_MODE
 
     override = (os.environ.get("B2B_LAUNCH_MODE") or "").strip().lower()
@@ -982,32 +1055,53 @@ def _ask_launch_mode() -> str:
         return _LAUNCH_MODE
 
     print()
-    print("=" * 50)
+    print("=" * 58)
     print("  B2B Platform — Выбор режима запуска")
-    print("=" * 50)
+    print("=" * 58)
     print()
-    print("  [1] Локальный сервер (localhost)")
-    print("      http://localhost:3000")
+    print("  [1] Local — всё локально")
+    print("      Frontend:  http://localhost:3000")
+    print("      Backend:   http://localhost:8000")
+    print("      OAuth:     localhost redirect")
     print()
-    print(f"  [2] Продакшн ({PRODUCTION_DOMAIN})")
-    print(f"      {PRODUCTION_URL}")
-    print(f"      (Cloudflare Tunnel)")
+    print("  [2] Production — Vercel фронт + ngrok backend")
+    print(f"      Frontend:  {MODE2_FRONTEND_URL}")
+    print("      Backend:   ngrok → localhost:8000")
+    print("      OAuth:     Vercel redirect")
     print()
-    print("=" * 50)
+    print("=" * 58)
 
+    def _input_with_timeout(prompt: str, timeout_sec: int) -> Optional[str]:
+        result: dict[str, Optional[str]] = {"value": None}
+        done = threading.Event()
+
+        def _worker() -> None:
+            try:
+                result["value"] = input(prompt)
+            except Exception:
+                result["value"] = None
+            finally:
+                done.set()
+
+        t = threading.Thread(target=_worker, daemon=True)
+        t.start()
+        done.wait(timeout=timeout_sec)
+        return result["value"]
+
+    timeout_sec = 30
     while True:
-        try:
-            choice = input("  Выберите режим [1/2]: ").strip()
-        except (EOFError, KeyboardInterrupt):
+        raw = _input_with_timeout("  Выберите режим [1/2] (auto=1 in 30s): ", timeout_sec)
+        if raw is None:
             choice = "1"
+        else:
+            choice = str(raw).strip()
         if choice in ("1", ""):
             _LAUNCH_MODE = "local"
             break
-        elif choice == "2":
+        if choice == "2":
             _LAUNCH_MODE = "production"
             break
-        else:
-            print("  Введите 1 или 2")
+        print("  Введите 1 или 2")
 
     _log_system(f"Launch mode: {_LAUNCH_MODE}", level="info")
     return _LAUNCH_MODE
@@ -1102,6 +1196,9 @@ def _wait_tunnel_ready(timeout_sec: int = 30) -> bool:
 
 
 def main() -> int:
+    global _LAUNCH_MODE
+    _LAUNCH_MODE = ""  # Initialize global variable
+    
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument("--repo-root", dest="repo_root", default=None)
     parser.add_argument("--mode", dest="mode", default=None, choices=["local", "production"])
@@ -1118,30 +1215,8 @@ def main() -> int:
     is_production = launch_mode == "production"
 
     if is_production:
-        vpn_adapter = _detect_vpn_tun()
-        if vpn_adapter:
-            print()
-            print("=" * 50)
-            print("  ⚠  ВНИМАНИЕ: Обнаружен VPN/TUN адаптер!")
-            print(f"     Адаптер: {vpn_adapter}")
-            print()
-            print("  Cloudflare Tunnel может работать нестабильно")
-            print("  при активном VPN (sing-box, Hiddify и т.п.).")
-            print()
-            print("  Рекомендация: отключите VPN перед запуском")
-            print("  продакшн режима для стабильной работы.")
-            print("=" * 50)
-            print()
-            try:
-                ans = input("  Продолжить с VPN? [y/N]: ").strip().lower()
-            except (EOFError, KeyboardInterrupt):
-                ans = "n"
-            if ans not in ("y", "yes", "д", "да"):
-                _log_system("User cancelled production mode due to VPN.", level="info")
-                print("  Переключаюсь на локальный режим...")
-                launch_mode = "local"
-                is_production = False
-                _LAUNCH_MODE = "local"
+        # Временно отключаем проверку VPN для тестирования режима 2
+        pass
 
     parser_dir = _abs("parser_service")
     backend_dir = _abs("backend")
@@ -1164,7 +1239,11 @@ def main() -> int:
         "CDP": {"port": CDP_PORT, "pid": "", "status": "STARTING", "url": f"http://127.0.0.1:{CDP_PORT}", "last_error": ""},
     }
     if is_production:
-        dashboard["TUNNEL"] = {"port": "", "pid": "", "status": "WAITING", "url": PRODUCTION_URL, "last_error": "waiting for core services"}
+        dashboard["FRONTEND"]["status"] = "SKIPPED"
+        dashboard["FRONTEND"]["pid"] = ""
+        dashboard["FRONTEND"]["url"] = MODE2_FRONTEND_URL
+        dashboard["FRONTEND"]["last_error"] = "vercel frontend"
+        dashboard["NGROK"] = {"port": BACKEND_PORT, "pid": "", "status": "WAITING", "url": "", "last_error": "waiting for backend"}
 
     def on_line(service: str, line: str, is_err: bool) -> None:
         lvl = _classify_level(line, is_err)
@@ -1177,6 +1256,11 @@ def main() -> int:
             dashboard[service]["last_error"] = short
 
     def _is_core_ready() -> bool:
+        if is_production:
+            return (
+                str(dashboard["PARSER"].get("status")) == "READY"
+                and str(dashboard["BACKEND"].get("status")) == "READY"
+            )
         return (
             str(dashboard["PARSER"].get("status")) == "READY"
             and str(dashboard["BACKEND"].get("status")) == "READY"
@@ -1184,7 +1268,9 @@ def main() -> int:
         )
 
     try:
-        ports_to_free = [FRONTEND_PORT, BACKEND_PORT, PARSER_PORT]
+        ports_to_free = [BACKEND_PORT, PARSER_PORT]
+        if not is_production:
+            ports_to_free.append(FRONTEND_PORT)
         if (os.environ.get("B2B_CDP_FORCE_RESTART") or "").strip().lower() in {"1", "true", "yes"}:
             ports_to_free.append(CDP_PORT)
         _free_ports(ports_to_free)
@@ -1296,49 +1382,56 @@ def main() -> int:
         _print_dashboard(dashboard)
 
         time.sleep(1)
+        backend_env = {**os.environ}
+        if is_production:
+            # Mode 2: allow Vercel frontend origin + ngrok origins
+            extra_origins = f",{MODE2_FRONTEND_URL}"
+            backend_env["CORS_ORIGINS"] = backend_env.get("CORS_ORIGINS", "") + extra_origins
         start_specs["BACKEND"] = {
             "args": [backend_py, "-u", _abs("backend", "run_api.py")],
             "cwd": backend_dir,
-            "env": {**os.environ},
+            "env": backend_env,
         }
         mp_backend = _start_named("BACKEND")
         _replace_proc("BACKEND", mp_backend)
         dashboard["BACKEND"]["pid"] = mp_backend.pid()
         _print_dashboard(dashboard)
 
-        fe_env = {**os.environ}
-        fe_env["NODE_OPTIONS"] = "--max-old-space-size=2048"
-        fe_env["NEXT_TELEMETRY_DISABLED"] = "1"
-        fe_env["NEXT_PUBLIC_API_URL"] = f"http://127.0.0.1:{BACKEND_PORT}"
-        fe_env["NEXT_PUBLIC_PARSER_URL"] = f"http://127.0.0.1:{PARSER_PORT}"
-        fe_env["PORT"] = str(FRONTEND_PORT)
+        if not is_production:
+            fe_env = {**os.environ}
+            fe_env["NODE_OPTIONS"] = "--max-old-space-size=2048"
+            fe_env["NEXT_TELEMETRY_DISABLED"] = "1"
+            fe_env["NEXT_PUBLIC_API_URL"] = f"http://127.0.0.1:{BACKEND_PORT}"
+            fe_env["NEXT_PUBLIC_PARSER_URL"] = f"http://127.0.0.1:{PARSER_PORT}"
+            fe_env["PORT"] = str(FRONTEND_PORT)
+            # Mode 1: inject Yandex OAuth credentials for local frontend
+            for k, v in OAUTH_LOCAL.items():
+                fe_env[k] = v
 
-        try:
-            if _frontend_needs_rebuild(frontend_dir):
-                fe_env["FORCE_BUILD"] = "1"
-        except Exception:
-            pass
+            try:
+                if _frontend_needs_rebuild(frontend_dir):
+                    fe_env["FORCE_BUILD"] = "1"
+            except Exception:
+                pass
 
-        # Use production build for faster startup.
-        # Only rebuild if .next is missing or FORCE_BUILD is set.
-        start_specs["FRONTEND"] = {
-            "args": [
-                "cmd",
-                "/c",
-                (
-                    "(if /I \"%FORCE_BUILD%\"==\"1\" (npm run clean && npm run build)) "
-                    "&& (if not exist .next\\BUILD_ID (npm run build)) "
-                    "&& (if not exist .next\\prerender-manifest.json (npm run build)) "
-                    f"&& npm run start -- -p {FRONTEND_PORT}"
-                ),
-            ],
-            "cwd": frontend_dir,
-            "env": {**fe_env, "NODE_ENV": "production"},
-        }
-        mp_frontend = _start_named("FRONTEND")
-        _replace_proc("FRONTEND", mp_frontend)
-        dashboard["FRONTEND"]["pid"] = mp_frontend.pid()
-        _print_dashboard(dashboard)
+            start_specs["FRONTEND"] = {
+                "args": [
+                    "cmd",
+                    "/c",
+                    (
+                        "(if /I \"%FORCE_BUILD%\"==\"1\" (npm run clean && npm run build)) "
+                        "&& (if not exist .next\\BUILD_ID (npm run build)) "
+                        "&& (if not exist .next\\prerender-manifest.json (npm run build)) "
+                        f"&& npm run start -- -p {FRONTEND_PORT}"
+                    ),
+                ],
+                "cwd": frontend_dir,
+                "env": {**fe_env, "NODE_ENV": "production"},
+            }
+            mp_frontend = _start_named("FRONTEND")
+            _replace_proc("FRONTEND", mp_frontend)
+            dashboard["FRONTEND"]["pid"] = mp_frontend.pid()
+            _print_dashboard(dashboard)
 
         if _wait_http_ready(f"http://127.0.0.1:{PARSER_PORT}/health", 60):
             dashboard["PARSER"]["status"] = "READY"
@@ -1354,12 +1447,13 @@ def main() -> int:
             dashboard["BACKEND"]["last_error"] = "health check timeout"
         _print_dashboard(dashboard)
 
-        if _wait_http_ready(f"{FRONTEND_URL}/login", 120):
-            dashboard["FRONTEND"]["status"] = "READY"
-        else:
-            dashboard["FRONTEND"]["status"] = "FAILED"
-            dashboard["FRONTEND"]["last_error"] = "login page timeout"
-        _print_dashboard(dashboard)
+        if not is_production:
+            if _wait_http_ready(f"{FRONTEND_URL}/login", 120):
+                dashboard["FRONTEND"]["status"] = "READY"
+            else:
+                dashboard["FRONTEND"]["status"] = "FAILED"
+                dashboard["FRONTEND"]["last_error"] = "login page timeout"
+            _print_dashboard(dashboard)
 
         if _is_core_ready():
             # Reuse existing CDP if already running to avoid spawning many windows.
@@ -1399,48 +1493,41 @@ def main() -> int:
 
         _print_dashboard(dashboard)
 
-        # --- Production mode: start Cloudflare Tunnel ---
-        tunnel_proc: Optional[ManagedProcess] = None
+        ngrok_proc: Optional[ManagedProcess] = None
         if is_production and _is_core_ready():
-            dashboard["TUNNEL"]["status"] = "STARTING"
-            dashboard["TUNNEL"]["last_error"] = ""
+            dashboard["NGROK"]["status"] = "STARTING"
+            dashboard["NGROK"]["last_error"] = ""
             _print_dashboard(dashboard)
-            tunnel_proc = _start_cloudflared_tunnel(on_line=on_line)
-            if tunnel_proc is not None:
-                _replace_proc("TUNNEL", tunnel_proc)
-                dashboard["TUNNEL"]["pid"] = tunnel_proc.pid()
+            ngrok_proc = _start_ngrok_backend_tunnel(on_line=on_line)
+            if ngrok_proc is not None:
+                _replace_proc("NGROK", ngrok_proc)
+                dashboard["NGROK"]["pid"] = ngrok_proc.pid()
                 _print_dashboard(dashboard)
-                # Give tunnel time to connect (check logs for connection established)
-                time.sleep(5)
-                if _wait_tunnel_ready(timeout_sec=45):
-                    dashboard["TUNNEL"]["status"] = "READY"
-                    dashboard["TUNNEL"]["last_error"] = ""
-                    _log_system(f"Site is live at {PRODUCTION_URL}", level="ok")
+                public_url = _ngrok_public_url(timeout_sec=20)
+                if public_url:
+                    dashboard["NGROK"]["status"] = "READY"
+                    dashboard["NGROK"]["url"] = public_url
+                    dashboard["NGROK"]["last_error"] = "set this URL as NEXT_PUBLIC_API_URL / BACKEND_URL in Vercel"
+                    _log_system(f"Backend public URL: {public_url}", level="ok")
                 else:
-                    # Tunnel process may still be running even if external check fails
-                    # (e.g. firewall blocks outbound check but tunnel works for others)
-                    if tunnel_proc.popen.poll() is None:
-                        dashboard["TUNNEL"]["status"] = "READY"
-                        dashboard["TUNNEL"]["last_error"] = "tunnel running (external check inconclusive)"
-                        _log_system(f"Tunnel is running. Try accessing {PRODUCTION_URL} from another device.", level="info")
-                    else:
-                        dashboard["TUNNEL"]["status"] = "FAILED"
-                        dashboard["TUNNEL"]["last_error"] = "tunnel process exited"
+                    dashboard["NGROK"]["status"] = "READY"
+                    dashboard["NGROK"]["last_error"] = "ngrok running (public url not detected)"
             else:
-                dashboard["TUNNEL"]["status"] = "FAILED"
-                dashboard["TUNNEL"]["last_error"] = "cloudflared not found or config missing"
+                dashboard["NGROK"]["status"] = "FAILED"
+                dashboard["NGROK"]["last_error"] = "ngrok.exe not found"
             _print_dashboard(dashboard)
         elif is_production and not _is_core_ready():
-            dashboard["TUNNEL"]["status"] = "SKIPPED"
-            dashboard["TUNNEL"]["last_error"] = "core services not ready"
+            dashboard["NGROK"]["status"] = "SKIPPED"
+            dashboard["NGROK"]["last_error"] = "core services not ready"
             _print_dashboard(dashboard)
 
         health_urls = {
             "PARSER": f"http://127.0.0.1:{PARSER_PORT}/health",
             "BACKEND": f"http://127.0.0.1:{BACKEND_PORT}/health",
-            "FRONTEND": f"{FRONTEND_URL}/login",
             "CDP": f"http://127.0.0.1:{CDP_PORT}/json/version",
         }
+        if not is_production:
+            health_urls["FRONTEND"] = f"{FRONTEND_URL}/login"
         # Backend can be temporarily slow under heavy batch operations.
         # Use gentler probing/restart thresholds to avoid restart storms.
         health_timeout_sec = {
@@ -1604,9 +1691,9 @@ def main() -> int:
                 chrome_proc.terminate()
             except Exception:
                 pass
-        # Kill any remaining cloudflared processes started by this launcher
+        # Kill any remaining ngrok processes started by this launcher
         if is_production:
-            _taskkill_tree_by_name("cloudflared.exe")
+            _taskkill_tree_by_name("ngrok.exe")
 
 
 if __name__ == "__main__":

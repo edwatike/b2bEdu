@@ -25,10 +25,8 @@ import {
   Activity,
   TrendingUp,
   Globe,
-  Search
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
@@ -40,6 +38,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { UiverseSearchInput } from "@/components/ui/uiverse-search-input"
 import { colors, statusColors } from "@/lib/design-system"
 import type { ParsingRunDTO } from "@/lib/types"
 
@@ -255,13 +254,12 @@ export function ParsingRunsTable({ runs }: ParsingRunsTableProps) {
               </TabsList>
             </Tabs>
 
-            <div className="relative w-full md:w-64">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-neutral-400" />
-              <Input
+            <div className="w-full md:w-64">
+              <UiverseSearchInput
                 placeholder="Поиск по ключевому слову..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
+                containerClassName="w-full"
               />
             </div>
           </div>

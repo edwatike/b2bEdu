@@ -19,8 +19,8 @@ class Settings(BaseSettings):
     CHROME_PROFILE_INDEX: int = 0  # 0 = first profile, 1 = second profile, etc.
     
     # Timeouts
-    page_load_timeout: int = 90000  # 90 seconds
-    navigation_timeout: int = 120000  # 120 seconds
+    page_load_timeout: int = 30000  # 30 seconds
+    navigation_timeout: int = 30000  # 30 seconds
     
     # Backend URL for status updates
     BACKEND_URL: str = "http://127.0.0.1:8000"

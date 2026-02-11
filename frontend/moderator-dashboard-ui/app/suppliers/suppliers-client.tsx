@@ -12,7 +12,7 @@ import { LoadingState } from "@/components/ui/LoadingState"
 import { EmptyState } from "@/components/ui/EmptyState"
 import { SuppliersTableVirtualized } from "@/components/supplier/SuppliersTableVirtualized"
 import { toast } from "sonner"
-import { Input } from "@/components/ui/input"
+import { UiverseSearchInput } from "@/components/ui/uiverse-search-input"
 import { Plus, Building2, AlertTriangle, Search } from "lucide-react"
 
 export function SuppliersClient() {
@@ -147,13 +147,12 @@ export function SuppliersClient() {
         </motion.div>
 
         {/* Search */}
-        <div className="relative mb-4">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
+        <div className="mb-4 max-w-md">
+          <UiverseSearchInput
             placeholder="Поиск по имени, ИНН, домену..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 max-w-md"
+            containerClassName="w-full"
           />
         </div>
 

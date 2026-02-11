@@ -9,12 +9,12 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
-import { Input } from "@/components/ui/input"
+import { UiverseSearchInput } from "@/components/ui/uiverse-search-input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
-import { Mail, Paperclip, AlertCircle, RefreshCw, Search, Inbox, PaperclipIcon, X, Loader2, Send, Maximize2 } from "lucide-react"
+import { Mail, Paperclip, AlertCircle, RefreshCw, Inbox, PaperclipIcon, X, Loader2, Send, Maximize2 } from "lucide-react"
 import { composeCabinetMessage, getCabinetMessages, getYandexMailMessage, getYandexMailMessages, sendYandexEmail, unspamYandexMailMessage, uploadAttachment } from "@/lib/api"
 import { fetchAllMailData } from "@/lib/optimized-api"
 import type { CabinetMessageDTO } from "@/lib/types"
@@ -572,13 +572,13 @@ function MessagesPage() {
               )}
             </div>
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
-              <div className="relative sm:w-64">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                <Input
+              <div className="sm:w-64">
+                <UiverseSearchInput
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
                   placeholder="Поиск..."
-                  className="pl-10 bg-slate-900 border-slate-700 text-white"
+                  containerClassName="w-full"
+                  className="bg-slate-900 text-white"
                 />
               </div>
               <Select value={statusFilter} onValueChange={setStatusFilter}>

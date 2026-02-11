@@ -7,10 +7,10 @@ import { Navigation } from "@/components/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { UiverseSearchInput } from "@/components/ui/uiverse-search-input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Progress } from "@/components/ui/progress"
-import { Search, Filter, RefreshCw, Clock, CheckCircle, XCircle, PlayCircle, AlertCircle } from "lucide-react"
+import { RefreshCw, Clock, CheckCircle, XCircle, PlayCircle, AlertCircle, Filter } from "lucide-react"
 import { getModeratorTasks } from "@/lib/api"
 import type { ModeratorTaskDTO } from "@/lib/api"
 
@@ -232,13 +232,12 @@ function ModeratorTasksPage() {
 
           {/* Фильтры и поиск */}
           <div className="flex flex-col md:flex-row gap-4 mb-6">
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <Input
+            <div className="flex-1 max-w-md">
+              <UiverseSearchInput
                 placeholder="Поиск по названию, ID, ключевым словам..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 bg-white/80 backdrop-blur-sm border-gray-200"
+                containerClassName="w-full"
               />
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>

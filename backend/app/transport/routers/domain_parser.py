@@ -376,7 +376,8 @@ async def _sync_run_domain_status(
                     details={"inn_source_url": inn_source_url, "email_source_url": email_source_url,
                              "supplier_id": supplier_id, "checko_ok": checko_ok},
                 )
-        except Exception:
+        except Exception as e:
+            logger.warning(f"Failed to write domain log for {norm}: {e}")
             pass  # logging must never break main flow
         async with AsyncSessionLocal() as db:
             try:

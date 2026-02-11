@@ -1,13 +1,15 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 import { motion, AnimatePresence } from "framer-motion"
+import { useRouter } from "next/navigation"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
+import { UiverseSearchInput } from "@/components/ui/uiverse-search-input"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Badge } from "@/components/ui/badge"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Navigation } from "@/components/navigation"
 import { AuthGuard } from "@/components/auth-guard"
 import { PageShell } from "@/components/ui/PageShell"
@@ -20,7 +22,6 @@ import {
   DataTableSkeleton,
 } from "@/components/ui/data-table"
 import { APIError, getParsingRuns, deleteParsingRun, deleteParsingRunsBulk } from "@/lib/api"
-import { toast } from "sonner"
 import { Search, Trash2, Clock, Calendar, ChevronRight, RefreshCw } from "lucide-react"
 import { RunStatusBadge } from "@/components/run-status-badge"
 import type { ParsingRunDTO } from "@/lib/types"
@@ -132,9 +133,8 @@ function ParsingRunsPage() {
         >
           <Card className="p-4 bg-white/80 backdrop-blur-sm border-purple-100 shadow-sm">
             <div className="flex flex-col lg:flex-row gap-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-purple-400" />
-                <Input
+              <div className="flex-1">
+                <UiverseSearchInput
                   id="parsing-search"
                   name="parsing-search"
                   autoComplete="off"
@@ -142,7 +142,7 @@ function ParsingRunsPage() {
                   placeholder="Поиск по ключевому слову..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 border-purple-200 focus:border-purple-400 focus:ring-purple-400/20"
+                  containerClassName="w-full"
                 />
               </div>
               <Button

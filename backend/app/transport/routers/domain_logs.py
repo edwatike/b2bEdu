@@ -1,6 +1,7 @@
 """Domain Logs API - история парсинга доменов (персистентная, не привязана к run_id)."""
 
 import logging
+import json
 from datetime import datetime
 from typing import Optional, List
 from fastapi import APIRouter, Depends, Query
@@ -54,7 +55,22 @@ class DomainLogCreateRequest(BaseModel):
 async def ensure_table(db: AsyncSession):
     """Create domain_logs table if it doesn't exist."""
     try:
-        await db.execute(text(CREATE_TABLE_SQL))
+        # Create table
+        await db.execute(text("""
+            CREATE TABLE IF NOT EXISTS domain_logs (
+                id SERIAL PRIMARY KEY,
+                domain VARCHAR(255) NOT NULL,
+                run_id VARCHAR(255),
+                action VARCHAR(100) NOT NULL,
+                message TEXT,
+                details JSONB DEFAULT '{}',
+                created_at TIMESTAMPTZ DEFAULT NOW()
+            )
+        """))
+        # Create indexes separately
+        await db.execute(text("CREATE INDEX IF NOT EXISTS idx_domain_logs_domain ON domain_logs (domain)"))
+        await db.execute(text("CREATE INDEX IF NOT EXISTS idx_domain_logs_run_id ON domain_logs (run_id)"))
+        await db.execute(text("CREATE INDEX IF NOT EXISTS idx_domain_logs_created_at ON domain_logs (created_at DESC)"))
         await db.commit()
     except Exception as e:
         logger.warning(f"domain_logs table creation: {e}")
@@ -75,7 +91,7 @@ async def write_log(db: AsyncSession, domain: str, action: str, message: str = N
                 "run_id": run_id,
                 "action": action,
                 "message": message,
-                "details": str(details) if details else None,
+                "details": json.dumps(details) if details else None,
             },
         )
         await db.commit()

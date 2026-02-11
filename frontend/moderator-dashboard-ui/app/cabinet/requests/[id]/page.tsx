@@ -8,6 +8,7 @@ import { UserNavigation } from "@/components/user-navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Checkbox } from "@/components/ui/checkbox"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
@@ -320,10 +321,10 @@ function RequestDetailPage() {
                     >
                       <div className="flex items-start justify-between gap-3">
                         <label className="mt-1 flex items-center gap-2 text-xs text-slate-300">
-                          <input
-                            type="checkbox"
+                          <Checkbox
                             checked={selectedSupplierIds.has(s.supplier_id)}
-                            onChange={() => toggleSupplierSelected(s.supplier_id)}
+                            onCheckedChange={() => toggleSupplierSelected(s.supplier_id)}
+                            onClick={(e) => e.stopPropagation()}
                           />
                         </label>
                         <button

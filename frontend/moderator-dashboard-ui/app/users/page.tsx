@@ -6,10 +6,13 @@ import { Navigation } from "@/components/navigation"
 import { AuthGuard } from "@/components/auth-guard"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
+import { UiverseSearchInput } from "@/components/ui/uiverse-search-input"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
-import { Checkbox } from "@/components/ui/checkbox"
 import { toast } from "sonner"
 
 type UserAccessDTO = {
@@ -183,11 +186,12 @@ function UsersPage() {
           <CardHeader className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <CardTitle className="text-white">Список пользователей</CardTitle>
             <div className="flex items-center gap-2">
-              <Input
+              <UiverseSearchInput
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Поиск по username/email..."
-                className="w-72 bg-slate-900 border-slate-700 text-white"
+                containerClassName="w-72"
+                className="bg-slate-900 text-white"
               />
               <Button variant="outline" onClick={loadUsers} disabled={loading}>
                 Обновить

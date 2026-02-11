@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "last_updated": "2026-02-09T19:35:31.856406",
+  "last_updated": "2026-02-11T11:47:30.920053",
   "learned_patterns": {
     "inn_patterns": [],
     "email_patterns": [
@@ -348,18 +348,18 @@
           "found_email": true,
           "time_ms": 6890,
           "timestamp": "2026-02-09T18:21:41.163032"
+        },
+        {
+          "strategy": "playwright",
+          "found_inn": false,
+          "found_email": true,
+          "time_ms": 12015,
+          "timestamp": "2026-02-11T11:27:14.909689"
         }
       ]
     },
     "tdvasya.ru": {
       "attempts": [
-        {
-          "strategy": "playwright",
-          "found_inn": false,
-          "found_email": true,
-          "time_ms": 76639,
-          "timestamp": "2026-02-09T02:48:58.394463"
-        },
         {
           "strategy": "playwright",
           "found_inn": false,
@@ -387,6 +387,13 @@
           "found_email": true,
           "time_ms": 82686,
           "timestamp": "2026-02-09T18:23:03.890807"
+        },
+        {
+          "strategy": "playwright",
+          "found_inn": false,
+          "found_email": true,
+          "time_ms": 17155,
+          "timestamp": "2026-02-11T11:23:41.148444"
         }
       ]
     },
@@ -419,27 +426,6 @@
           "strategy": "playwright",
           "found_inn": false,
           "found_email": true,
-          "time_ms": 47875,
-          "timestamp": "2026-02-09T16:09:23.610180"
-        },
-        {
-          "strategy": "playwright",
-          "found_inn": false,
-          "found_email": true,
-          "time_ms": 46641,
-          "timestamp": "2026-02-09T17:00:45.429546"
-        },
-        {
-          "strategy": "playwright",
-          "found_inn": false,
-          "found_email": true,
-          "time_ms": 45219,
-          "timestamp": "2026-02-09T17:23:13.462920"
-        },
-        {
-          "strategy": "playwright",
-          "found_inn": false,
-          "found_email": true,
           "time_ms": 45530,
           "timestamp": "2026-02-09T17:39:23.751737"
         },
@@ -449,6 +435,27 @@
           "found_email": true,
           "time_ms": 51264,
           "timestamp": "2026-02-09T18:23:55.201326"
+        },
+        {
+          "strategy": "playwright",
+          "found_inn": false,
+          "found_email": true,
+          "time_ms": 67969,
+          "timestamp": "2026-02-11T10:15:52.252132"
+        },
+        {
+          "strategy": "playwright",
+          "found_inn": false,
+          "found_email": true,
+          "time_ms": 52516,
+          "timestamp": "2026-02-11T11:29:38.182694"
+        },
+        {
+          "strategy": "playwright",
+          "found_inn": false,
+          "found_email": true,
+          "time_ms": 54031,
+          "timestamp": "2026-02-11T11:42:16.703232"
         }
       ]
     },
@@ -517,6 +524,13 @@
           "found_email": true,
           "time_ms": 39921,
           "timestamp": "2026-02-09T18:24:35.148931"
+        },
+        {
+          "strategy": "playwright",
+          "found_inn": false,
+          "found_email": true,
+          "time_ms": 44530,
+          "timestamp": "2026-02-11T11:30:22.741781"
         }
       ]
     },
@@ -566,6 +580,13 @@
           "found_email": true,
           "time_ms": 54875,
           "timestamp": "2026-02-09T18:25:30.077447"
+        },
+        {
+          "strategy": "playwright",
+          "found_inn": false,
+          "found_email": true,
+          "time_ms": 85985,
+          "timestamp": "2026-02-11T11:31:48.765195"
         }
       ]
     },
@@ -584,6 +605,13 @@
           "found_email": true,
           "time_ms": 44094,
           "timestamp": "2026-02-09T17:25:33.890178"
+        },
+        {
+          "strategy": "playwright",
+          "found_inn": false,
+          "found_email": true,
+          "time_ms": 61531,
+          "timestamp": "2026-02-11T11:32:50.334093"
         }
       ]
     },
@@ -626,27 +654,6 @@
           "strategy": "playwright",
           "found_inn": false,
           "found_email": false,
-          "time_ms": 13670,
-          "timestamp": "2026-02-09T02:53:45.150503"
-        },
-        {
-          "strategy": "playwright",
-          "found_inn": false,
-          "found_email": false,
-          "time_ms": 15046,
-          "timestamp": "2026-02-09T16:11:26.385752"
-        },
-        {
-          "strategy": "playwright",
-          "found_inn": false,
-          "found_email": false,
-          "time_ms": 16750,
-          "timestamp": "2026-02-09T17:02:34.898965"
-        },
-        {
-          "strategy": "playwright",
-          "found_inn": false,
-          "found_email": false,
           "time_ms": 16360,
           "timestamp": "2026-02-09T17:26:32.377137"
         },
@@ -656,6 +663,27 @@
           "found_email": false,
           "time_ms": 16594,
           "timestamp": "2026-02-09T17:41:28.854708"
+        },
+        {
+          "strategy": "playwright",
+          "found_inn": false,
+          "found_email": false,
+          "time_ms": 18594,
+          "timestamp": "2026-02-11T10:18:19.789302"
+        },
+        {
+          "strategy": "playwright",
+          "found_inn": false,
+          "found_email": false,
+          "time_ms": 18953,
+          "timestamp": "2026-02-11T11:33:09.318698"
+        },
+        {
+          "strategy": "playwright",
+          "found_inn": false,
+          "found_email": false,
+          "time_ms": 19093,
+          "timestamp": "2026-02-11T11:44:42.433300"
         }
       ]
     },
@@ -696,20 +724,6 @@
           "strategy": "playwright",
           "found_inn": false,
           "found_email": true,
-          "time_ms": 47312,
-          "timestamp": "2026-02-09T16:10:10.955766"
-        },
-        {
-          "strategy": "playwright",
-          "found_inn": false,
-          "found_email": true,
-          "time_ms": 44469,
-          "timestamp": "2026-02-09T17:01:29.935500"
-        },
-        {
-          "strategy": "playwright",
-          "found_inn": false,
-          "found_email": true,
           "time_ms": 56032,
           "timestamp": "2026-02-09T17:40:19.854398"
         },
@@ -726,6 +740,20 @@
           "found_email": true,
           "time_ms": 46905,
           "timestamp": "2026-02-09T19:35:25.614898"
+        },
+        {
+          "strategy": "playwright",
+          "found_inn": false,
+          "found_email": true,
+          "time_ms": 69969,
+          "timestamp": "2026-02-11T10:17:02.253766"
+        },
+        {
+          "strategy": "playwright",
+          "found_inn": false,
+          "found_email": true,
+          "time_ms": 49641,
+          "timestamp": "2026-02-11T11:43:06.382087"
         }
       ]
     },
@@ -751,6 +779,20 @@
           "found_email": true,
           "time_ms": 52313,
           "timestamp": "2026-02-09T17:41:12.230157"
+        },
+        {
+          "strategy": "playwright",
+          "found_inn": false,
+          "found_email": true,
+          "time_ms": 58891,
+          "timestamp": "2026-02-11T10:18:01.167958"
+        },
+        {
+          "strategy": "playwright",
+          "found_inn": false,
+          "found_email": true,
+          "time_ms": 76859,
+          "timestamp": "2026-02-11T11:44:23.300557"
         }
       ]
     },
@@ -769,6 +811,20 @@
           "found_email": true,
           "time_ms": 20578,
           "timestamp": "2026-02-09T17:41:49.459368"
+        },
+        {
+          "strategy": "playwright",
+          "found_inn": false,
+          "found_email": true,
+          "time_ms": 45858,
+          "timestamp": "2026-02-11T10:19:05.700199"
+        },
+        {
+          "strategy": "playwright",
+          "found_inn": false,
+          "found_email": true,
+          "time_ms": 22593,
+          "timestamp": "2026-02-11T11:45:05.058882"
         }
       ]
     },
@@ -835,6 +891,20 @@
           "found_email": true,
           "time_ms": 38234,
           "timestamp": "2026-02-09T17:43:57.960064"
+        },
+        {
+          "strategy": "playwright",
+          "found_inn": false,
+          "found_email": true,
+          "time_ms": 48813,
+          "timestamp": "2026-02-11T10:21:24.595457"
+        },
+        {
+          "strategy": "playwright",
+          "found_inn": false,
+          "found_email": true,
+          "time_ms": 55780,
+          "timestamp": "2026-02-11T11:47:30.920053"
         }
       ]
     }

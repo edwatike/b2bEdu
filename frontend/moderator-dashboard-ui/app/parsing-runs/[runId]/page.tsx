@@ -4,6 +4,10 @@ import React, { useState, useEffect, useRef } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { motion } from "framer-motion"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { FlinstonesProgressBar } from "@/components/flintstones-wheel"
+import { SupplierIcon } from "@/components/supplier-icon"
+import { Checkbox } from "@/components/ui/checkbox"
+import { UiverseSearchInput } from "@/components/ui/uiverse-search-input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
@@ -74,7 +78,7 @@ import {
   Globe,
   Target,
   GraduationCap,
-  Settings,
+  Layers,
   Search,
 } from "lucide-react"
 import type {
@@ -377,11 +381,6 @@ function ParsingRunDetailsPage() {
           inn: (pr as any)?.inn ?? (g as any).inn ?? null,
           emails: (pr as any)?.emails ?? (g as any).emails ?? [],
           sourceUrls: (pr as any)?.sourceUrls ?? (g as any).sourceUrls ?? [],
-          strategyUsed: (pr as any)?.strategyUsed ?? (g as any).strategyUsed ?? null,
-          strategyTimeMs: (pr as any)?.strategyTimeMs ?? (g as any).strategyTimeMs ?? null,
-          lastUpdate:
-            parserUpdatedAtMap.get(extractRootDomain(g.domain).toLowerCase()) ||
-            g.lastUpdate,
         }
       }),
     )
@@ -728,7 +727,7 @@ function ParsingRunDetailsPage() {
             }
           } catch { /* ignore */ }
         }
-        const pl: any = (runData as any)?.processLog ?? (runData as any)?.process_log
+        const pl: any = (runData as any)?.processLog || (runData as any)?.process_log
         const dpAuto: any = pl?.domain_parser_auto
         const runs: any = pl?.domain_parser?.runs
 
@@ -1440,9 +1439,52 @@ function ParsingRunDetailsPage() {
 
   const displayRunId = run.runId || run.run_id || runId
   const keyword = run.keyword || "Unknown"
+  const displayKeyword = (() => {
+    const s = String(keyword || "").trim()
+    if (!s) return ""
+    return s.charAt(0).toUpperCase() + s.slice(1)
+  })()
   const depth = run.depth || null
   const createdAt = run.startedAt || run.started_at || run.createdAt || run.created_at || ""
   const finishedAt = run.finishedAt || run.finished_at
+
+  const formatDateShort = (dateString: string | null | undefined) => {
+    try {
+      if (!dateString) return ""
+      const d = new Date(dateString)
+      if (Number.isNaN(d.getTime())) return ""
+      const dd = String(d.getDate()).padStart(2, "0")
+      const mm = String(d.getMonth() + 1).padStart(2, "0")
+      const yy = String(d.getFullYear()).slice(-2)
+      const hh = String(d.getHours()).padStart(2, "0")
+      const mi = String(d.getMinutes()).padStart(2, "0")
+      return `${dd}.${mm}.${yy} ${hh}.${mi}`
+    } catch {
+      return ""
+    }
+  }
+
+  const durationMinutes = (() => {
+    try {
+      const processLog: any = (run as any)?.processLog || (run as any)?.process_log
+      const dsRaw = processLog?.duration_seconds
+      if (dsRaw !== null && dsRaw !== undefined && !Number.isNaN(Number(dsRaw))) {
+        const mins = Math.max(1, Math.round(Number(dsRaw) / 60))
+        return mins
+      }
+      if (createdAt && finishedAt) {
+        const a = new Date(createdAt)
+        const b = new Date(String(finishedAt))
+        if (!Number.isNaN(a.getTime()) && !Number.isNaN(b.getTime())) {
+          const mins = Math.max(1, Math.round((b.getTime() - a.getTime()) / 60000))
+          return mins
+        }
+      }
+    } catch {
+      return null
+    }
+    return null
+  })()
 
   // Функция для форматирования дат
   const formatDate = (dateString: string | null | undefined) => {
@@ -1542,6 +1584,7 @@ function ParsingRunDetailsPage() {
     const domainsWithoutInn = domainsArray.filter((domain) => {
       const rootDomain = extractRootDomain(domain).toLowerCase()
       const supplier: SupplierDTO | undefined = currentSuppliers.get(rootDomain)
+
       if (supplier) return false
 
       const parserResult: DomainParserResult | undefined =
@@ -1595,83 +1638,6 @@ function ParsingRunDetailsPage() {
         transition={{ duration: 0.5 }}
         className="container mx-auto px-0 py-6 max-w-none w-full"
       >
-        {/* Summary */}
-        <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
-          <Card className="card-hover bg-gradient-to-br from-white to-purple-50 border-purple-200 shadow-lg mb-6">
-            <CardHeader className="p-6">
-              <div className="flex items-start justify-between">
-                <div>
-                  <motion.div
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.7, delay: 0.1 }}
-                  >
-                    <CardTitle className="text-2xl text-gradient mb-2">{keyword}</CardTitle>
-                    <div className="flex items-center gap-3 text-sm text-muted-foreground flex-wrap">
-                      <div className="flex items-center gap-1">
-                        <Clock className="h-4 w-4" />
-                        <span>Создан: {formatDate(createdAt)}</span>
-                      </div>
-                      {finishedAt && (
-                        <div className="flex items-center gap-1">
-                          <CheckCircle className="h-4 w-4" />
-                          <span>Завершен: {formatDate(finishedAt)}</span>
-                        </div>
-                      )}
-                      {depth !== null && depth !== undefined && (
-                        <div className="flex items-center gap-1">
-                          <Settings className="h-4 w-4" />
-                          <span>Глубина: {depth}</span>
-                        </div>
-                      )}
-                    </div>
-                  </motion.div>
-                </div>
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.5, delay: 0.2 }}
-                >
-                  {getStatusBadge(run.status)}
-                </motion.div>
-              </div>
-            </CardHeader>
-            {run.resultsCount !== null && run.resultsCount !== undefined && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.3 }}
-                className="px-0 pb-4 pt-0"
-              >
-                <div className="flex items-center gap-4 flex-wrap">
-                  <div className="flex items-center gap-2">
-                    <span className="text-2xl font-bold text-purple-600">{run.resultsCount}</span>
-                    <span className="text-sm text-muted-foreground">результатов</span>
-                  </div>
-                  {(() => {
-                    const processLog = run?.processLog || run?.process_log
-                    if (!processLog) return null
-                    const ss = processLog.source_statistics
-                    return (
-                      <div className="flex items-center gap-3 text-xs text-muted-foreground border-l pl-4 ml-2">
-                        {ss && (
-                          <div className="flex gap-2">
-                            {ss.google > 0 && <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>Google: {ss.google}</span>}
-                            {ss.yandex > 0 && <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>Yandex: {ss.yandex}</span>}
-                          </div>
-                        )}
-                        {processLog.duration_seconds !== undefined && (
-                          <span>{Math.floor(processLog.duration_seconds / 60)}м {Math.floor(processLog.duration_seconds % 60)}с</span>
-                        )}
-                      </div>
-                    )
-                  })()}
-                </div>
-              </motion.div>
-            )}
-          </Card>
-        </motion.div>
-
         {/* Results Accordion */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -1680,50 +1646,113 @@ function ParsingRunDetailsPage() {
         >
           <Card className="card-hover bg-gradient-to-br from-white to-purple-50 border-purple-200 shadow-lg">
             <CardHeader className="border-b border-purple-100 p-6">
-              <div className="flex items-center justify-between mb-4">
-                <motion.div
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.5, delay: 0.5 }}
-                >
-                  <CardTitle className="text-xl flex items-center gap-2">
-                    <Globe className="h-5 w-5 text-purple-600" />
-                    Результаты парсинга
-                  </CardTitle>
+              <div className="flex items-start justify-between gap-4 mb-4">
+                <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5, delay: 0.5 }}>
+                  <CardTitle className="text-2xl text-gradient mb-1">{displayKeyword}</CardTitle>
+                  <div className="flex items-center gap-3 text-sm text-muted-foreground flex-wrap">
+                    {depth !== null && depth !== undefined && (
+                      <div className="flex items-center gap-1">
+                        <Layers className="h-4 w-4" />
+                        <span>{depth}</span>
+                      </div>
+                    )}
+                    {createdAt && (
+                      <div className="flex items-center gap-1">
+                        <Clock className="h-4 w-4" />
+                        <span>Создано {formatDateShort(createdAt)}</span>
+                      </div>
+                    )}
+                    {finishedAt && durationMinutes !== null && (
+                      <div className="flex items-center gap-1">
+                        <CheckCircle className="h-4 w-4" />
+                        <span>Завершен за {durationMinutes} мин</span>
+                      </div>
+                    )}
+                    {run.resultsCount !== null && run.resultsCount !== undefined && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-2xl font-bold text-purple-600 leading-none">{run.resultsCount}</span>
+                        <span className="text-sm text-muted-foreground">результатов</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {parsingLogs && (parsingLogs.google || parsingLogs.yandex) && (
+                    <div className="mt-2 flex items-center gap-2 flex-wrap">
+                      {parsingLogs.google && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAccordionValue((prev) => (prev.includes("google") ? prev.filter((v) => v !== "google") : [...prev, "google"]))
+                          }}
+                          className="inline-flex items-center gap-2 px-2 py-1 rounded-md border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 text-xs"
+                          title="Google"
+                        >
+                          <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-blue-600 text-white font-bold text-[10px]">G</span>
+                          <span className="font-semibold">Google</span>
+                          <span className="px-1.5 py-0.5 rounded border border-blue-200 bg-white/70">{parsingLogs.google.total_links} ссылок</span>
+                          {parsingLogs.google.pages_processed > 0 && (
+                            <span className="px-1.5 py-0.5 rounded border border-blue-200 bg-white/70">{parsingLogs.google.pages_processed} стр.</span>
+                          )}
+                        </button>
+                      )}
+                      {parsingLogs.yandex && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAccordionValue((prev) => (prev.includes("yandex") ? prev.filter((v) => v !== "yandex") : [...prev, "yandex"]))
+                          }}
+                          className="inline-flex items-center gap-2 px-2 py-1 rounded-md border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 text-xs"
+                          title="Яндекс"
+                        >
+                          <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-600 text-white font-bold text-[10px]">Я</span>
+                          <span className="font-semibold">Яндекс</span>
+                          <span className="px-1.5 py-0.5 rounded border border-red-200 bg-white/70">{parsingLogs.yandex.total_links} ссылок</span>
+                          {parsingLogs.yandex.pages_processed > 0 && (
+                            <span className="px-1.5 py-0.5 rounded border border-red-200 bg-white/70">{parsingLogs.yandex.pages_processed} стр.</span>
+                          )}
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </motion.div>
-                {/* Кнопки для работы с выбранными доменами */}
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.3 }}
-                  className="flex gap-2"
-                >
-                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={copySelectedDomains}
-                      disabled={selectedDomains.size === 0}
-                      className="h-8 text-xs border-purple-300 text-purple-700 hover:bg-purple-50 bg-transparent"
-                    >
-                      <Copy className="h-3 w-3 mr-1" />
-                      Копировать ({selectedDomains.size})
-                    </Button>
+                <div className="flex flex-col items-end gap-2">
+                  <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5, delay: 0.2 }}>
+                    {getStatusBadge(run.status)}
                   </motion.div>
-                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                    <Button
-                      size="sm"
-                      onClick={handleDomainParser}
-                      disabled={parserLoading || selectedDomains.size === 0}
-                      className="h-8 text-xs bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white"
-                    >
-                      <FileSearch className="h-3 w-3 mr-1" />
-                      Получить данные ({selectedDomains.size})
-                    </Button>
+
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.3 }}
+                    className="flex gap-2"
+                  >
+                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={copySelectedDomains}
+                        disabled={selectedDomains.size === 0}
+                        className="h-8 text-xs border-purple-300 focus:border-purple-500 focus:ring-purple-500 text-purple-700 hover:bg-purple-50 bg-transparent"
+                      >
+                        <Copy className="h-3 w-3 mr-1" />
+                        Копировать ({selectedDomains.size})
+                      </Button>
+                    </motion.div>
+                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                      <Button
+                        size="sm"
+                        onClick={handleDomainParser}
+                        disabled={parserLoading || selectedDomains.size === 0}
+                        className="h-8 text-xs bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white"
+                      >
+                        <FileSearch className="h-3 w-3 mr-1" />
+                        Получить данные ({selectedDomains.size})
+                      </Button>
+                    </motion.div>
                   </motion.div>
-                </motion.div>
+                </div>
               </div>
-          {/* === ЕДИНЫЙ БЛОК: Извлечение ИНН/email — метрики + статус парсера === */}
+              {/* === ЕДИНЫЙ БЛОК: Извлечение ИНН/email — метрики + статус парсера === */}
               {(() => {
                 const supplierCount = groups.filter(g => g.supplierType === "supplier" || g.supplierType === "reseller").length
                 const moderationCount = groups.filter(g => g.supplierType === "needs_moderation").length
@@ -1760,27 +1789,26 @@ function ParsingRunDetailsPage() {
                                   .map(g => g.domain)
                                 if (moderationDomains.length === 0) return
                                 setSelectedDomains(new Set(moderationDomains))
-                                setTimeout(() => handleDomainParser(), 100)
                               }}
                             >
                               <FileSearch className="h-3 w-3 mr-1" />
-                              Получить данные ({moderationCount})
+                              Выбрать модерацию ({moderationCount})
                             </Button>
                           )}
                         </div>
                       </div>
 
                       {/* Прогресс-бар */}
-                      {totalDomains > 0 && (
-                        <div className="w-full bg-slate-100 h-1.5 flex">
-                          {supplierCount > 0 && (
-                            <motion.div className="bg-emerald-500 h-1.5" initial={{ width: 0 }} animate={{ width: `${(supplierCount / totalDomains) * 100}%` }} transition={{ duration: 0.5 }} />
-                          )}
-                          {moderationCount > 0 && (
-                            <motion.div className="bg-amber-400 h-1.5" initial={{ width: 0 }} animate={{ width: `${(moderationCount / totalDomains) * 100}%` }} transition={{ duration: 0.5 }} />
-                          )}
-                        </div>
-                      )}
+                      <div className="px-3 py-2">
+                        <FlinstonesProgressBar
+                          progress={totalDomains > 0 ? Math.min(100, Math.round(((supplierCount + moderationCount) / totalDomains) * 100)) : 0}
+                          label="Прогресс"
+                          color={moderationCount > 0 ? "amber" : "emerald"}
+                          current={supplierCount + moderationCount}
+                          total={totalDomains}
+                          isActive={isRunning}
+                        />
+                      </div>
 
                       {/* Статус парсера — ВСЕГДА видно */}
                       <div className="px-3 py-2">
@@ -1883,15 +1911,122 @@ function ParsingRunDetailsPage() {
                   </motion.div>
                 )
               })()}
+
+              {parsingLogs && (parsingLogs.google || parsingLogs.yandex) && (
+                <div className="mb-4">
+                  {accordionValue.includes("google") && parsingLogs.google && (
+                    <div className="rounded-md border border-blue-100 bg-blue-50/40 p-3 mb-3">
+                      <div className="text-sm space-y-1">
+                        <p className="text-muted-foreground">
+                          Найдено ссылок: <span className="font-medium text-blue-600">{parsingLogs.google.total_links}</span>
+                        </p>
+                        {parsingLogs.google.pages_processed > 0 && (
+                          <p className="text-muted-foreground">
+                            Обработано страниц: <span className="font-medium">{parsingLogs.google.pages_processed}</span>
+                          </p>
+                        )}
+                        {parsingLogs.google.links_by_page && Object.keys(parsingLogs.google.links_by_page).length > 0 && (
+                          <div className="mt-2">
+                            <p className="text-xs font-medium text-muted-foreground mb-1">Ссылок по страницам:</p>
+                            <div className="flex flex-wrap gap-2">
+                              {Object.entries(parsingLogs.google.links_by_page)
+                                .sort(([a], [b]) => Number(a) - Number(b))
+                                .map(([page, count]) => (
+                                  <Badge key={`google-page-${page}`} variant="outline" className="text-xs">
+                                    Страница {page}: {count}
+                                  </Badge>
+                                ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      {parsingLogs.google.last_links && parsingLogs.google.last_links.length > 0 && (
+                        <div className="mt-3">
+                          <p className="text-xs font-medium text-muted-foreground mb-2">
+                            Найденные ссылки ({parsingLogs.google.last_links.length}):
+                          </p>
+                          <div className="space-y-1 max-h-96 overflow-y-auto border rounded-md p-2 bg-muted/30">
+                            {parsingLogs.google.last_links.map((link, idx) => (
+                              <div key={`google-${idx}`} className="text-xs text-muted-foreground flex items-start gap-2 py-1">
+                                <span className="text-muted-foreground/50 min-w-[2rem]">{idx + 1}.</span>
+                                <a
+                                  href={link}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-blue-600 hover:text-blue-800 hover:underline break-all flex-1"
+                                >
+                                  {link}
+                                </a>
+                                <ExternalLink className="w-3 h-3 text-muted-foreground/50 flex-shrink-0 mt-0.5" />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {accordionValue.includes("yandex") && parsingLogs.yandex && (
+                    <div className="rounded-md border border-red-100 bg-red-50/40 p-3">
+                      <div className="text-sm space-y-1">
+                        <p className="text-muted-foreground">
+                          Найдено ссылок: <span className="font-medium text-red-600">{parsingLogs.yandex.total_links}</span>
+                        </p>
+                        {parsingLogs.yandex.pages_processed > 0 && (
+                          <p className="text-muted-foreground">
+                            Обработано страниц: <span className="font-medium">{parsingLogs.yandex.pages_processed}</span>
+                          </p>
+                        )}
+                        {parsingLogs.yandex.links_by_page && Object.keys(parsingLogs.yandex.links_by_page).length > 0 && (
+                          <div className="mt-2">
+                            <p className="text-xs font-medium text-muted-foreground mb-1">Ссылок по страницам:</p>
+                            <div className="flex flex-wrap gap-2">
+                              {Object.entries(parsingLogs.yandex.links_by_page)
+                                .sort(([a], [b]) => Number(a) - Number(b))
+                                .map(([page, count]) => (
+                                  <Badge key={`yandex-page-${page}`} variant="outline" className="text-xs">
+                                    Страница {page}: {count}
+                                  </Badge>
+                                ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      {parsingLogs.yandex.last_links && parsingLogs.yandex.last_links.length > 0 && (
+                        <div className="mt-3">
+                          <p className="text-xs font-medium text-muted-foreground mb-2">
+                            Найденные ссылки ({parsingLogs.yandex.last_links.length}):
+                          </p>
+                          <div className="space-y-1 max-h-96 overflow-y-auto border rounded-md p-2 bg-muted/30">
+                            {parsingLogs.yandex.last_links.map((link, idx) => (
+                              <div key={`yandex-${idx}`} className="text-xs text-muted-foreground flex items-start gap-2 py-1">
+                                <span className="text-muted-foreground/50 min-w-[2rem]">{idx + 1}.</span>
+                                <a
+                                  href={link}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-red-600 hover:text-red-800 hover:underline break-all flex-1"
+                                >
+                                  {link}
+                                </a>
+                                <ExternalLink className="w-3 h-3 text-muted-foreground/50 flex-shrink-0 mt-0.5" />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
               {/* Фильтры и поиск */}
               <div className="flex gap-2 flex-wrap items-center">
-                <div className="relative flex-1 min-w-[200px]">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-purple-400" />
-                  <Input
+                <div className="flex-1 min-w-[200px]">
+                  <UiverseSearchInput
                     placeholder="Поиск по домену..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 border-purple-300 focus:border-purple-500 focus:ring-purple-500"
+                    containerClassName="w-full"
                   />
                 </div>
                 <Select value={sortBy} onValueChange={(value: "domain" | "urls") => setSortBy(value)}>
@@ -2016,12 +2151,23 @@ function ParsingRunDetailsPage() {
                       <table className="w-full text-xs">
                         <thead className="bg-white">
                           <tr className="border-b">
-                            <th className="py-2 px-2 w-8"><input type="checkbox" checked={filteredGroups.length > 0 && filteredGroups.every(g => selectedDomains.has(g.domain))} onChange={() => { const allSel = filteredGroups.every(g => selectedDomains.has(g.domain)); if (allSel) { setSelectedDomains(new Set()) } else { setSelectedDomains(new Set(filteredGroups.map(g => g.domain))) } }} className="accent-purple-600 w-3.5 h-3.5 cursor-pointer" /></th>
+                            <th className="py-2 px-2 w-8">
+                              <Checkbox
+                                checked={filteredGroups.length > 0 && filteredGroups.every((g) => selectedDomains.has(g.domain))}
+                                onCheckedChange={() => {
+                                  const allSel = filteredGroups.every((g) => selectedDomains.has(g.domain))
+                                  if (allSel) {
+                                    setSelectedDomains(new Set())
+                                  } else {
+                                    setSelectedDomains(new Set(filteredGroups.map((g) => g.domain)))
+                                  }
+                                }}
+                              />
+                            </th>
                             <th className="text-left py-2 px-3 font-semibold text-slate-600">Домен</th>
                             <th className="text-left py-2 px-3 font-semibold text-slate-600">ИНН</th>
                             <th className="text-left py-2 px-3 font-semibold text-slate-600">Email</th>
                             <th className="text-left py-2 px-3 font-semibold text-slate-600">Источник</th>
-                            <th className="text-left py-2 px-3 font-semibold text-slate-600">Проверено URL</th>
                             <th className="text-left py-2 px-3 font-semibold text-slate-600">Результат</th>
                           </tr>
                         </thead>
@@ -2041,21 +2187,27 @@ function ParsingRunDetailsPage() {
                             const googleHit = g.urls?.find((u) => (u.source || "") === "google" || (u.source || "") === "both")
                             const yandexHit = g.urls?.find((u) => (u.source || "") === "yandex" || (u.source || "") === "both")
 
+                            // Если есть supplierId, значит поставщик уже существует в базе
+                            const isExistingSupplier = g.supplierType === "supplier" && g.supplierId
                             const isUnprocessed = !hasParserResult && !g.inn && (!g.emails || g.emails.length === 0) && !((extLog || []).some((e) => !!e.error))
-                            const resultLabel = isUnprocessed
-                              ? "не обработан"
-                              : g.inn
-                                ? "ИНН найден"
-                                : (extLog || []).some((e) => !!e.error)
-                                  ? "Parser timeout (ош)"
-                                  : "Ничего не найдено"
-                            const resultClass = isUnprocessed
-                              ? "text-slate-500"
-                              : g.inn
-                                ? "text-emerald-700"
-                                : (extLog || []).some((e) => !!e.error)
-                                  ? "text-red-600"
-                                  : "text-red-600"
+                            const resultLabel = isExistingSupplier
+                              ? "Поставщик"
+                              : isUnprocessed
+                                ? "не обработан"
+                                : g.inn
+                                  ? "ИНН найден"
+                                  : (extLog || []).some((e) => !!e.error)
+                                    ? "Parser timeout (ош)"
+                                    : "Ничего не найдено"
+                            const resultClass = isExistingSupplier
+                              ? "text-emerald-600 font-semibold"
+                              : isUnprocessed
+                                ? "text-slate-500"
+                                : g.inn
+                                  ? "text-emerald-700"
+                                  : (extLog || []).some((e) => !!e.error)
+                                    ? "text-red-600"
+                                    : "text-red-600"
 
                             const strategyUsed = (g as any).strategyUsed as string | null | undefined
                             const strategyTimeMs = (g as any).strategyTimeMs as number | null | undefined
@@ -2075,7 +2227,7 @@ function ParsingRunDetailsPage() {
                                   if (g.supplierId) router.push(`/suppliers/${g.supplierId}`)
                                 }}
                               >
-                                <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 hover:bg-emerald-200">Поставщик</Badge>
+                                <SupplierIcon />
                                 <Badge variant="outline" className={g.hasChecko ? "border-emerald-200 text-emerald-700" : "border-amber-200 text-amber-700"}>
                                   {g.hasChecko ? "Checko" : "без Checko"}
                                 </Badge>
@@ -2103,11 +2255,9 @@ function ParsingRunDetailsPage() {
                             return (
                               <tr key={g.domain} className={`border-b border-slate-100 ${selectedDomains.has(g.domain) ? "bg-purple-50/60" : idx % 2 === 0 ? "bg-white" : "bg-slate-50/50"}`}>
                                 <td className="py-1.5 px-2 w-8">
-                                  <input
-                                    type="checkbox"
+                                  <Checkbox
                                     checked={selectedDomains.has(g.domain)}
-                                    onChange={() => toggleDomainSelection(g.domain)}
-                                    className="accent-purple-600 w-3.5 h-3.5 cursor-pointer"
+                                    onCheckedChange={() => toggleDomainSelection(g.domain)}
                                   />
                                 </td>
                                 <td className="py-1.5 px-3">
@@ -2149,67 +2299,123 @@ function ParsingRunDetailsPage() {
                                 </td>
 
                                 <td className="py-1.5 px-3">
-                                  {g.inn ? (
-                                    <div className="flex items-center gap-1">
-                                      <span className="text-blue-700 font-medium">{g.inn}</span>
-                                      <button
-                                        type="button"
-                                        className="text-slate-400 hover:text-blue-600 transition-colors"
-                                        title="Копировать ИНН"
-                                        onClick={() => {
-                                          navigator.clipboard.writeText(g.inn || "")
-                                          toast.success(`ИНН ${g.inn} скопирован`)
-                                        }}
-                                      >
-                                        <Copy className="h-3 w-3" />
-                                      </button>
-                                      {innSourceUrl && (
-                                        <a
-                                          href={innSourceUrl}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          className="text-blue-500 hover:text-blue-700"
-                                          title={innSourceUrl}
-                                        >
-                                          🔗
-                                        </a>
-                                      )}
-                                    </div>
-                                  ) : (
-                                    <span className="text-slate-400">—</span>
-                                  )}
+                                  {(() => {
+                                    // Если есть supplierId, берем INN из данных поставщика
+                                    if (g.supplierId) {
+                                      const cachedSuppliers = getCachedSuppliers()
+                                      const supplier = cachedSuppliers?.find((s) => s.id === g.supplierId)
+                                      const inn = supplier?.inn || g.inn
+                                      if (inn) {
+                                        return (
+                                          <div className="flex items-center gap-1">
+                                            <span className="text-blue-700 font-medium">{inn}</span>
+                                            <button
+                                              type="button"
+                                              className="text-slate-400 hover:text-blue-600 transition-colors"
+                                              title="Копировать ИНН"
+                                              onClick={() => {
+                                                navigator.clipboard.writeText(inn)
+                                                toast.success(`ИНН ${inn} скопирован`)
+                                              }}
+                                            >
+                                              <Copy className="h-3 w-3" />
+                                            </button>
+                                          </div>
+                                        )
+                                      }
+                                    }
+                                    // Если нет supplierId, используем g.inn
+                                    if (g.inn) {
+                                      return (
+                                        <div className="flex items-center gap-1">
+                                          <span className="text-blue-700 font-medium">{g.inn}</span>
+                                          <button
+                                            type="button"
+                                            className="text-slate-400 hover:text-blue-600 transition-colors"
+                                            title="Копировать ИНН"
+                                            onClick={() => {
+                                              navigator.clipboard.writeText(g.inn || "")
+                                              toast.success(`ИНН ${g.inn} скопирован`)
+                                            }}
+                                          >
+                                            <Copy className="h-3 w-3" />
+                                          </button>
+                                          {innSourceUrl && (
+                                            <a
+                                              href={innSourceUrl}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              className="text-blue-500 hover:text-blue-700"
+                                              title={innSourceUrl}
+                                            >
+                                              🔗
+                                            </a>
+                                          )}
+                                        </div>
+                                      )
+                                    }
+                                    return <span className="text-slate-400">—</span>
+                                  })()}
                                 </td>
 
                                 <td className="py-1.5 px-3">
-                                  {g.emails && g.emails.length > 0 ? (
-                                    <div className="flex items-center gap-1">
-                                      <span className="text-emerald-700">{g.emails.join(", ")}</span>
-                                      <button
-                                        type="button"
-                                        className="text-slate-400 hover:text-emerald-600 transition-colors"
-                                        title="Копировать Email"
-                                        onClick={() => {
-                                          navigator.clipboard.writeText((g.emails || []).join(", "))
-                                          toast.success(`Email скопирован`)
-                                        }}
-                                      >
-                                        <Copy className="h-3 w-3" />
-                                      </button>
-                                      {emailSourceUrl && (
-                                        <a
-                                          href={emailSourceUrl}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          className="text-emerald-500 hover:text-emerald-700"
-                                          title={emailSourceUrl}
-                                        >
-                                          🔗
-                                        </a>
-                                      )}
-                                    </div>
-                                  ) : (
-                                    <span className="text-slate-400">—</span>
-                                  )}
+                                  {(() => {
+                                    // Если есть supplierId, берем email из данных поставщика
+                                    if (g.supplierId) {
+                                      const cachedSuppliers = getCachedSuppliers()
+                                      const supplier = cachedSuppliers?.find((s) => s.id === g.supplierId)
+                                      const email = supplier?.email
+                                      if (email) {
+                                        return (
+                                          <div className="flex items-center gap-1">
+                                            <span className="text-emerald-700">{email}</span>
+                                            <button
+                                              type="button"
+                                              className="text-slate-400 hover:text-emerald-600 transition-colors"
+                                              title="Копировать Email"
+                                              onClick={() => {
+                                                navigator.clipboard.writeText(email)
+                                                toast.success(`Email скопирован`)
+                                              }}
+                                            >
+                                              <Copy className="h-3 w-3" />
+                                            </button>
+                                          </div>
+                                        )
+                                      }
+                                    }
+                                    // Если нет supplierId, используем g.emails
+                                    if (g.emails && g.emails.length > 0) {
+                                      return (
+                                        <div className="flex items-center gap-1">
+                                          <span className="text-emerald-700">{g.emails.join(", ")}</span>
+                                          <button
+                                            type="button"
+                                            className="text-slate-400 hover:text-emerald-600 transition-colors"
+                                            title="Копировать Email"
+                                            onClick={() => {
+                                              navigator.clipboard.writeText((g.emails || []).join(", "))
+                                              toast.success(`Email скопирован`)
+                                            }}
+                                          >
+                                            <Copy className="h-3 w-3" />
+                                          </button>
+                                          {emailSourceUrl && (
+                                            <a
+                                              href={emailSourceUrl}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              className="text-emerald-500 hover:text-emerald-700"
+                                              title={emailSourceUrl}
+                                            >
+                                              🔗
+                                            </a>
+                                          )}
+                                        </div>
+                                      )
+                                    }
+                                    return <span className="text-slate-400">—</span>
+                                  })()}
                                 </td>
 
                                 <td className="py-1.5 px-3">
@@ -2229,48 +2435,6 @@ function ParsingRunDetailsPage() {
                                   )}
                                 </td>
 
-                                <td className="py-1.5 px-3">
-                                  {(() => {
-                                    const key = root
-                                    const isOpen = Boolean(expandedCheckedUrls[key])
-                                    const urls = (g.sourceUrls || []).filter(Boolean)
-                                    return (
-                                      <div className="text-[10px]">
-                                        <button
-                                          type="button"
-                                          className="text-slate-600 hover:underline"
-                                          onClick={() => setExpandedCheckedUrls((prev) => ({ ...prev, [key]: !prev[key] }))}
-                                          disabled={urls.length === 0}
-                                          title={urls.length === 0 ? "Нет URL" : "Показать URL"}
-                                        >
-                                          {urls.length} стр.
-                                        </button>
-                                        {pagesWithInn > 0 && <span className="text-blue-600 ml-1">•📋{pagesWithInn}</span>}
-                                        {pagesWithEmail > 0 && <span className="text-emerald-600 ml-1">•📧{pagesWithEmail}</span>}
-                                        {pagesWithError > 0 && <span className="text-red-500 ml-1">•⚠{pagesWithError}</span>}
-
-                                        {isOpen && urls.length > 0 && (
-                                          <div className="mt-1 space-y-1 max-h-[140px] overflow-auto rounded border border-slate-200 bg-white p-2">
-                                            {urls.slice(0, 20).map((u, i) => (
-                                              <div key={i} className="truncate">
-                                                <a
-                                                  href={u}
-                                                  target="_blank"
-                                                  rel="noopener noreferrer"
-                                                  className="text-blue-600 hover:underline"
-                                                  title={u}
-                                                >
-                                                  {u}
-                                                </a>
-                                              </div>
-                                            ))}
-                                            {urls.length > 20 && <div className="text-slate-400">… ещё {urls.length - 20}</div>}
-                                          </div>
-                                        )}
-                                      </div>
-                                    )
-                                  })()}
-                                </td>
 
                                 <td className="py-1.5 px-3">
                                   <div className="flex flex-col">
@@ -2296,186 +2460,9 @@ function ParsingRunDetailsPage() {
             </CardContent>
           </Card>
 
-          {/* === Google/Yandex ссылки + Лог извлечения (под таблицей доменов) === */}
-          <Card className="mt-4 border border-slate-200">
-            <CardContent className="space-y-4 pt-4">
-              {/* --- Google / Yandex --- */}
-              {(run?.status === "running" || parsingLogs) && (
-                <div>
-                  {parsingLogs ? (
-                    <>
-                      {(parsingLogs.google || parsingLogs.yandex) && (
-                        <Accordion
-                          type="multiple"
-                          value={accordionValue}
-                          onValueChange={setAccordionValue}
-                          className="w-full"
-                        >
-                          {parsingLogs.google && (
-                            <AccordionItem value="google" className="border-b">
-                              <AccordionTrigger className="hover:no-underline">
-                                <div className="flex items-center gap-2 flex-1">
-                                  <span className="w-3 h-3 rounded-full bg-blue-500"></span>
-                                  <span className="font-semibold">Google</span>
-                                  <Badge variant="outline" className="ml-2">
-                                    {parsingLogs.google.total_links} ссылок
-                                  </Badge>
-                                  {parsingLogs.google.pages_processed > 0 && (
-                                    <Badge variant="outline" className="ml-1">
-                                      {parsingLogs.google.pages_processed} стр.
-                                    </Badge>
-                                  )}
-                                </div>
-                              </AccordionTrigger>
-                              <AccordionContent>
-                                <div className="pt-2 space-y-3">
-                                  <div className="text-sm space-y-1">
-                                    <p className="text-muted-foreground">
-                                      Найдено ссылок:{" "}
-                                      <span className="font-medium text-blue-600">{parsingLogs.google.total_links}</span>
-                                    </p>
-                                    {parsingLogs.google.pages_processed > 0 && (
-                                      <p className="text-muted-foreground">
-                                        Обработано страниц:{" "}
-                                        <span className="font-medium">{parsingLogs.google.pages_processed}</span>
-                                      </p>
-                                    )}
-                                    {parsingLogs.google.links_by_page &&
-                                      Object.keys(parsingLogs.google.links_by_page).length > 0 && (
-                                        <div className="mt-2">
-                                          <p className="text-xs font-medium text-muted-foreground mb-1">
-                                            Ссылок по страницам:
-                                          </p>
-                                          <div className="flex flex-wrap gap-2">
-                                            {Object.entries(parsingLogs.google.links_by_page)
-                                              .sort(([a], [b]) => Number(a) - Number(b))
-                                              .map(([page, count]) => (
-                                                <Badge key={`google-page-${page}`} variant="outline" className="text-xs">
-                                                  Страница {page}: {count}
-                                                </Badge>
-                                              ))}
-                                          </div>
-                                        </div>
-                                      )}
-                                  </div>
-                                  {parsingLogs.google.last_links && parsingLogs.google.last_links.length > 0 && (
-                                    <div className="mt-3">
-                                      <p className="text-xs font-medium text-muted-foreground mb-2">
-                                        Найденные ссылки ({parsingLogs.google.last_links.length}):
-                                      </p>
-                                      <div className="space-y-1 max-h-96 overflow-y-auto border rounded-md p-2 bg-muted/30">
-                                        {parsingLogs.google.last_links.map((link, idx) => (
-                                          <div
-                                            key={`google-${idx}`}
-                                            className="text-xs text-muted-foreground flex items-start gap-2 py-1"
-                                          >
-                                            <span className="text-muted-foreground/50 min-w-[2rem]">{idx + 1}.</span>
-                                            <a
-                                              href={link}
-                                              target="_blank"
-                                              rel="noopener noreferrer"
-                                              className="text-blue-600 hover:text-blue-800 hover:underline break-all flex-1"
-                                            >
-                                              {link}
-                                            </a>
-                                            <ExternalLink className="w-3 h-3 text-muted-foreground/50 flex-shrink-0 mt-0.5" />
-                                          </div>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  )}
-                                </div>
-                              </AccordionContent>
-                            </AccordionItem>
-                          )}
-                          {parsingLogs.yandex && (
-                            <AccordionItem value="yandex" className="border-b">
-                              <AccordionTrigger className="hover:no-underline">
-                                <div className="flex items-center gap-2 flex-1">
-                                  <span className="w-3 h-3 rounded-full bg-red-500"></span>
-                                  <span className="font-semibold">Яндекс</span>
-                                  <Badge variant="outline" className="ml-2">
-                                    {parsingLogs.yandex.total_links} ссылок
-                                  </Badge>
-                                  {parsingLogs.yandex.pages_processed > 0 && (
-                                    <Badge variant="outline" className="ml-1">
-                                      {parsingLogs.yandex.pages_processed} стр.
-                                    </Badge>
-                                  )}
-                                </div>
-                              </AccordionTrigger>
-                              <AccordionContent>
-                                <div className="pt-2 space-y-3">
-                                  <div className="text-sm space-y-1">
-                                    <p className="text-muted-foreground">
-                                      Найдено ссылок:{" "}
-                                      <span className="font-medium text-red-600">{parsingLogs.yandex.total_links}</span>
-                                    </p>
-                                    {parsingLogs.yandex.pages_processed > 0 && (
-                                      <p className="text-muted-foreground">
-                                        Обработано страниц:{" "}
-                                        <span className="font-medium">{parsingLogs.yandex.pages_processed}</span>
-                                      </p>
-                                    )}
-                                    {parsingLogs.yandex.links_by_page &&
-                                      Object.keys(parsingLogs.yandex.links_by_page).length > 0 && (
-                                        <div className="mt-2">
-                                          <p className="text-xs font-medium text-muted-foreground mb-1">
-                                            Ссылок по страницам:
-                                          </p>
-                                          <div className="flex flex-wrap gap-2">
-                                            {Object.entries(parsingLogs.yandex.links_by_page)
-                                              .sort(([a], [b]) => Number(a) - Number(b))
-                                              .map(([page, count]) => (
-                                                <Badge key={`yandex-page-${page}`} variant="outline" className="text-xs">
-                                                  Страница {page}: {count}
-                                                </Badge>
-                                              ))}
-                                          </div>
-                                        </div>
-                                      )}
-                                  </div>
-                                  {parsingLogs.yandex.last_links && parsingLogs.yandex.last_links.length > 0 && (
-                                    <div className="mt-3">
-                                      <p className="text-xs font-medium text-muted-foreground mb-2">
-                                        Найденные ссылки ({parsingLogs.yandex.last_links.length}):
-                                      </p>
-                                      <div className="space-y-1 max-h-96 overflow-y-auto border rounded-md p-2 bg-muted/30">
-                                        {parsingLogs.yandex.last_links.map((link, idx) => (
-                                          <div
-                                            key={`yandex-${idx}`}
-                                            className="text-xs text-muted-foreground flex items-start gap-2 py-1"
-                                          >
-                                            <span className="text-muted-foreground/50 min-w-[2rem]">{idx + 1}.</span>
-                                            <a
-                                              href={link}
-                                              target="_blank"
-                                              rel="noopener noreferrer"
-                                              className="text-red-600 hover:text-red-800 hover:underline break-all flex-1"
-                                            >
-                                              {link}
-                                            </a>
-                                            <ExternalLink className="w-3 h-3 text-muted-foreground/50 flex-shrink-0 mt-0.5" />
-                                          </div>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  )}
-                                </div>
-                              </AccordionContent>
-                            </AccordionItem>
-                          )}
-                        </Accordion>
-                      )}
-                    </>
-                  ) : (
-                    <p className="text-sm text-muted-foreground animate-pulse">Загрузка логов парсинга...</p>
-                  )}
-                </div>
-              )}
-
-              {/* --- 5. Обучение парсера --- */}
-              {learnedItems.length > 0 && (
+          {learnedItems.length > 0 && (
+            <Card className="mt-4 border border-slate-200">
+              <CardContent className="space-y-4 pt-4">
                 <div>
                   <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
                     🎓 Обучение парсера — Чему научился Domain Parser
@@ -2562,9 +2549,9 @@ function ParsingRunDetailsPage() {
                     </div>
                   )}
                 </div>
-              )}
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
         </motion.div>
       </motion.main>
 

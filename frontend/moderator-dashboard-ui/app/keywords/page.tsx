@@ -2,13 +2,15 @@
 
 import { Suspense, useState, useEffect, useCallback, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Card, CardContent } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { LoadingState } from "@/components/ui/LoadingState"
 import { EmptyState } from "@/components/ui/EmptyState"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { UiverseSearchInput } from "@/components/ui/uiverse-search-input"
 import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Label } from "@/components/ui/label"
+import { Input } from "@/components/ui/input"
 import { Navigation } from "@/components/navigation"
 import { AuthGuard } from "@/components/auth-guard"
 import { getDomainsQueue, getSuppliers, getBlacklist } from "@/lib/api"
@@ -422,14 +424,13 @@ function KeywordsContent() {
         <div className="flex gap-3 mb-4">
           <div className="flex-1 flex gap-2">
             <div className="relative flex-1 max-w-xs">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
+              <UiverseSearchInput
                 id="search"
                 name="search"
                 placeholder="Поиск..."
                 value={searchFilter}
                 onChange={(e) => setSearchFilter(e.target.value)}
-                className="pl-9 h-9 bg-white border-slate-200"
+                containerClassName="w-full"
               />
             </div>
             <Input
@@ -439,8 +440,8 @@ function KeywordsContent() {
               aria-label="Новое ключевое слово"
               placeholder="Новое ключевое слово..."
               value={newKeyword}
-              onChange={(e) => setNewKeyword(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleAdd()}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewKeyword(e.target.value)}
+              onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => e.key === "Enter" && handleAdd()}
               className="flex-1 h-9 bg-white border-slate-200"
             />
             <Button

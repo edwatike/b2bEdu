@@ -8,8 +8,8 @@ import { AuthGuard } from "@/components/auth-guard"
 import { PageShell } from "@/components/ui/PageShell"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
+import { UiverseSearchInput } from "@/components/ui/uiverse-search-input"
 import { Badge } from "@/components/ui/badge"
 import { addToBlacklist, clearPendingDomains, enrichPendingDomain, getPendingDomains, startDomainParserBatch, getDomainHistory, learnManualInn, type DomainLogEntry } from "@/lib/api"
 import { extractRootDomain } from "@/lib/utils-domain"
@@ -360,13 +360,12 @@ function PendingDomainsPageInner() {
         gradientTo="to-teal-600"
         actions={
           <div className="flex items-center gap-2">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-emerald-400" />
-              <Input
+            <div className="w-64">
+              <UiverseSearchInput
                 placeholder="Поиск домена..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-64 pl-10 border-emerald-200 focus:border-emerald-400 focus:ring-emerald-400/20"
+                containerClassName="w-full"
               />
             </div>
             <Button variant="outline" size="sm" onClick={() => loadDomains(page, search)} disabled={loading} className="border-emerald-200 text-emerald-700 hover:bg-emerald-50">
@@ -602,11 +601,10 @@ function PendingDomainsPageInner() {
                       <thead className="bg-white">
                         <tr className="border-b">
                           <th className="py-2 px-2 w-8">
-                            <input
-                              type="checkbox"
-                              checked={displayRows.length > 0 && displayRows.every(r => selected.has(r.domain))}
-                              onChange={() => {
-                                const allSel = displayRows.every(r => selected.has(r.domain))
+                            <Checkbox
+                              checked={displayRows.length > 0 && displayRows.every((r) => selected.has(r.domain))}
+                              onCheckedChange={() => {
+                                const allSel = displayRows.every((r) => selected.has(r.domain))
                                 if (allSel) {
                                   const next = new Set(selected)
                                   for (const r of displayRows) next.delete(r.domain)
@@ -617,7 +615,6 @@ function PendingDomainsPageInner() {
                                   setSelected(next)
                                 }
                               }}
-                              className="accent-purple-600 w-3.5 h-3.5 cursor-pointer"
                             />
                           </th>
                           <th className="text-left py-2 px-3 font-semibold text-slate-600">Домен</th>
@@ -639,11 +636,9 @@ function PendingDomainsPageInner() {
                             <React.Fragment key={row.domain}>
                               <tr className={`border-b border-slate-100 ${selected.has(row.domain) ? "bg-purple-50/60" : index % 2 === 0 ? "bg-white" : "bg-slate-50/50"}`}>
                                 <td className="py-1.5 px-2 w-8">
-                                  <input
-                                    type="checkbox"
+                                  <Checkbox
                                     checked={selected.has(row.domain)}
-                                    onChange={() => toggleSelectOne(row.domain, !selected.has(row.domain))}
-                                    className="accent-purple-600 w-3.5 h-3.5 cursor-pointer"
+                                    onCheckedChange={() => toggleSelectOne(row.domain, !selected.has(row.domain))}
                                   />
                                 </td>
                                 <td className="py-1.5 px-3">
