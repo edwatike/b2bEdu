@@ -1,0 +1,9 @@
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": ".next",
+  "framework": "nextjs",
+  "env": {
+    "NEXT_PUBLIC_AUTH_BYPASS": "true",
+    "NEXT_PUBLIC_API_URL": "https://placeholder-will-update-after-ngrok.ngrok-free.app"
+  }
+}
