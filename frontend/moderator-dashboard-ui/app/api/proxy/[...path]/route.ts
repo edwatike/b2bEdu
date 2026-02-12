@@ -61,8 +61,8 @@ async function proxyFetch(request: NextRequest, url: string, method: string) {
   })
 }
 
-export async function GET(request: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
-  const { path } = await params
+export async function GET(request: NextRequest, context: { params: Promise<any> }) {
+  const { path } = (await context.params) as { path: string[] }
   const targetPath = "/" + path.join("/")
   const searchParams = request.nextUrl.searchParams.toString()
   const url = `${API_BASE_URL}${targetPath}${searchParams ? `?${searchParams}` : ""}`
@@ -85,8 +85,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   }
 }
 
-export async function POST(request: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
-  const { path } = await params
+export async function POST(request: NextRequest, context: { params: Promise<any> }) {
+  const { path } = (await context.params) as { path: string[] }
   const targetPath = "/" + path.join("/")
   const searchParams = request.nextUrl.searchParams.toString()
   const url = `${API_BASE_URL}${targetPath}${searchParams ? `?${searchParams}` : ""}`
@@ -109,8 +109,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   }
 }
 
-export async function PUT(request: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
-  const { path } = await params
+export async function PUT(request: NextRequest, context: { params: Promise<any> }) {
+  const { path } = (await context.params) as { path: string[] }
   const targetPath = "/" + path.join("/")
   const searchParams = request.nextUrl.searchParams.toString()
   const url = `${API_BASE_URL}${targetPath}${searchParams ? `?${searchParams}` : ""}`
@@ -133,8 +133,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
-  const { path } = await params
+export async function DELETE(request: NextRequest, context: { params: Promise<any> }) {
+  const { path } = (await context.params) as { path: string[] }
   const targetPath = "/" + path.join("/")
   const searchParams = request.nextUrl.searchParams.toString()
   const url = `${API_BASE_URL}${targetPath}${searchParams ? `?${searchParams}` : ""}`
@@ -161,8 +161,8 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
   }
 }
 
-export async function PATCH(request: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
-  const { path } = await params
+export async function PATCH(request: NextRequest, context: { params: Promise<any> }) {
+  const { path } = (await context.params) as { path: string[] }
   const targetPath = "/" + path.join("/")
   const searchParams = request.nextUrl.searchParams.toString()
   const url = `${API_BASE_URL}${targetPath}${searchParams ? `?${searchParams}` : ""}`

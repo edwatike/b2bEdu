@@ -22,7 +22,7 @@ import {
   ChevronRight,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { UiverseSearchInput } from "@/components/ui/uiverse-search-input"
+import { GlowSearchInput } from "@/components/ui/glow-search-input"
 import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -294,7 +294,7 @@ export function SuppliersTable({ suppliers, onRefresh }: SuppliersTableProps) {
       <Card className="p-4 bg-white/80 backdrop-blur-sm border-neutral-200 shadow-sm">
         <div className="flex flex-col lg:flex-row gap-4">
           <div className="flex-1">
-            <UiverseSearchInput
+            <GlowSearchInput
               id="suppliers-search"
               name="suppliers-search"
               autoComplete="off"

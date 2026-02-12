@@ -103,6 +103,7 @@ OAUTH_PRODUCTION = {
 }
 
 _LAUNCH_MODE: str = "local"  # "local" or "production"
+_PROD_AUTH_MODE: str = "yandex"  # "yandex" or "noauth"
 
 _LAST_CDP_BROWSER: Optional[str] = None
 _LAST_CDP_USED_TEMP_PROFILE: bool = False
@@ -229,6 +230,29 @@ def _frontend_needs_rebuild(frontend_dir: str) -> bool:
         except Exception:
             build_ts = 0.0
 
+        # Also consider config/manifests that affect the build output.
+        # (Keep this fast: check known files' mtimes + scan only key dirs.)
+        config_files = [
+            os.path.join(frontend_dir, "package.json"),
+            os.path.join(frontend_dir, "package-lock.json"),
+            os.path.join(frontend_dir, "pnpm-lock.yaml"),
+            os.path.join(frontend_dir, "yarn.lock"),
+            os.path.join(frontend_dir, "next.config.js"),
+            os.path.join(frontend_dir, "next.config.mjs"),
+            os.path.join(frontend_dir, "tailwind.config.js"),
+            os.path.join(frontend_dir, "tailwind.config.ts"),
+            os.path.join(frontend_dir, "postcss.config.js"),
+            os.path.join(frontend_dir, "postcss.config.mjs"),
+            os.path.join(frontend_dir, "tsconfig.json"),
+        ]
+        latest_cfg = 0.0
+        for fp in config_files:
+            try:
+                if os.path.exists(fp):
+                    latest_cfg = max(latest_cfg, float(os.path.getmtime(fp)))
+            except Exception:
+                continue
+
         # Only scan key source dirs to keep this quick
         src_dirs = [
             os.path.join(frontend_dir, "app"),
@@ -241,7 +265,7 @@ def _frontend_needs_rebuild(frontend_dir: str) -> bool:
         for d in src_dirs:
             if os.path.isdir(d):
                 latest_src = max(latest_src, _latest_mtime_in_dir(d))
-        return latest_src > build_ts
+        return max(latest_src, latest_cfg) > build_ts
     except Exception:
         return False
 
@@ -1107,6 +1131,39 @@ def _ask_launch_mode() -> str:
     return _LAUNCH_MODE
 
 
+def _ask_production_auth_mode() -> str:
+    """Ask user to choose production auth mode (Yandex OAuth or no-auth bypass)."""
+    global _PROD_AUTH_MODE
+
+    override = (os.environ.get("B2B_PRODUCTION_AUTH_MODE") or "").strip().lower()
+    if override in ("yandex", "noauth"):
+        _PROD_AUTH_MODE = override
+        _log_system(f"Production auth mode from env: {_PROD_AUTH_MODE}", level="info")
+        return _PROD_AUTH_MODE
+
+    print()
+    print("=" * 58)
+    print("  Production auth mode")
+    print("=" * 58)
+    print("  [1] С аутентификацией через Яндекс OAuth")
+    print("  [2] Без аутентификации (полный доступ Dashboard + ЛК)")
+    print("=" * 58)
+
+    try:
+        raw = input("  Выберите auth режим [1/2] (default=1): ")
+    except Exception:
+        raw = ""
+    choice = str(raw or "").strip()
+
+    if choice == "2":
+        _PROD_AUTH_MODE = "noauth"
+    else:
+        _PROD_AUTH_MODE = "yandex"
+
+    _log_system(f"Production auth mode: {_PROD_AUTH_MODE}", level="info")
+    return _PROD_AUTH_MODE
+
+
 def _detect_vpn_tun() -> Optional[str]:
     """Detect if a VPN TUN adapter (sing-box, Hiddify, etc.) is active."""
     try:
@@ -1196,23 +1253,29 @@ def _wait_tunnel_ready(timeout_sec: int = 30) -> bool:
 
 
 def main() -> int:
-    global _LAUNCH_MODE
+    global _LAUNCH_MODE, _PROD_AUTH_MODE
     _LAUNCH_MODE = ""  # Initialize global variable
+    _PROD_AUTH_MODE = "yandex"
     
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument("--repo-root", dest="repo_root", default=None)
     parser.add_argument("--mode", dest="mode", default=None, choices=["local", "production"])
+    parser.add_argument("--auth-mode", dest="auth_mode", default=None, choices=["yandex", "noauth"])
     args, _ = parser.parse_known_args()
     if args.repo_root:
         os.environ["B2B_REPO_ROOT"] = args.repo_root
     if args.mode:
         os.environ["B2B_LAUNCH_MODE"] = args.mode
+    if args.auth_mode:
+        os.environ["B2B_PRODUCTION_AUTH_MODE"] = args.auth_mode
 
     root = _repo_root()
 
     # Ask user to choose launch mode (local or production)
     launch_mode = _ask_launch_mode()
     is_production = launch_mode == "production"
+    if is_production:
+        _ask_production_auth_mode()
 
     if is_production:
         # Временно отключаем проверку VPN для тестирования режима 2
@@ -1285,6 +1348,11 @@ def main() -> int:
         start_specs: dict[str, dict[str, object]] = {}
         restart_state: dict[str, dict[str, object]] = {}
         health_fail_streak: dict[str, int] = {}
+        service_started_ts: dict[str, float] = {}
+        try:
+            frontend_start_grace_sec = int((os.environ.get("B2B_FRONTEND_START_GRACE_SEC") or "240").strip() or "240")
+        except Exception:
+            frontend_start_grace_sec = 240
         try:
             cdp_timeout_real = int((os.environ.get("B2B_CDP_STARTUP_TIMEOUT") or "60").strip() or "60")
         except Exception:
@@ -1325,6 +1393,7 @@ def main() -> int:
                 env=dict(spec.get("env") or {}),
                 on_line=on_line,
             )
+            service_started_ts[service] = time.time()
             return mp
 
         def _replace_proc(service: str, mp: ManagedProcess) -> None:
@@ -1387,6 +1456,8 @@ def main() -> int:
             # Mode 2: allow Vercel frontend origin + ngrok origins
             extra_origins = f",{MODE2_FRONTEND_URL}"
             backend_env["CORS_ORIGINS"] = backend_env.get("CORS_ORIGINS", "") + extra_origins
+            backend_env["B2B_AUTH_BYPASS"] = "1" if _PROD_AUTH_MODE == "noauth" else "0"
+            backend_env["B2B_PRODUCTION_AUTH_MODE"] = _PROD_AUTH_MODE
         start_specs["BACKEND"] = {
             "args": [backend_py, "-u", _abs("backend", "run_api.py")],
             "cwd": backend_dir,
@@ -1655,6 +1726,13 @@ def main() -> int:
                             # (for example, mass Checko enrichment). Do not restart it based solely
                             # on health probe failures; restart only on real process exit.
                             if svc == "BACKEND":
+                                if svc in dashboard:
+                                    dashboard[svc]["status"] = "STARTING"
+                                    dashboard[svc]["last_error"] = "health check failed (restart suppressed)"
+                                    _print_dashboard(dashboard)
+                                    continue
+
+                            if svc == "FRONTEND":
                                 if svc in dashboard:
                                     dashboard[svc]["status"] = "STARTING"
                                     dashboard[svc]["last_error"] = "health check failed (restart suppressed)"

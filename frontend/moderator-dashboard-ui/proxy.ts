@@ -8,6 +8,15 @@ function isCabinetPath(pathname: string): boolean {
   return pathname === "/cabinet" || pathname.startsWith("/cabinet/")
 }
 
+function isModeratorCabinetPath(pathname: string): boolean {
+  return (
+    pathname === "/moderator" ||
+    pathname.startsWith("/moderator/") ||
+    pathname === "/parsing-runs" ||
+    pathname.startsWith("/parsing-runs/")
+  )
+}
+
 type AuthMeResponse = {
   authenticated?: boolean
   user?: {
@@ -18,9 +27,28 @@ type AuthMeResponse = {
 
 async function getCurrentUser(request: NextRequest) {
   const token = request.cookies.get("auth_token")?.value
-  if (!token) return null
 
-  const backendUrl = `${process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000"}/api/auth/me`
+  const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000"
+
+  // No-auth mode support:
+  // If backend is launched with auth bypass, it will return authenticated=true even without any token.
+  // This makes Vercel frontend + ngrok backend usable without baking NEXT_PUBLIC_AUTH_BYPASS into Vercel env.
+  if (!token) {
+    try {
+      const statusResp = await fetch(`${apiBase}/api/auth/status`, { cache: "no-store" })
+      if (statusResp.ok) {
+        const statusJson = (await statusResp.json().catch(() => null)) as AuthMeResponse | null
+        if (statusJson?.authenticated) {
+          return statusJson.user || { role: "admin", can_access_moderator: true }
+        }
+      }
+    } catch {
+      // ignore and fall through to unauthenticated
+    }
+    return null
+  }
+
+  const backendUrl = `${apiBase}/api/auth/me`
   try {
     const resp = await fetch(backendUrl, {
       headers: {
@@ -46,7 +74,6 @@ export async function proxy(request: NextRequest) {
     // Do not canonicalize localhost/127.0.0.1 in middleware.
     // It breaks local tooling (MCP/browser automation) and can create redirect loops.
   }
-
 
   // Разрешаем публичные пути
   if (publicPaths.some((path) => pathname.startsWith(path))) {

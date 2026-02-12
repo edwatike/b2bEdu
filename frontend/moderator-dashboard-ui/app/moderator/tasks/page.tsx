@@ -7,7 +7,7 @@ import { Navigation } from "@/components/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { UiverseSearchInput } from "@/components/ui/uiverse-search-input"
+import { GlowSearchInput } from "@/components/ui/glow-search-input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Progress } from "@/components/ui/progress"
 import { RefreshCw, Clock, CheckCircle, XCircle, PlayCircle, AlertCircle, Filter } from "lucide-react"
@@ -233,7 +233,7 @@ function ModeratorTasksPage() {
           {/* Фильтры и поиск */}
           <div className="flex flex-col md:flex-row gap-4 mb-6">
             <div className="flex-1 max-w-md">
-              <UiverseSearchInput
+              <GlowSearchInput
                 placeholder="Поиск по названию, ID, ключевым словам..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}

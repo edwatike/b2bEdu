@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { LoadingState } from "@/components/ui/LoadingState"
 import { EmptyState } from "@/components/ui/EmptyState"
 import { Button } from "@/components/ui/button"
-import { UiverseSearchInput } from "@/components/ui/uiverse-search-input"
+import { GlowSearchInput } from "@/components/ui/glow-search-input"
 import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
@@ -424,7 +424,7 @@ function KeywordsContent() {
         <div className="flex gap-3 mb-4">
           <div className="flex-1 flex gap-2">
             <div className="relative flex-1 max-w-xs">
-              <UiverseSearchInput
+              <GlowSearchInput
                 id="search"
                 name="search"
                 placeholder="Поиск..."

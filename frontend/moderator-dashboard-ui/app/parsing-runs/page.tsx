@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { useRouter } from "next/navigation"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { UiverseSearchInput } from "@/components/ui/uiverse-search-input"
+import { GlowSearchInput } from "@/components/ui/glow-search-input"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -134,7 +134,7 @@ function ParsingRunsPage() {
           <Card className="p-4 bg-white/80 backdrop-blur-sm border-purple-100 shadow-sm">
             <div className="flex flex-col lg:flex-row gap-4">
               <div className="flex-1">
-                <UiverseSearchInput
+                <GlowSearchInput
                   id="parsing-search"
                   name="parsing-search"
                   autoComplete="off"

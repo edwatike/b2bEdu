@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
-import { UiverseSearchInput } from "@/components/ui/uiverse-search-input"
+import { GlowSearchInput } from "@/components/ui/glow-search-input"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
@@ -186,11 +186,11 @@ function UsersPage() {
           <CardHeader className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <CardTitle className="text-white">Список пользователей</CardTitle>
             <div className="flex items-center gap-2">
-              <UiverseSearchInput
+              <GlowSearchInput
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Поиск по username/email..."
-                containerClassName="w-72"
+                containerClassName="w-[314px]"
                 className="bg-slate-900 text-white"
               />
               <Button variant="outline" onClick={loadUsers} disabled={loading}>

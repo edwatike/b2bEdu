@@ -12,7 +12,7 @@ import { LoadingState } from "@/components/ui/LoadingState"
 import { EmptyState } from "@/components/ui/EmptyState"
 import { SuppliersTableVirtualized } from "@/components/supplier/SuppliersTableVirtualized"
 import { toast } from "sonner"
-import { UiverseSearchInput } from "@/components/ui/uiverse-search-input"
+import { GlowSearchInput } from "@/components/ui/glow-search-input"
 import { Plus, Building2, AlertTriangle, Search } from "lucide-react"
 
 export function SuppliersClient() {
@@ -148,7 +148,7 @@ export function SuppliersClient() {
 
         {/* Search */}
         <div className="mb-4 max-w-md">
-          <UiverseSearchInput
+          <GlowSearchInput
             placeholder="Поиск по имени, ИНН, домену..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}

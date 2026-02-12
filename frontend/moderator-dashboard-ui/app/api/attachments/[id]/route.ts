@@ -2,8 +2,8 @@ import { type NextRequest, NextResponse } from "next/server"
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000"
 
-export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params
+export async function GET(request: NextRequest, context: { params: Promise<any> }) {
+  const { id } = (await context.params) as { id: string }
   const url = `${API_BASE_URL}/attachments/${encodeURIComponent(id)}`
 
   const headers: Record<string, string> = {

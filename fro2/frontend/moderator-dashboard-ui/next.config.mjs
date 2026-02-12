@@ -10,6 +10,7 @@ const nextConfig = {
   compiler: {
     // ВАЖНО: НЕ удаляем console.log в development для отладки
     removeConsole: false,
+    styledComponents: true,
   },
   // Development optimizations with cache control
   experimental: {

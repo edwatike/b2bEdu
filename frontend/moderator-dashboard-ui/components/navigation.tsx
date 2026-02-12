@@ -5,9 +5,11 @@ import { usePathname, useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import { cn } from "@/lib/utils"
-import { LayoutDashboard, Play, Users, Ban, Key, Settings, Menu, LogOut, User, ListChecks } from "lucide-react"
+import { LayoutDashboard, Play, Users, Ban, Key, Settings, Menu, LogOut, User, ListChecks, Sun, Moon } from "lucide-react"
 import { AnimatedLogo } from "./animated-logo"
 import { toast } from "sonner"
+import { Button } from "@/components/ui/button"
+import { useTheme } from "next-themes"
 
 const navItems = [
   { href: "/moderator", label: "Дашборд", icon: LayoutDashboard, color: "from-blue-600 to-purple-600" },
@@ -25,6 +27,8 @@ export function Navigation() {
   const router = useRouter()
   const [role, setRole] = useState<string | null>(null)
   const [canAccessModerator, setCanAccessModerator] = useState(false)
+  const { theme, setTheme } = useTheme()
+  const [themeMounted, setThemeMounted] = useState(false)
 
   useEffect(() => {
     let mounted = true
@@ -50,6 +54,10 @@ export function Navigation() {
     return () => {
       mounted = false
     }
+  }, [])
+
+  useEffect(() => {
+    setThemeMounted(true)
   }, [])
 
   async function handleLogout() {
@@ -124,6 +132,22 @@ export function Navigation() {
 
           {/* Temporary toggle to user cabinet */}
           <motion.div className="hidden md:flex items-center gap-2">
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                aria-label="Переключить тему"
+                title="Переключить тему"
+                onClick={() => {
+                  const next = (theme === "dark") ? "light" : "dark"
+                  setTheme(next)
+                }}
+                disabled={!themeMounted}
+              >
+                {themeMounted && theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              </Button>
+            </motion.div>
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
               {canAccessModerator ? (
                 <Link

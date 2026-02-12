@@ -38,7 +38,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { UiverseSearchInput } from "@/components/ui/uiverse-search-input"
+import { GlowSearchInput } from "@/components/ui/glow-search-input"
 import { colors, statusColors } from "@/lib/design-system"
 import type { ParsingRunDTO } from "@/lib/types"
 
@@ -254,8 +254,8 @@ export function ParsingRunsTable({ runs }: ParsingRunsTableProps) {
               </TabsList>
             </Tabs>
 
-            <div className="w-full md:w-64">
-              <UiverseSearchInput
+            <div className="w-full md:max-w-[314px]">
+              <GlowSearchInput
                 placeholder="Поиск по ключевому слову..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}

@@ -3,7 +3,7 @@ import { cookies } from "next/headers"
 
 export async function GET(_request: Request, context: { params: Promise<{ id: string }> }) {
   try {
-    const { id } = await context.params
+    const { id } = (await context.params) as { id: string }
 
     const cookieStore = await cookies()
     const access = cookieStore.get("yandex_oauth_access")?.value

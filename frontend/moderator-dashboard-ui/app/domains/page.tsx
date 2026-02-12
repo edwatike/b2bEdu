@@ -9,7 +9,7 @@ import { PageShell } from "@/components/ui/PageShell"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
-import { UiverseSearchInput } from "@/components/ui/uiverse-search-input"
+import { GlowSearchInput } from "@/components/ui/glow-search-input"
 import { Badge } from "@/components/ui/badge"
 import { addToBlacklist, clearPendingDomains, enrichPendingDomain, getPendingDomains, startDomainParserBatch, getDomainHistory, learnManualInn, type DomainLogEntry } from "@/lib/api"
 import { extractRootDomain } from "@/lib/utils-domain"
@@ -360,8 +360,8 @@ function PendingDomainsPageInner() {
         gradientTo="to-teal-600"
         actions={
           <div className="flex items-center gap-2">
-            <div className="w-64">
-              <UiverseSearchInput
+            <div className="w-full max-w-[314px]">
+              <GlowSearchInput
                 placeholder="Поиск домена..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}

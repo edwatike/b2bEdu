@@ -4,7 +4,7 @@ import dynamic from "next/dynamic"
 import { Loader2 } from "lucide-react"
 import type { SupplierDTO } from "@/lib/types"
 
-const SupplierCardImpl = dynamic(() => import("../supplier-card").then(mod => ({ default: mod.SupplierCard })), {
+const SupplierCardImpl = dynamic(() => import("../company-card/supplier-company-card").then(mod => ({ default: mod.SupplierCompanyCard })), {
   loading: () => (
     <div className="flex items-center justify-center h-64">
       <Loader2 className="h-8 w-8 animate-spin" />

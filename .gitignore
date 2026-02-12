@@ -96,6 +96,12 @@ frontend/moderator-dashboard-ui/test-results/
 
 # Large/binary exports (keep out of git)
 *.exe
+*.exe.bak
+*.exe.bak*
 *.pdf
 *.png
 .venv_clean/
+
+# Accidental files with spaces/shell fragments
+devserver.*.log*
+devserver.err.log*

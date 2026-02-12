@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { FlinstonesProgressBar } from "@/components/flintstones-wheel"
 import { SupplierIcon } from "@/components/supplier-icon"
 import { Checkbox } from "@/components/ui/checkbox"
-import { UiverseSearchInput } from "@/components/ui/uiverse-search-input"
+import { GlowSearchInput } from "@/components/ui/glow-search-input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
@@ -22,7 +22,6 @@ import {
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Progress } from "@/components/ui/progress"
 import { Navigation } from "@/components/navigation"
 import { CheckoInfoDialog } from "@/components/checko-info-dialog"
@@ -141,8 +140,8 @@ function ParsingRunDetailsPage() {
     existingSupplierEmails?: string[]
   } | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
-  const [sortBy, setSortBy] = useState<"domain" | "urls">("urls")
   const [filterStatus, setFilterStatus] = useState<"all" | "supplier" | "reseller" | "needs_moderation">("all")
+  const [filterMenuOpen, setFilterMenuOpen] = useState(false)
   const [parsingLogs, setParsingLogs] = useState<{
     google?: {
       total_links: number
@@ -948,11 +947,9 @@ function ParsingRunDetailsPage() {
 
       // Сортировка
       grouped = grouped.sort((a, b) => {
-        if (sortBy === "urls") {
-          return b.totalUrls - a.totalUrls // По убыванию количества URL
-        } else {
-          return a.domain.localeCompare(b.domain) // По алфавиту
-        }
+        const byUrls = b.totalUrls - a.totalUrls
+        if (byUrls !== 0) return byUrls
+        return a.domain.localeCompare(b.domain)
       })
 
       setGroups(grouped)
@@ -1359,7 +1356,7 @@ function ParsingRunDetailsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-purple-50/30">
+      <div className="min-h-screen bg-gradient-to-br from-background to-muted/30">
         <Navigation />
         <motion.main
           initial={{ opacity: 0 }}
@@ -1385,7 +1382,7 @@ function ParsingRunDetailsPage() {
 
   if (!run) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-red-50/30">
+      <div className="min-h-screen bg-gradient-to-br from-background to-muted/30">
         <Navigation />
         <motion.main
           initial={{ opacity: 0 }}
@@ -1629,7 +1626,7 @@ function ParsingRunDetailsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-purple-50/30">
+    <div className="min-h-screen bg-gradient-to-br from-background to-muted/30">
       <Navigation />
 
       <motion.main
@@ -2020,74 +2017,120 @@ function ParsingRunDetailsPage() {
                 </div>
               )}
               {/* Фильтры и поиск */}
-              <div className="flex gap-2 flex-wrap items-center">
-                <div className="flex-1 min-w-[200px]">
-                  <UiverseSearchInput
-                    placeholder="Поиск по домену..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    containerClassName="w-full"
-                  />
+              <div className="w-full space-y-2">
+                <div className="flex w-full items-center gap-3">
+                  <div className="min-w-0 flex-1">
+                    <GlowSearchInput
+                      placeholder=""
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      containerClassName="w-full min-w-0"
+                      filterOpen={filterMenuOpen}
+                      onFilterOpenChange={setFilterMenuOpen}
+                      filterContent={
+                        <div className="rounded-md border border-border bg-popover text-popover-foreground shadow-md p-1">
+                          <button
+                            type="button"
+                            className={
+                              filterStatus === "all"
+                                ? "w-full text-left text-xs px-2 py-1.5 rounded bg-accent text-accent-foreground"
+                                : "w-full text-left text-xs px-2 py-1.5 rounded hover:bg-accent/50"
+                            }
+                            onClick={() => {
+                              setFilterStatus("all")
+                              setFilterMenuOpen(false)
+                            }}
+                          >
+                            Все домены
+                          </button>
+                          <button
+                            type="button"
+                            className={
+                              filterStatus === "supplier"
+                                ? "w-full text-left text-xs px-2 py-1.5 rounded bg-accent text-accent-foreground"
+                                : "w-full text-left text-xs px-2 py-1.5 rounded hover:bg-accent/50"
+                            }
+                            onClick={() => {
+                              setFilterStatus("supplier")
+                              setFilterMenuOpen(false)
+                            }}
+                          >
+                            Поставщики
+                          </button>
+                          <button
+                            type="button"
+                            className={
+                              filterStatus === "reseller"
+                                ? "w-full text-left text-xs px-2 py-1.5 rounded bg-accent text-accent-foreground"
+                                : "w-full text-left text-xs px-2 py-1.5 rounded hover:bg-accent/50"
+                            }
+                            onClick={() => {
+                              setFilterStatus("reseller")
+                              setFilterMenuOpen(false)
+                            }}
+                          >
+                            Ресселеры
+                          </button>
+                          <button
+                            type="button"
+                            className={
+                              filterStatus === "needs_moderation"
+                                ? "w-full text-left text-xs px-2 py-1.5 rounded bg-accent text-accent-foreground"
+                                : "w-full text-left text-xs px-2 py-1.5 rounded hover:bg-accent/50"
+                            }
+                            onClick={() => {
+                              setFilterStatus("needs_moderation")
+                              setFilterMenuOpen(false)
+                            }}
+                          >
+                            Требуют модерации
+                          </button>
+                        </div>
+                      }
+                    />
+                  </div>
+
+                  <div className="shrink-0 rounded-[0.9em] bg-[linear-gradient(90deg,#03a9f4,#f441a5)] p-[3px] transition-all duration-300 hover:shadow-[0_0_20px_rgba(244,65,165,0.45)]">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const allVisible = groups.filter((group) => {
+                          if (searchQuery && !group.domain.toLowerCase().includes(searchQuery.toLowerCase())) return false
+                          if (filterStatus === "supplier" && group.supplierType !== "supplier") return false
+                          if (filterStatus === "reseller" && group.supplierType !== "reseller") return false
+                          if (filterStatus === "needs_moderation" && group.supplierType !== "needs_moderation") return false
+                          return true
+                        })
+                        const allSelected = allVisible.length > 0 && allVisible.every((g) => selectedDomains.has(g.domain))
+                        if (allSelected) {
+                          setSelectedDomains(new Set())
+                        } else {
+                          setSelectedDomains(new Set(allVisible.map((g) => g.domain)))
+                        }
+                      }}
+                      className="min-h-[56px] rounded-[0.5em] border-0 bg-black px-4 text-sm font-semibold text-white shadow-[2px_2px_3px_#000000b4] cursor-pointer"
+                    >
+                      {(() => {
+                        const allVisible = groups.filter((group) => {
+                          if (searchQuery && !group.domain.toLowerCase().includes(searchQuery.toLowerCase())) return false
+                          if (filterStatus === "supplier" && group.supplierType !== "supplier") return false
+                          if (filterStatus === "reseller" && group.supplierType !== "reseller") return false
+                          if (filterStatus === "needs_moderation" && group.supplierType !== "needs_moderation") return false
+                          return true
+                        })
+                        const allSelected = allVisible.length > 0 && allVisible.every((g) => selectedDomains.has(g.domain))
+                        return allSelected ? "Отменить все" : `Выбрать все (${allVisible.length})`
+                      })()}
+                    </button>
+                  </div>
                 </div>
-                <Select value={sortBy} onValueChange={(value: "domain" | "urls") => setSortBy(value)}>
-                  <SelectTrigger className="w-[180px] border-purple-300 focus:border-purple-500">
-                    <SelectValue placeholder="Сортировка" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="urls">По количеству URL</SelectItem>
-                    <SelectItem value="domain">По алфавиту</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select
-                  value={filterStatus}
-                  onValueChange={(value: "all" | "supplier" | "reseller" | "needs_moderation") => setFilterStatus(value)}
-                >
-                  <SelectTrigger className="w-[180px] border-purple-300 focus:border-purple-500">
-                    <SelectValue placeholder="Фильтр" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Все домены</SelectItem>
-                    <SelectItem value="supplier">Только поставщики</SelectItem>
-                    <SelectItem value="reseller">Только реселлеры</SelectItem>
-                    <SelectItem value="needs_moderation">Требуют модерации</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    const allVisible = groups.filter((group) => {
-                      if (searchQuery && !group.domain.toLowerCase().includes(searchQuery.toLowerCase())) return false
-                      if (filterStatus === "supplier" && group.supplierType !== "supplier") return false
-                      if (filterStatus === "reseller" && group.supplierType !== "reseller") return false
-                      if (filterStatus === "needs_moderation" && group.supplierType !== "needs_moderation") return false
-                      return true
-                    })
-                    const allSelected = allVisible.length > 0 && allVisible.every(g => selectedDomains.has(g.domain))
-                    if (allSelected) {
-                      setSelectedDomains(new Set())
-                    } else {
-                      setSelectedDomains(new Set(allVisible.map(g => g.domain)))
-                    }
-                  }}
-                  className="h-8 text-xs border-purple-300 text-purple-700 hover:bg-purple-50 bg-transparent"
-                >
-                  {(() => {
-                    const allVisible = groups.filter((group) => {
-                      if (searchQuery && !group.domain.toLowerCase().includes(searchQuery.toLowerCase())) return false
-                      if (filterStatus === "supplier" && group.supplierType !== "supplier") return false
-                      if (filterStatus === "reseller" && group.supplierType !== "reseller") return false
-                      if (filterStatus === "needs_moderation" && group.supplierType !== "needs_moderation") return false
-                      return true
-                    })
-                    const allSelected = allVisible.length > 0 && allVisible.every(g => selectedDomains.has(g.domain))
-                    return allSelected ? "Отменить все" : `Выбрать все (${allVisible.length})`
-                  })()}
-                </Button>
+
                 {selectedDomains.size > 0 && (
-                  <Badge variant="outline" className="bg-purple-50 border-purple-200 text-purple-700">
-                    Выбрано: {selectedDomains.size}
-                  </Badge>
+                  <div className="flex justify-end">
+                    <Badge variant="outline" className="bg-accent/30 border-border text-foreground">
+                      Выбрано: {selectedDomains.size}
+                    </Badge>
+                  </div>
                 )}
               </div>
             </CardHeader>
@@ -2123,7 +2166,7 @@ function ParsingRunDetailsPage() {
 
                 return (
                   <div className="w-full">
-                    <div className="border rounded-md overflow-hidden">
+                    <div className="relative overflow-hidden rounded-md border border-border bg-card">
                       {(() => {
                         const logGroups = filteredGroups
                         const withInn = logGroups.filter((g) => !!g.inn)
@@ -2131,8 +2174,8 @@ function ParsingRunDetailsPage() {
                         const noData = logGroups.filter((g) => !g.inn && (!g.emails || g.emails.length === 0) && !(((g as any).extractionLog || []).some((e: any) => !!e.error)))
 
                         return (
-                          <div className="flex items-center gap-3 px-3 py-2 bg-slate-50 border-b flex-wrap">
-                            <span className="font-semibold text-sm">Лог извлечения</span>
+                          <div className="flex items-center gap-3 border-b border-border bg-muted/35 px-3 py-2 flex-wrap">
+                            <span className="text-sm font-semibold text-foreground">Лог извлечения</span>
                             <div className="flex gap-1.5 text-xs">
                               {withInn.length > 0 && (
                                 <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">ИНН: {withInn.length}</Badge>
@@ -2149,8 +2192,8 @@ function ParsingRunDetailsPage() {
                       })()}
 
                       <table className="w-full text-xs">
-                        <thead className="bg-white">
-                          <tr className="border-b">
+                        <thead className="bg-card">
+                          <tr className="border-b border-border">
                             <th className="py-2 px-2 w-8">
                               <Checkbox
                                 checked={filteredGroups.length > 0 && filteredGroups.every((g) => selectedDomains.has(g.domain))}
@@ -2164,11 +2207,11 @@ function ParsingRunDetailsPage() {
                                 }}
                               />
                             </th>
-                            <th className="text-left py-2 px-3 font-semibold text-slate-600">Домен</th>
-                            <th className="text-left py-2 px-3 font-semibold text-slate-600">ИНН</th>
-                            <th className="text-left py-2 px-3 font-semibold text-slate-600">Email</th>
-                            <th className="text-left py-2 px-3 font-semibold text-slate-600">Источник</th>
-                            <th className="text-left py-2 px-3 font-semibold text-slate-600">Результат</th>
+                            <th className="px-3 py-2 text-left font-semibold text-muted-foreground">Домен</th>
+                            <th className="px-3 py-2 text-left font-semibold text-muted-foreground">ИНН</th>
+                            <th className="px-3 py-2 text-left font-semibold text-muted-foreground">Email</th>
+                            <th className="px-3 py-2 text-left font-semibold text-muted-foreground">Источник</th>
+                            <th className="px-3 py-2 text-right font-semibold text-muted-foreground">Результат</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -2191,7 +2234,7 @@ function ParsingRunDetailsPage() {
                             const isExistingSupplier = g.supplierType === "supplier" && g.supplierId
                             const isUnprocessed = !hasParserResult && !g.inn && (!g.emails || g.emails.length === 0) && !((extLog || []).some((e) => !!e.error))
                             const resultLabel = isExistingSupplier
-                              ? "Поставщик"
+                              ? "supplier_icon"
                               : isUnprocessed
                                 ? "не обработан"
                                 : g.inn
@@ -2219,20 +2262,7 @@ function ParsingRunDetailsPage() {
                               return `${Math.round(ms)}ms`
                             })()
 
-                            const supplierBadge = g.supplierType === "supplier" ? (
-                              <button
-                                type="button"
-                                className="inline-flex items-center gap-1"
-                                onClick={() => {
-                                  if (g.supplierId) router.push(`/suppliers/${g.supplierId}`)
-                                }}
-                              >
-                                <SupplierIcon />
-                                <Badge variant="outline" className={g.hasChecko ? "border-emerald-200 text-emerald-700" : "border-amber-200 text-amber-700"}>
-                                  {g.hasChecko ? "Checko" : "без Checko"}
-                                </Badge>
-                              </button>
-                            ) : g.supplierType === "reseller" ? (
+                            const supplierBadge = g.supplierType === "reseller" ? (
                               <button
                                 type="button"
                                 onClick={() => {
@@ -2248,12 +2278,12 @@ function ParsingRunDetailsPage() {
                               >
                                 <Badge className="bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100">Требует модерации</Badge>
                               </button>
-                            ) : (
+                            ) : g.supplierType === "supplier" ? null : (
                               <Badge variant="outline">Новый</Badge>
                             )
 
                             return (
-                              <tr key={g.domain} className={`border-b border-slate-100 ${selectedDomains.has(g.domain) ? "bg-purple-50/60" : idx % 2 === 0 ? "bg-white" : "bg-slate-50/50"}`}>
+                              <tr key={g.domain} className={`border-b border-border ${selectedDomains.has(g.domain) ? "bg-accent/35" : idx % 2 === 0 ? "bg-card" : "bg-muted/15"}`}>
                                 <td className="py-1.5 px-2 w-8">
                                   <Checkbox
                                     checked={selectedDomains.has(g.domain)}
@@ -2436,9 +2466,24 @@ function ParsingRunDetailsPage() {
                                 </td>
 
 
-                                <td className="py-1.5 px-3">
-                                  <div className="flex flex-col">
-                                    <span className={resultClass}>{resultLabel}</span>
+                                <td className="py-1.5 px-3 text-right">
+                                  <div className="flex flex-col items-end">
+                                    {resultLabel === "supplier_icon" ? (
+                                      <button
+                                        type="button"
+                                        title={g.supplierId ? "Открыть карточку поставщика" : "Поставщик"}
+                                        aria-label="Поставщик"
+                                        disabled={!g.supplierId}
+                                        onClick={() => {
+                                          if (g.supplierId) router.push(`/suppliers/${g.supplierId}`)
+                                        }}
+                                        className="inline-flex items-center justify-center rounded-full p-0.5 transition-all duration-200 hover:scale-105 hover:shadow-sm hover:ring-2 hover:ring-ring/35 disabled:cursor-default disabled:opacity-70 disabled:hover:scale-100 disabled:hover:shadow-none disabled:hover:ring-0"
+                                      >
+                                        <SupplierIcon />
+                                      </button>
+                                    ) : (
+                                      <span className={resultClass}>{resultLabel}</span>
+                                    )}
                                     {(strategyUsed || strategyTimeLabel) && (
                                       <span className="text-[10px] text-slate-400">
                                         {strategyUsed ? `🧩 ${strategyUsed}` : null}

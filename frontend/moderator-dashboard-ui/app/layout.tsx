@@ -3,6 +3,7 @@ import "./globals.css"
 import { Toaster } from "sonner"
 import { WebVitalsMonitor } from "../components/web-vitals-monitor"
 import { QueryProvider } from "../components/query-provider"
+import { ThemeProvider } from "../components/theme-provider"
 
 export const metadata: Metadata = {
   title: "B2B Platform - Moderator Dashboard",
@@ -26,11 +27,13 @@ export default function RootLayout({
   return (
     <html lang="ru" suppressHydrationWarning>
       <body>
-        <QueryProvider>
-          {children}
-          <Toaster position="top-right" />
-          <WebVitalsMonitor />
-        </QueryProvider>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          <QueryProvider>
+            {children}
+            <Toaster position="top-right" />
+            <WebVitalsMonitor />
+          </QueryProvider>
+        </ThemeProvider>
       </body>
     </html>
   )
